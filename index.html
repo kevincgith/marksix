@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>We're Winning HK$228,000,000 🎉</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #1c1d21;
+    --muted: #6b7280;
+    --border: #e3e5e9;
+    --accent: #b3121d;
+    --accent-soft: #fdecec;
+    --hit: #1f9d55;
+    --hit-soft: #e6f6ec;
+    --special: #d98200;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a;
+      --card: #1f2126;
+      --text: #e8e9ec;
+      --muted: #9aa0aa;
+      --border: #2e3138;
+      --accent: #ef4a54;
+      --accent-soft: #3a1e20;
+      --hit: #3ecf7a;
+      --hit-soft: #1c3226;
+      --special: #f2a53c;
+      --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1rem 4rem;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang HK", "Microsoft JhengHei", sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 2rem; }
+  .kicker {
+    text-transform: uppercase;
+    letter-spacing: .18em;
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0 0 .5rem;
+  }
+  h1 {
+    margin: 0 0 .4rem;
+    font-size: 2rem;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+  }
+  h1 .amount {
+    display: block;
+    font-size: 2.9rem;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  header p { margin: .5rem 0 0; color: var(--muted); font-size: .95rem; }
+  @media (max-width: 480px) {
+    h1 { font-size: 1.6rem; }
+    h1 .amount { font-size: 2.1rem; }
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem 1.25rem 1.4rem;
+    margin-bottom: 1.25rem;
+    box-shadow: var(--shadow);
+  }
+  .card h2 {
+    margin: 0 0 .15rem;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+    flex-wrap: wrap;
+  }
+  .card h2 .tag {
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    letter-spacing: .02em;
+  }
+  .sub { color: var(--muted); font-size: .85rem; margin: 0 0 .9rem; }
+  .balls { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .ball {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 1rem;
+    background: var(--accent);
+    color: #fff;
+    border: 2px solid transparent;
+    font-variant-numeric: tabular-nums;
+  }
+  .ball.hit { background: var(--hit); color: #fff; box-shadow: 0 0 0 3px var(--hit-soft); }
+
+  /* ---- slots ---- */
+  .slots { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: 1rem; }
+  .slot {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    display: grid; place-items: center;
+    font-size: 1.15rem; font-weight: 700;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .slot.filled { color: #fff; background: var(--accent); border-color: transparent; }
+  .slot.special.filled { background: var(--special); }
+  .slot-label { display: block; text-align: center; font-size: .72rem; color: var(--muted); margin-top: .25rem; }
+  .slots .field { display: flex; flex-direction: column; }
+  .slots .plus { color: var(--muted); font-weight: 700; font-size: 1.2rem; padding: 0 .1rem; align-self: flex-start; margin-top: .7rem; }
+
+  /* ---- 1-49 grid ---- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: .5rem;
+    margin-bottom: 1rem;
+  }
+  .grid button {
+    appearance: none;
+    aspect-ratio: 1 / 1;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 1.15rem;
+    font-weight: 650;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    transition: transform .05s ease, background .1s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .grid button:hover { border-color: var(--accent); }
+  .grid button:active { transform: scale(.94); }
+  .grid button.pick { background: var(--accent); color: #fff; border-color: transparent; }
+  .grid button.pick.special { background: var(--special); }
+  @media (max-width: 560px) {
+    .grid { gap: .4rem; }
+    .grid button { font-size: 1rem; border-radius: 10px; }
+  }
+
+  .row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+  button.action {
+    appearance: none; border: none;
+    background: var(--accent); color: #fff;
+    font-size: .95rem; font-weight: 650;
+    padding: .6rem 1.2rem; border-radius: 10px; cursor: pointer;
+  }
+  button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  button.action:active { transform: translateY(1px); }
+  .err { color: var(--accent); font-size: .85rem; margin: .6rem 0 0; min-height: 1.2em; }
+
+  .result { margin-top: 1.2rem; display: none; }
+  .result.show { display: block; }
+  .result h3 { margin: 1rem 0 .4rem; font-size: .95rem; }
+  .summary { font-size: .9rem; color: var(--muted); margin: 0 0 .6rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.win td { color: var(--hit); font-weight: 650; }
+  .none { color: var(--muted); font-style: italic; font-size: .9rem; }
+  footer { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 2rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">Mark Six 六合彩 · Snowball 金多寶 · Draw 5 Sep 2026</p>
+    <h1>We are <span style="white-space:nowrap">GOING to WIN</span><span class="amount">HK$228,000,000</span></h1>
+    <p>Two 8-number compound bets · 56 combinations working for us · 🎉 see you at the payout counter</p>
+  </header>
+
+  <section class="card" id="bets"></section>
+
+  <section class="card">
+    <h2>Check a draw</h2>
+    <p class="sub">Tap 6 numbers for the draw, then 1 more for the special. Tap again to remove.</p>
+
+    <div class="slots" id="slots"></div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="row">
+      <button class="action" id="checkBtn">Check</button>
+      <button class="ghost action" id="clearBtn" type="button">Clear</button>
+    </div>
+    <p class="err" id="err"></p>
+
+    <div class="result" id="result"></div>
+  </section>
+
+  <section class="card">
+    <h2>Prize tiers</h2>
+    <p class="sub">A single entry matches 6 of the 49 numbers. The special number only counts for the 2nd, 4th and 6th divisions.</p>
+    <table>
+      <thead><tr><th>Division</th><th>Match</th></tr></thead>
+      <tbody>
+        <tr><td>1st</td><td>6 numbers</td></tr>
+        <tr><td>2nd</td><td>5 numbers + special</td></tr>
+        <tr><td>3rd</td><td>5 numbers</td></tr>
+        <tr><td>4th</td><td>4 numbers + special</td></tr>
+        <tr><td>5th</td><td>4 numbers</td></tr>
+        <tr><td>6th</td><td>3 numbers + special</td></tr>
+        <tr><td>7th</td><td>3 numbers</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>Static page · not affiliated with the HKJC · for personal tracking only.</footer>
+</div>
+
+<script>
+  const BETS = [
+    { name: "Bet 1", nums: [1, 9, 17, 22, 28, 32, 36, 46] },
+    { name: "Bet 2", nums: [3, 12, 14, 30, 34, 37, 38, 47] },
+  ];
+  const DIVISIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th"];
+  const MAIN_COUNT = 6;
+  const TOTAL_PICKS = 7;
+
+  let picks = []; // tap order; first 6 = mains, 7th = special
+
+  // ---------- bets ----------
+  const betsEl = document.getElementById("bets");
+  function renderBets(hits) {
+    betsEl.innerHTML = "";
+    BETS.forEach((bet, idx) => {
+      const h2 = document.createElement("h2");
+      h2.innerHTML = `${bet.name} <span class="tag">複式 · 8 numbers · 28 combos</span>`;
+      const p = document.createElement("p");
+      p.className = "sub";
+      p.textContent = "All C(8,6) = 28 six-number combinations are covered.";
+      const balls = document.createElement("div");
+      balls.className = "balls";
+      bet.nums.forEach(n => {
+        const b = document.createElement("div");
+        b.className = "ball" + (hits && hits[idx] && hits[idx].main.has(n) ? " hit" : "");
+        b.textContent = n;
+        balls.appendChild(b);
+      });
+      betsEl.append(h2, p, balls);
+      if (idx === 0) betsEl.appendChild(Object.assign(document.createElement("div"), { style: "height:1.4rem" }));
+    });
+  }
+
+  // ---------- slots ----------
+  const slotsEl = document.getElementById("slots");
+  function renderSlots() {
+    slotsEl.innerHTML = "";
+    for (let i = 0; i < TOTAL_PICKS; i++) {
+      if (i === MAIN_COUNT) {
+        const plus = document.createElement("span");
+        plus.className = "plus";
+        plus.textContent = "+";
+        slotsEl.appendChild(plus);
+      }
+      const isSpecial = i === MAIN_COUNT;
+      const field = document.createElement("div");
+      field.className = "field";
+      const slot = document.createElement("div");
+      slot.className = "slot" + (isSpecial ? " special" : "") + (picks[i] != null ? " filled" : "");
+      slot.textContent = picks[i] != null ? picks[i] : "";
+      const label = document.createElement("span");
+      label.className = "slot-label";
+      label.textContent = isSpecial ? "Special" : String(i + 1);
+      field.append(slot, label);
+      slotsEl.appendChild(field);
+    }
+  }
+
+  // ---------- 1-49 grid ----------
+  const gridEl = document.getElementById("grid");
+  const cells = [];
+  for (let n = 1; n <= 49; n++) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = n;
+    btn.dataset.n = n;
+    btn.addEventListener("click", () => toggle(n));
+    gridEl.appendChild(btn);
+    cells[n] = btn;
+  }
+  function refreshGrid() {
+    for (let n = 1; n <= 49; n++) {
+      const pos = picks.indexOf(n);
+      cells[n].classList.toggle("pick", pos !== -1);
+      cells[n].classList.toggle("special", pos === MAIN_COUNT);
+    }
+  }
+
+  function toggle(n) {
+    const pos = picks.indexOf(n);
+    if (pos !== -1) {
+      picks.splice(pos, 1);
+    } else if (picks.length < TOTAL_PICKS) {
+      picks.push(n);
+    } else {
+      flash("Tap an existing number to remove it first.");
+      return;
+    }
+    errEl.textContent = "";
+    resultEl.className = "result";
+    resultEl.innerHTML = "";
+    renderBets(null);
+    renderSlots();
+    refreshGrid();
+    if (picks.length === TOTAL_PICKS) check();
+  }
+
+  const errEl = document.getElementById("err");
+  const resultEl = document.getElementById("result");
+  let flashTimer;
+  function flash(msg) {
+    errEl.textContent = msg;
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { if (errEl.textContent === msg) errEl.textContent = ""; }, 2500);
+  }
+
+  document.getElementById("clearBtn").addEventListener("click", () => {
+    picks = [];
+    errEl.textContent = "";
+    resultEl.className = "result";
+    resultEl.innerHTML = "";
+    renderBets(null);
+    renderSlots();
+    refreshGrid();
+  });
+  document.getElementById("checkBtn").addEventListener("click", check);
+
+  // ---------- combinatorics ----------
+  function combos6(arr) {
+    const res = [], n = arr.length;
+    for (let a = 0; a < n; a++)
+    for (let b = a + 1; b < n; b++)
+    for (let c = b + 1; c < n; c++)
+    for (let d = c + 1; d < n; d++)
+    for (let e = d + 1; e < n; e++)
+    for (let f = e + 1; f < n; f++)
+      res.push([arr[a], arr[b], arr[c], arr[d], arr[e], arr[f]]);
+    return res;
+  }
+  function divisionFor(combo, mainSet, special) {
+    let m = 0, hasSpecial = false;
+    for (const x of combo) {
+      if (mainSet.has(x)) m++;
+      if (x === special) hasSpecial = true;
+    }
+    if (m === 6) return 0;
+    if (m === 5) return hasSpecial ? 1 : 2;
+    if (m === 4) return hasSpecial ? 3 : 4;
+    if (m === 3) return hasSpecial ? 5 : 6;
+    return -1;
+  }
+
+  // ---------- check ----------
+  function check() {
+    if (picks.length !== TOTAL_PICKS) { flash(`Pick ${TOTAL_PICKS - picks.length} more number(s).`); return; }
+    errEl.textContent = "";
+    const mains = picks.slice(0, MAIN_COUNT);
+    const special = picks[MAIN_COUNT];
+    const mainSet = new Set(mains);
+
+    const hits = BETS.map(bet => {
+      const main = new Set(bet.nums.filter(n => mainSet.has(n)));
+      const specialHit = bet.nums.includes(special);
+      const counts = [0, 0, 0, 0, 0, 0, 0];
+      let winning = 0;
+      combos6(bet.nums).forEach(c => {
+        const d = divisionFor(c, mainSet, special);
+        if (d >= 0) { counts[d]++; winning++; }
+      });
+      return { main, specialHit, counts, winning };
+    });
+
+    renderBets(hits);
+    renderResult(mains, special, hits);
+  }
+
+  function renderResult(mains, special, hits) {
+    let html = `<p class="summary">Draw: <strong>${mains.slice().sort((a,b)=>a-b).join(", ")}</strong> + special <strong>${special}</strong></p>`;
+    BETS.forEach((bet, idx) => {
+      const h = hits[idx];
+      const matched = [...h.main].sort((a, b) => a - b);
+      html += `<h3>${bet.name}</h3>`;
+      html += `<p class="summary">Matched ${matched.length}/8 drawn number${matched.length === 1 ? "" : "s"}` +
+              `${matched.length ? " (" + matched.join(", ") + ")" : ""}` +
+              `${h.specialHit ? " · special ✓" : ""} · ` +
+              `${h.winning} of 28 combinations win a prize.</p>`;
+      if (h.winning === 0) {
+        html += `<p class="none">No winning combinations.</p>`;
+      } else {
+        html += `<table><thead><tr><th>Division</th><th>Winning combinations</th></tr></thead><tbody>`;
+        h.counts.forEach((c, d) => {
+          if (c > 0) html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n">${c}</td></tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+    });
+    resultEl.innerHTML = html;
+    resultEl.className = "result show";
+  }
+
+  // ---------- init ----------
+  renderBets(null);
+  renderSlots();
+  refreshGrid();
+</script>
+</body>
+</html>
