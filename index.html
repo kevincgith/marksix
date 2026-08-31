@@ -101,12 +101,16 @@
     letter-spacing: .02em;
   }
   .sub { color: var(--muted); font-size: .85rem; margin: 0 0 .9rem; }
-  .balls { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .balls { display: flex; flex-wrap: nowrap; gap: .4rem; margin-top: .7rem; }
   .ball {
-    width: 42px; height: 42px;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 46px;
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
     display: grid; place-items: center;
-    font-weight: 700; font-size: 1rem;
+    font-weight: 700;
+    font-size: clamp(.72rem, 3.3vw, 1rem);
     background: var(--ball-red);
     color: var(--ball-ink);
     border: 2px solid transparent;
@@ -115,7 +119,7 @@
   .ball.red { background: var(--ball-red); }
   .ball.blue { background: var(--ball-blue); }
   .ball.green { background: var(--ball-green); }
-  .ball.hit { outline: 3px solid #f5b301; outline-offset: 2px; box-shadow: 0 0 0 7px var(--hit-soft); }
+  .ball.hit { outline: 3px solid #f5b301; outline-offset: 1px; box-shadow: 0 0 0 4px var(--hit-soft); }
 
   /* ---- slots ---- */
   .slots { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: 1rem; }
@@ -195,7 +199,62 @@
   td.n { text-align: right; font-variant-numeric: tabular-nums; }
   tr.win td { color: var(--hit); font-weight: 650; }
   .none { color: var(--muted); font-style: italic; font-size: .9rem; }
+  th.n { text-align: right; }
+  @media (max-width: 420px) {
+    .result table { font-size: .8rem; }
+    .result th, .result td { padding: .35rem .3rem; }
+  }
   footer { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 2rem; }
+
+  /* ---- easter egg: 1st–3rd division hit ---- */
+  .egg {
+    position: fixed; inset: 0; z-index: 999;
+    display: grid; place-items: center;
+    padding: 1.5rem;
+    text-align: center;
+    background: rgba(8, 4, 4, .82);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    cursor: pointer;
+    animation: eggFlash .5s ease-out;
+    overflow: hidden;
+  }
+  .egg[hidden] { display: none; }
+  .egg .egg-inner { position: relative; z-index: 2; max-width: 520px; }
+  .egg .swear {
+    font-size: clamp(2.4rem, 12vw, 5rem);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -.02em;
+    color: #ffd21f;
+    text-shadow: 0 3px 0 #b3121d, 0 0 30px rgba(255,210,31,.6);
+    animation: eggShake .5s ease-in-out 3;
+  }
+  .egg .egg-div {
+    margin-top: .6rem;
+    font-size: clamp(1.1rem, 5vw, 1.7rem);
+    font-weight: 800;
+    color: #fff;
+  }
+  .egg .egg-sub { margin-top: 1rem; color: #f3d9d9; font-size: .95rem; }
+  .egg .egg-hint { margin-top: 1.4rem; color: #b9a9a9; font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; }
+  .egg .conf {
+    position: absolute; top: -10vh; font-size: 1.8rem;
+    animation: eggFall linear forwards;
+    z-index: 1; user-select: none;
+  }
+  @keyframes eggFlash { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes eggShake {
+    0%, 100% { transform: translateX(0) rotate(0); }
+    25% { transform: translateX(-8px) rotate(-3deg); }
+    75% { transform: translateX(8px) rotate(3deg); }
+  }
+  @keyframes eggFall {
+    to { transform: translateY(120vh) rotate(720deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .egg, .egg .swear, .egg .conf { animation: none; }
+  }
 </style>
 </head>
 <body>
@@ -227,22 +286,31 @@
 
   <section class="card">
     <h2>Prize tiers</h2>
-    <p class="sub">A single entry matches 6 of the 49 numbers. The special number only counts for the 2nd, 4th and 6th divisions.</p>
+    <p class="sub">A single entry matches 6 of the 49 numbers. The special number only counts for the 2nd, 4th and 6th divisions. 4th–7th prizes are fixed (per HK$10 unit); 1st–3rd are shares of the prize fund and only known after the draw.</p>
     <table>
-      <thead><tr><th>Division</th><th>Match</th></tr></thead>
+      <thead><tr><th>Division</th><th>Match</th><th>Prize</th></tr></thead>
       <tbody>
-        <tr><td>1st</td><td>6 numbers</td></tr>
-        <tr><td>2nd</td><td>5 numbers + special</td></tr>
-        <tr><td>3rd</td><td>5 numbers</td></tr>
-        <tr><td>4th</td><td>4 numbers + special</td></tr>
-        <tr><td>5th</td><td>4 numbers</td></tr>
-        <tr><td>6th</td><td>3 numbers + special</td></tr>
-        <tr><td>7th</td><td>3 numbers</td></tr>
+        <tr><td>1st</td><td>6 numbers</td><td>Pool-based</td></tr>
+        <tr><td>2nd</td><td>5 numbers + special</td><td>Pool-based</td></tr>
+        <tr><td>3rd</td><td>5 numbers</td><td>Pool-based</td></tr>
+        <tr><td>4th</td><td>4 numbers + special</td><td>HK$9,600</td></tr>
+        <tr><td>5th</td><td>4 numbers</td><td>HK$640</td></tr>
+        <tr><td>6th</td><td>3 numbers + special</td><td>HK$320</td></tr>
+        <tr><td>7th</td><td>3 numbers</td><td>HK$40</td></tr>
       </tbody>
     </table>
   </section>
 
   <footer>迷惑六合彩 · static page · not affiliated with the HKJC · for personal tracking only.</footer>
+</div>
+
+<div class="egg" id="egg" hidden>
+  <div class="egg-inner">
+    <div class="swear" id="eggSwear"></div>
+    <div class="egg-div" id="eggDiv"></div>
+    <div class="egg-sub" id="eggSub"></div>
+    <div class="egg-hint">tap anywhere to dismiss</div>
+  </div>
 </div>
 
 <script>
@@ -251,8 +319,11 @@
     { name: "Bet 2", nums: [3, 12, 14, 30, 34, 37, 38, 47] },
   ];
   const DIVISIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th"];
+  // Fixed prize per HK$10 unit for divisions 4-7 (index 3-6); null = pool-based.
+  const PRIZE = [null, null, null, 9600, 640, 320, 40];
   const MAIN_COUNT = 6;
   const TOTAL_PICKS = 7;
+  const money = v => "HK$" + v.toLocaleString("en-US");
 
   // Official HKJC Mark Six ball colours (17 red, 16 blue, 16 green).
   const BALL_RED = new Set([1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46]);
@@ -268,9 +339,6 @@
     BETS.forEach((bet, idx) => {
       const h2 = document.createElement("h2");
       h2.innerHTML = `${bet.name} <span class="tag">複式 · 8 numbers · 28 combos</span>`;
-      const p = document.createElement("p");
-      p.className = "sub";
-      p.textContent = "All C(8,6) = 28 six-number combinations are covered.";
       const balls = document.createElement("div");
       balls.className = "balls";
       bet.nums.forEach(n => {
@@ -279,7 +347,7 @@
         b.textContent = n;
         balls.appendChild(b);
       });
-      betsEl.append(h2, p, balls);
+      betsEl.append(h2, balls);
       if (idx === 0) betsEl.appendChild(Object.assign(document.createElement("div"), { style: "height:1.4rem" }));
     });
   }
@@ -344,6 +412,7 @@
     errEl.textContent = "";
     resultEl.className = "result";
     resultEl.innerHTML = "";
+    hideEgg();
     renderBets(null);
     renderSlots();
     refreshGrid();
@@ -352,6 +421,43 @@
 
   const errEl = document.getElementById("err");
   const resultEl = document.getElementById("result");
+
+  // ---------- easter egg for a 1st/2nd/3rd division hit ----------
+  const EGG = {
+    0: { swear: "HOLY SHIT!!!", div: "1st DIVISION · 頭獎 💰🎉", sub: "HK$228,000,000. We actually did it. Somebody sit down." },
+    1: { swear: "OH FUCK, SO CLOSE!", div: "2nd DIVISION · 二獎 🎊", sub: "One number off the jackpot. Still millions though." },
+    2: { swear: "OH FUCK, NOT AGAIN!", div: "3rd DIVISION · 三獎 😮‍💨", sub: "Another third. It's basically our salary at this point." },
+  };
+  const eggEl = document.getElementById("egg");
+  let eggConfTimer;
+  function showEgg(divIdx) {
+    const m = EGG[divIdx];
+    if (!m) return;
+    document.getElementById("eggSwear").textContent = m.swear;
+    document.getElementById("eggDiv").textContent = m.div;
+    document.getElementById("eggSub").textContent = m.sub;
+    eggEl.querySelectorAll(".conf").forEach(c => c.remove());
+    const emojis = ["🎉", "💰", "🧧", "🎊", "✨", "🤑", "💵"];
+    for (let i = 0; i < 28; i++) {
+      const s = document.createElement("span");
+      s.className = "conf";
+      s.textContent = emojis[i % emojis.length];
+      s.style.left = Math.random() * 100 + "vw";
+      s.style.animationDuration = (2.5 + Math.random() * 2.5) + "s";
+      s.style.animationDelay = (Math.random() * 1.5) + "s";
+      eggEl.appendChild(s);
+    }
+    eggEl.hidden = false;
+    clearTimeout(eggConfTimer);
+    eggConfTimer = setTimeout(() => eggEl.querySelectorAll(".conf").forEach(c => c.remove()), 7000);
+  }
+  function hideEgg() {
+    eggEl.hidden = true;
+    eggEl.querySelectorAll(".conf").forEach(c => c.remove());
+  }
+  eggEl.addEventListener("click", hideEgg);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") hideEgg(); });
+
   let flashTimer;
   function flash(msg) {
     errEl.textContent = msg;
@@ -364,6 +470,7 @@
     errEl.textContent = "";
     resultEl.className = "result";
     resultEl.innerHTML = "";
+    hideEgg();
     renderBets(null);
     renderSlots();
     refreshGrid();
@@ -417,6 +524,11 @@
 
     renderBets(hits);
     renderResult(mains, special, hits);
+
+    // Easter egg: fire on the best (lowest) division 1st–3rd hit across both bets.
+    let bestTop = Infinity;
+    hits.forEach(h => h.counts.forEach((c, d) => { if (c > 0 && d <= 2) bestTop = Math.min(bestTop, d); }));
+    if (bestTop <= 2) showEgg(bestTop); else hideEgg();
   }
 
   function renderResult(mains, special, hits) {
@@ -432,11 +544,23 @@
       if (h.winning === 0) {
         html += `<p class="none">No winning combinations.</p>`;
       } else {
-        html += `<table><thead><tr><th>Division</th><th>Winning combinations</th></tr></thead><tbody>`;
+        let fixedTotal = 0;
+        let hasPool = false;
+        html += `<table><thead><tr><th>Division</th><th class="n">Combos</th><th class="n">Prize each</th><th class="n">Subtotal</th></tr></thead><tbody>`;
         h.counts.forEach((c, d) => {
-          if (c > 0) html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n">${c}</td></tr>`;
+          if (c === 0) return;
+          const p = PRIZE[d];
+          if (p == null) {
+            hasPool = true;
+            html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n">${c}</td><td class="n">pool-based</td><td class="n">—</td></tr>`;
+          } else {
+            fixedTotal += c * p;
+            html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n">${c}</td><td class="n">${money(p)}</td><td class="n">${money(c * p)}</td></tr>`;
+          }
         });
         html += `</tbody></table>`;
+        html += `<p class="summary">Guaranteed from 4th–7th divisions: <strong>${money(fixedTotal)}</strong>` +
+                `${hasPool ? ", plus the pool-based 1st–3rd division prize(s) above." : "."}</p>`;
       }
     });
     resultEl.innerHTML = html;
