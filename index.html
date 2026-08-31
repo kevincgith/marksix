@@ -122,14 +122,15 @@
   .ball.hit { outline: 3px solid #f5b301; outline-offset: 1px; box-shadow: 0 0 0 4px var(--hit-soft); }
 
   /* ---- slots ---- */
-  .slots { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: 1rem; }
+  .slots { display: flex; flex-wrap: nowrap; gap: .3rem; align-items: center; margin-bottom: 1rem; }
   .slot {
-    width: 48px; height: 48px;
-    border-radius: 12px;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
     border: 1px solid var(--border);
     background: var(--bg);
     display: grid; place-items: center;
-    font-size: 1.15rem; font-weight: 700;
+    font-size: clamp(.8rem, 3.6vw, 1.15rem); font-weight: 700;
     color: var(--muted);
     font-variant-numeric: tabular-nums;
   }
@@ -138,9 +139,9 @@
   .slot.filled.blue { background: var(--ball-blue); }
   .slot.filled.green { background: var(--ball-green); }
   .slot.special.filled { background: var(--special); }
-  .slot-label { display: block; text-align: center; font-size: .72rem; color: var(--muted); margin-top: .25rem; }
-  .slots .field { display: flex; flex-direction: column; }
-  .slots .plus { color: var(--muted); font-weight: 700; font-size: 1.2rem; padding: 0 .1rem; align-self: flex-start; margin-top: .7rem; }
+  .slot-label { display: block; text-align: center; font-size: .68rem; color: var(--muted); margin-top: .2rem; }
+  .slots .field { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; }
+  .slots .plus { color: var(--muted); font-weight: 700; font-size: 1rem; flex: 0 0 auto; margin-bottom: .9rem; }
 
   /* ---- 1-49 grid ---- */
   .grid {
@@ -352,6 +353,18 @@
     });
   }
 
+  // Live "hit" state from the numbers picked so far (mains = first 6 picks).
+  function currentHits() {
+    const mainSet = new Set(picks.slice(0, MAIN_COUNT));
+    const special = picks[MAIN_COUNT];
+    return BETS.map(bet => ({
+      main: new Set(bet.nums.filter(n => mainSet.has(n))),
+      specialHit: special != null && bet.nums.includes(special),
+      counts: [0, 0, 0, 0, 0, 0, 0],
+      winning: 0,
+    }));
+  }
+
   // ---------- slots ----------
   const slotsEl = document.getElementById("slots");
   function renderSlots() {
@@ -413,7 +426,7 @@
     resultEl.className = "result";
     resultEl.innerHTML = "";
     hideEgg();
-    renderBets(null);
+    renderBets(picks.length ? currentHits() : null);
     renderSlots();
     refreshGrid();
     if (picks.length === TOTAL_PICKS) check();
