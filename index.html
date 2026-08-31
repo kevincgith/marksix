@@ -16,6 +16,10 @@
     --hit: #1f9d55;
     --hit-soft: #e6f6ec;
     --special: #d98200;
+    --ball-red: #d8232a;
+    --ball-blue: #0067b1;
+    --ball-green: #068a3c;
+    --ball-ink: #ffffff;
     --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
   }
   @media (prefers-color-scheme: dark) {
@@ -30,6 +34,9 @@
       --hit: #3ecf7a;
       --hit-soft: #1c3226;
       --special: #f2a53c;
+      --ball-red: #e23b3f;
+      --ball-blue: #1f86d0;
+      --ball-green: #17a24f;
       --shadow: 0 1px 3px rgba(0,0,0,.4);
     }
   }
@@ -100,12 +107,15 @@
     border-radius: 50%;
     display: grid; place-items: center;
     font-weight: 700; font-size: 1rem;
-    background: var(--accent);
-    color: #fff;
+    background: var(--ball-red);
+    color: var(--ball-ink);
     border: 2px solid transparent;
     font-variant-numeric: tabular-nums;
   }
-  .ball.hit { background: var(--hit); color: #fff; box-shadow: 0 0 0 3px var(--hit-soft); }
+  .ball.red { background: var(--ball-red); }
+  .ball.blue { background: var(--ball-blue); }
+  .ball.green { background: var(--ball-green); }
+  .ball.hit { outline: 3px solid #f5b301; outline-offset: 2px; box-shadow: 0 0 0 7px var(--hit-soft); }
 
   /* ---- slots ---- */
   .slots { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: 1rem; }
@@ -119,7 +129,10 @@
     color: var(--muted);
     font-variant-numeric: tabular-nums;
   }
-  .slot.filled { color: #fff; background: var(--accent); border-color: transparent; }
+  .slot.filled { color: var(--ball-ink); border-color: transparent; }
+  .slot.filled.red { background: var(--ball-red); }
+  .slot.filled.blue { background: var(--ball-blue); }
+  .slot.filled.green { background: var(--ball-green); }
   .slot.special.filled { background: var(--special); }
   .slot-label { display: block; text-align: center; font-size: .72rem; color: var(--muted); margin-top: .25rem; }
   .slots .field { display: flex; flex-direction: column; }
@@ -148,7 +161,13 @@
   }
   .grid button:hover { border-color: var(--accent); }
   .grid button:active { transform: scale(.94); }
-  .grid button.pick { background: var(--accent); color: #fff; border-color: transparent; }
+  .grid button.c-red { color: var(--ball-red); }
+  .grid button.c-blue { color: var(--ball-blue); }
+  .grid button.c-green { color: var(--ball-green); }
+  .grid button.pick { color: var(--ball-ink); border-color: transparent; }
+  .grid button.pick.c-red { background: var(--ball-red); }
+  .grid button.pick.c-blue { background: var(--ball-blue); }
+  .grid button.pick.c-green { background: var(--ball-green); }
   .grid button.pick.special { background: var(--special); }
   @media (max-width: 560px) {
     .grid { gap: .4rem; }
@@ -235,6 +254,11 @@
   const MAIN_COUNT = 6;
   const TOTAL_PICKS = 7;
 
+  // Official HKJC Mark Six ball colours (17 red, 16 blue, 16 green).
+  const BALL_RED = new Set([1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46]);
+  const BALL_BLUE = new Set([3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48]);
+  const ballColor = n => BALL_RED.has(n) ? "red" : BALL_BLUE.has(n) ? "blue" : "green";
+
   let picks = []; // tap order; first 6 = mains, 7th = special
 
   // ---------- bets ----------
@@ -251,7 +275,7 @@
       balls.className = "balls";
       bet.nums.forEach(n => {
         const b = document.createElement("div");
-        b.className = "ball" + (hits && hits[idx] && hits[idx].main.has(n) ? " hit" : "");
+        b.className = "ball " + ballColor(n) + (hits && hits[idx] && hits[idx].main.has(n) ? " hit" : "");
         b.textContent = n;
         balls.appendChild(b);
       });
@@ -275,7 +299,8 @@
       const field = document.createElement("div");
       field.className = "field";
       const slot = document.createElement("div");
-      slot.className = "slot" + (isSpecial ? " special" : "") + (picks[i] != null ? " filled" : "");
+      slot.className = "slot" + (isSpecial ? " special" : "") +
+        (picks[i] != null ? " filled " + ballColor(picks[i]) : "");
       slot.textContent = picks[i] != null ? picks[i] : "";
       const label = document.createElement("span");
       label.className = "slot-label";
@@ -291,6 +316,7 @@
   for (let n = 1; n <= 49; n++) {
     const btn = document.createElement("button");
     btn.type = "button";
+    btn.className = "c-" + ballColor(n);
     btn.textContent = n;
     btn.dataset.n = n;
     btn.addEventListener("click", () => toggle(n));
