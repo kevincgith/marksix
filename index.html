@@ -120,6 +120,7 @@
   .ball.blue { background: var(--ball-blue); }
   .ball.green { background: var(--ball-green); }
   .ball.hit { outline: 3px solid #f5b301; outline-offset: 1px; box-shadow: 0 0 0 4px var(--hit-soft); }
+  .ball.hit-special { outline: 3px solid #cfd3da; outline-offset: 1px; box-shadow: 0 0 0 4px rgba(207, 211, 218, .28); }
 
   /* ---- slots ---- */
   .slots { display: flex; flex-wrap: nowrap; gap: .3rem; align-items: center; margin-bottom: 1rem; }
@@ -134,7 +135,8 @@
     color: var(--muted);
     font-variant-numeric: tabular-nums;
   }
-  .slot.filled { color: var(--ball-ink); border-color: transparent; }
+  .slot.filled { color: var(--ball-ink); border-color: transparent; cursor: pointer; }
+  .slot.filled:active { transform: scale(.94); }
   .slot.filled.red { background: var(--ball-red); }
   .slot.filled.blue { background: var(--ball-blue); }
   .slot.filled.green { background: var(--ball-green); }
@@ -199,6 +201,9 @@
   th { color: var(--muted); font-weight: 600; }
   td.n { text-align: right; font-variant-numeric: tabular-nums; }
   tr.win td { color: var(--hit); font-weight: 650; }
+  .result td.narrow, .result th.narrow { width: 1%; white-space: nowrap; }
+  tfoot tr.total td { border-top: 2px solid var(--border); border-bottom: none; font-weight: 800; color: var(--text); padding-top: .5rem; }
+  tfoot tr.total td.n:last-child { color: var(--hit); }
   .none { color: var(--muted); font-style: italic; font-size: .9rem; }
   th.n { text-align: right; }
   @media (max-width: 420px) {
@@ -270,14 +275,13 @@
 
   <section class="card">
     <h2>Check a draw</h2>
-    <p class="sub">Tap 6 numbers for the draw, then 1 more for the special. Tap again to remove.</p>
+    <p class="sub">Tap 6 numbers for the draw, then 1 more for the special. Tap a number or a filled box again to remove it.</p>
 
     <div class="slots" id="slots"></div>
 
     <div class="grid" id="grid"></div>
 
     <div class="row">
-      <button class="action" id="checkBtn">Check</button>
       <button class="ghost action" id="clearBtn" type="button">Clear</button>
     </div>
     <p class="err" id="err"></p>
@@ -343,8 +347,12 @@
       const balls = document.createElement("div");
       balls.className = "balls";
       bet.nums.forEach(n => {
+        const h = hits && hits[idx];
+        let cls = "ball " + ballColor(n);
+        if (h && h.main.has(n)) cls += " hit";
+        else if (h && n === h.special) cls += " hit-special";
         const b = document.createElement("div");
-        b.className = "ball " + ballColor(n) + (hits && hits[idx] && hits[idx].main.has(n) ? " hit" : "");
+        b.className = cls;
         b.textContent = n;
         balls.appendChild(b);
       });
@@ -359,6 +367,7 @@
     const special = picks[MAIN_COUNT];
     return BETS.map(bet => ({
       main: new Set(bet.nums.filter(n => mainSet.has(n))),
+      special: special != null && bet.nums.includes(special) ? special : null,
       specialHit: special != null && bet.nums.includes(special),
       counts: [0, 0, 0, 0, 0, 0, 0],
       winning: 0,
@@ -380,9 +389,14 @@
       const field = document.createElement("div");
       field.className = "field";
       const slot = document.createElement("div");
+      const val = picks[i];
       slot.className = "slot" + (isSpecial ? " special" : "") +
-        (picks[i] != null ? " filled " + ballColor(picks[i]) : "");
-      slot.textContent = picks[i] != null ? picks[i] : "";
+        (val != null ? " filled " + ballColor(val) : "");
+      slot.textContent = val != null ? val : "";
+      if (val != null) {
+        slot.title = "Tap to remove";
+        slot.addEventListener("click", () => toggle(val));
+      }
       const label = document.createElement("span");
       label.className = "slot-label";
       label.textContent = isSpecial ? "Special" : String(i + 1);
@@ -488,7 +502,6 @@
     renderSlots();
     refreshGrid();
   });
-  document.getElementById("checkBtn").addEventListener("click", check);
 
   // ---------- combinatorics ----------
   function combos6(arr) {
@@ -532,7 +545,7 @@
         const d = divisionFor(c, mainSet, special);
         if (d >= 0) { counts[d]++; winning++; }
       });
-      return { main, specialHit, counts, winning };
+      return { main, special: specialHit ? special : null, specialHit, counts, winning };
     });
 
     renderBets(hits);
@@ -559,21 +572,23 @@
       } else {
         let fixedTotal = 0;
         let hasPool = false;
-        html += `<table><thead><tr><th>Division</th><th class="n">Combos</th><th class="n">Prize each</th><th class="n">Subtotal</th></tr></thead><tbody>`;
+        html += `<table><thead><tr><th>Division</th><th class="n narrow">#</th><th class="n">Prize each</th><th class="n">Subtotal</th></tr></thead><tbody>`;
         h.counts.forEach((c, d) => {
           if (c === 0) return;
           const p = PRIZE[d];
           if (p == null) {
             hasPool = true;
-            html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n">${c}</td><td class="n">pool-based</td><td class="n">—</td></tr>`;
+            html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n narrow">${c}</td><td class="n">pool-based</td><td class="n">—</td></tr>`;
           } else {
             fixedTotal += c * p;
-            html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n">${c}</td><td class="n">${money(p)}</td><td class="n">${money(c * p)}</td></tr>`;
+            html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n narrow">${c}</td><td class="n">${money(p)}</td><td class="n">${money(c * p)}</td></tr>`;
           }
         });
-        html += `</tbody></table>`;
-        html += `<p class="summary">Guaranteed from 4th–7th divisions: <strong>${money(fixedTotal)}</strong>` +
-                `${hasPool ? ", plus the pool-based 1st–3rd division prize(s) above." : "."}</p>`;
+        html += `</tbody><tfoot><tr class="total">` +
+                `<td colspan="3">Total winnings${hasPool ? " (Div 4–7)" : ""}</td>` +
+                `<td class="n">${money(fixedTotal)}</td></tr></tfoot></table>`;
+        html += `<p class="summary">${money(fixedTotal)} guaranteed from the 4th–7th divisions` +
+                `${hasPool ? ", plus the pool-based 1st–3rd division prize(s) listed above." : "."}</p>`;
       }
     });
     resultEl.innerHTML = html;
