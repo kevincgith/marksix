@@ -306,6 +306,17 @@
     </table>
   </section>
 
+  <section class="card">
+    <h2>Our odds this draw</h2>
+    <p class="sub">Exact probability that our two 8-number banker entries (56 combinations, HK$560 staked) land each division in one draw. Computed from the numbers above — the two bets share no numbers.</p>
+    <table class="odds">
+      <thead><tr><th>Division</th><th class="n">Chance</th><th class="n">≈ 1 in</th><th class="n">Exp. wins</th></tr></thead>
+      <tbody id="oddsBody"></tbody>
+      <tfoot><tr class="total" id="oddsAny"></tr></tfoot>
+    </table>
+    <p class="sub" id="oddsNote"></p>
+  </section>
+
   <footer>迷惑六合彩 · static page · not affiliated with the HKJC · for personal tracking only.</footer>
 </div>
 
@@ -594,6 +605,74 @@
     resultEl.innerHTML = html;
     resultEl.className = "result show";
   }
+
+  // ---------- odds table (exact) ----------
+  (function renderOdds() {
+    // binomial coefficient (returns 0 for out-of-range k)
+    const C = (n, k) => {
+      if (k < 0 || k > n) return 0;
+      k = Math.min(k, n - k);
+      let r = 1;
+      for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1);
+      return r;
+    };
+    // assign `n` entries with j main-matches (and special or not) to a division bucket
+    const assign = (counts, j, sp, n) => {
+      if (n <= 0) return;
+      if (j === 6) counts[0] += n;
+      else if (j === 5) counts[sp ? 1 : 2] += n;
+      else if (j === 4) counts[sp ? 3 : 4] += n;
+      else if (j === 3) counts[sp ? 5 : 6] += n;
+    };
+    // division counts across the 28 entries of one 8-number wheel,
+    // given m of its numbers are among the 6 mains and s (0/1) is the special
+    const wheel = (m, s) => {
+      const counts = [0, 0, 0, 0, 0, 0, 0], others = 8 - m;
+      for (let j = Math.max(0, m - 2); j <= Math.min(6, m); j++) {
+        const wm = C(m, j);
+        if (s === 1) {
+          assign(counts, j, true, wm * C(others - 1, 6 - j - 1));
+          assign(counts, j, false, wm * C(others - 1, 6 - j));
+        } else {
+          assign(counts, j, false, wm * C(others, 6 - j));
+        }
+      }
+      return counts;
+    };
+    const CN = C(49, 6);
+    const pAtLeast = [0, 0, 0, 0, 0, 0, 0], expct = [0, 0, 0, 0, 0, 0, 0];
+    let pAny = 0;
+    for (let m1 = 0; m1 <= 6; m1++)
+    for (let m2 = 0; m2 <= 6 - m1; m2++) {
+      const pM = C(8, m1) * C(8, m2) * C(33, 6 - m1 - m2) / CN;
+      if (pM <= 0) continue;
+      const r1 = 8 - m1, r2 = 8 - m2;
+      const locs = [[1, 0, r1 / 43], [0, 1, r2 / 43], [0, 0, (43 - r1 - r2) / 43]];
+      for (const [s1, s2, pl] of locs) {
+        const ps = pM * pl;
+        if (ps <= 0) continue;
+        const c1 = wheel(m1, s1), c2 = wheel(m2, s2);
+        let any = false;
+        for (let d = 0; d < 7; d++) {
+          const both = c1[d] + c2[d];
+          expct[d] += ps * both;
+          if (both >= 1) { pAtLeast[d] += ps; any = true; }
+        }
+        if (any) pAny += ps;
+      }
+    }
+    const pct = p => p <= 0 ? "0" : (p * 100 >= 1 ? (p * 100).toFixed(1) + "%" : (p * 100).toPrecision(2) + "%");
+    const oneIn = p => p <= 0 ? "—" : Math.round(1 / p).toLocaleString("en-US");
+    const exp = e => e >= 0.1 ? e.toFixed(2) : e >= 0.001 ? e.toFixed(4) : e.toExponential(1);
+    document.getElementById("oddsBody").innerHTML = DIVISIONS.map((name, d) =>
+      `<tr><td>${name}</td><td class="n">${pct(pAtLeast[d])}</td><td class="n">${oneIn(pAtLeast[d])}</td><td class="n">${exp(expct[d])}</td></tr>`
+    ).join("");
+    document.getElementById("oddsAny").innerHTML =
+      `<td>Any prize</td><td class="n">${pct(pAny)}</td><td class="n">${oneIn(pAny)}</td><td class="n"></td>`;
+    const fixedExp = [3, 4, 5, 6].reduce((s, d) => s + expct[d] * PRIZE[d], 0);
+    document.getElementById("oddsNote").textContent =
+      `Expected fixed winnings (4th–7th) ≈ ${money(Math.round(fixedExp))} per draw against HK$560 staked; 1st–3rd pay from the prize fund on top.`;
+  })();
 
   // ---------- init ----------
   renderBets(null);
