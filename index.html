@@ -308,7 +308,7 @@
 
   <section class="card">
     <h2>Our odds this draw</h2>
-    <p class="sub">Exact probability that our two 8-number banker entries (56 combinations, HK$560 staked) land each division in one draw. Computed from the numbers above — the two bets share no numbers.</p>
+    <p class="sub" id="oddsSub">Exact probability that our two 8-number banker entries (56 combinations, HK$560 staked) land each division in one draw. The two bets share no numbers.</p>
     <table class="odds">
       <thead><tr><th>Division</th><th class="n">Chance</th><th class="n">≈ 1 in</th><th class="n">Exp. wins</th></tr></thead>
       <tbody id="oddsBody"></tbody>
@@ -454,6 +454,7 @@
     renderBets(picks.length ? currentHits() : null);
     renderSlots();
     refreshGrid();
+    renderOdds();
     if (picks.length === TOTAL_PICKS) check();
   }
 
@@ -512,6 +513,7 @@
     renderBets(null);
     renderSlots();
     refreshGrid();
+    renderOdds();
   });
 
   // ---------- combinatorics ----------
@@ -606,78 +608,108 @@
     resultEl.className = "result show";
   }
 
-  // ---------- odds table (exact) ----------
-  (function renderOdds() {
-    // binomial coefficient (returns 0 for out-of-range k)
-    const C = (n, k) => {
-      if (k < 0 || k > n) return 0;
-      k = Math.min(k, n - k);
-      let r = 1;
-      for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1);
-      return r;
-    };
-    // assign `n` entries with j main-matches (and special or not) to a division bucket
-    const assign = (counts, j, sp, n) => {
-      if (n <= 0) return;
-      if (j === 6) counts[0] += n;
-      else if (j === 5) counts[sp ? 1 : 2] += n;
-      else if (j === 4) counts[sp ? 3 : 4] += n;
-      else if (j === 3) counts[sp ? 5 : 6] += n;
-    };
-    // division counts across the 28 entries of one 8-number wheel,
-    // given m of its numbers are among the 6 mains and s (0/1) is the special
-    const wheel = (m, s) => {
-      const counts = [0, 0, 0, 0, 0, 0, 0], others = 8 - m;
-      for (let j = Math.max(0, m - 2); j <= Math.min(6, m); j++) {
-        const wm = C(m, j);
-        if (s === 1) {
-          assign(counts, j, true, wm * C(others - 1, 6 - j - 1));
-          assign(counts, j, false, wm * C(others - 1, 6 - j));
-        } else {
-          assign(counts, j, false, wm * C(others, 6 - j));
-        }
-      }
-      return counts;
-    };
-    const CN = C(49, 6);
-    const pAtLeast = [0, 0, 0, 0, 0, 0, 0], expct = [0, 0, 0, 0, 0, 0, 0];
-    let pAny = 0;
-    for (let m1 = 0; m1 <= 6; m1++)
-    for (let m2 = 0; m2 <= 6 - m1; m2++) {
-      const pM = C(8, m1) * C(8, m2) * C(33, 6 - m1 - m2) / CN;
-      if (pM <= 0) continue;
-      const r1 = 8 - m1, r2 = 8 - m2;
-      const locs = [[1, 0, r1 / 43], [0, 1, r2 / 43], [0, 0, (43 - r1 - r2) / 43]];
-      for (const [s1, s2, pl] of locs) {
-        const ps = pM * pl;
-        if (ps <= 0) continue;
-        const c1 = wheel(m1, s1), c2 = wheel(m2, s2);
-        let any = false;
-        for (let d = 0; d < 7; d++) {
-          const both = c1[d] + c2[d];
-          expct[d] += ps * both;
-          if (both >= 1) { pAtLeast[d] += ps; any = true; }
-        }
-        if (any) pAny += ps;
+  // ---------- odds table (exact, conditional on the numbers picked so far) ----------
+  // binomial coefficient (returns 0 for out-of-range k)
+  const _C = (n, k) => {
+    if (k < 0 || k > n) return 0;
+    k = Math.min(k, n - k);
+    let r = 1;
+    for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1);
+    return r;
+  };
+  // assign `n` entries with j main-matches (special or not) to a division bucket
+  const _assign = (counts, j, sp, n) => {
+    if (n <= 0) return;
+    if (j === 6) counts[0] += n;
+    else if (j === 5) counts[sp ? 1 : 2] += n;
+    else if (j === 4) counts[sp ? 3 : 4] += n;
+    else if (j === 3) counts[sp ? 5 : 6] += n;
+  };
+  // division counts across the 28 entries of one 8-number wheel, given m of its
+  // numbers are among the 6 mains and s (0/1) marks whether it holds the special
+  const _wheel = (m, s) => {
+    const counts = [0, 0, 0, 0, 0, 0, 0], others = 8 - m;
+    for (let j = Math.max(0, m - 2); j <= Math.min(6, m); j++) {
+      const wm = _C(m, j);
+      if (s === 1) {
+        _assign(counts, j, true, wm * _C(others - 1, 6 - j - 1));
+        _assign(counts, j, false, wm * _C(others - 1, 6 - j));
+      } else {
+        _assign(counts, j, false, wm * _C(others, 6 - j));
       }
     }
-    const pct = p => p <= 0 ? "0" : (p * 100 >= 1 ? (p * 100).toFixed(1) + "%" : (p * 100).toPrecision(2) + "%");
-    const oneIn = p => p <= 0 ? "—" : Math.round(1 / p).toLocaleString("en-US");
-    const exp = e => e >= 0.1 ? e.toFixed(2) : e >= 0.001 ? e.toFixed(4) : e.toExponential(1);
+    return counts;
+  };
+
+  function renderOdds() {
+    const knownMains = picks.slice(0, MAIN_COUNT).filter(n => n != null);
+    const knownSpecial = picks.length === TOTAL_PICKS ? picks[MAIN_COUNT] : null;
+    const k = knownMains.length;
+    const a1 = knownMains.filter(n => BETS[0].nums.includes(n)).length;
+    const a2 = knownMains.filter(n => BETS[1].nums.includes(n)).length;
+    const rMain = MAIN_COUNT - k;
+
+    const pAtLeast = [0, 0, 0, 0, 0, 0, 0], expct = [0, 0, 0, 0, 0, 0, 0];
+    let pAny = 0;
+    const accum = (m1, s1, m2, s2, p) => {
+      if (p <= 0) return;
+      const c1 = _wheel(m1, s1), c2 = _wheel(m2, s2);
+      let any = false;
+      for (let d = 0; d < 7; d++) {
+        const both = c1[d] + c2[d];
+        expct[d] += p * both;
+        if (both >= 1) { pAtLeast[d] += p; any = true; }
+      }
+      if (any) pAny += p;
+    };
+
+    if (knownSpecial != null) {
+      const s1 = BETS[0].nums.includes(knownSpecial) ? 1 : 0;
+      const s2 = BETS[1].nums.includes(knownSpecial) ? 1 : 0;
+      const N = 49 - k - 1, b1 = 8 - a1 - s1, b2 = 8 - a2 - s2;
+      const others = N - b1 - b2, denom = _C(N, rMain);
+      for (let x1 = 0; x1 <= Math.min(b1, rMain); x1++)
+      for (let x2 = 0; x2 <= Math.min(b2, rMain - x1); x2++)
+        accum(a1 + x1, s1, a2 + x2, s2,
+          _C(b1, x1) * _C(b2, x2) * _C(others, rMain - x1 - x2) / denom);
+    } else {
+      const N = 49 - k, b1 = 8 - a1, b2 = 8 - a2;
+      const others = N - b1 - b2, denom = _C(N, rMain);
+      for (let x1 = 0; x1 <= Math.min(b1, rMain); x1++)
+      for (let x2 = 0; x2 <= Math.min(b2, rMain - x1); x2++) {
+        const pMains = _C(b1, x1) * _C(b2, x2) * _C(others, rMain - x1 - x2) / denom;
+        if (pMains <= 0) continue;
+        const m1 = a1 + x1, m2 = a2 + x2, r1 = 8 - m1, r2 = 8 - m2;
+        accum(m1, 1, m2, 0, pMains * r1 / 43);
+        accum(m1, 0, m2, 1, pMains * r2 / 43);
+        accum(m1, 0, m2, 0, pMains * (43 - r1 - r2) / 43);
+      }
+    }
+
+    const pct = p => p <= 0 ? "0" : p >= 1 ? "100%" : (p * 100 >= 1 ? (p * 100).toFixed(1) + "%" : (p * 100).toPrecision(2) + "%");
+    const oneIn = p => p <= 0 ? "—" : p >= 1 ? "1" : Math.round(1 / p).toLocaleString("en-US");
+    const exp = e => e >= 0.1 ? e.toFixed(2) : e >= 0.001 ? e.toFixed(4) : e <= 0 ? "0" : e.toExponential(1);
     document.getElementById("oddsBody").innerHTML = DIVISIONS.map((name, d) =>
       `<tr><td>${name}</td><td class="n">${pct(pAtLeast[d])}</td><td class="n">${oneIn(pAtLeast[d])}</td><td class="n">${exp(expct[d])}</td></tr>`
     ).join("");
     document.getElementById("oddsAny").innerHTML =
       `<td>Any prize</td><td class="n">${pct(pAny)}</td><td class="n">${oneIn(pAny)}</td><td class="n"></td>`;
     const fixedExp = [3, 4, 5, 6].reduce((s, d) => s + expct[d] * PRIZE[d], 0);
+    const picked = k + (knownSpecial != null ? 1 : 0);
+    document.getElementById("oddsSub").textContent = picked === 0
+      ? "Exact probability that our two 8-number banker entries (56 combinations, HK$560 staked) land each division in one draw. The two bets share no numbers."
+      : `Live odds given the ${picked} number${picked === 1 ? "" : "s"} picked so far` +
+        `${a1 + a2 ? ` (${a1 + a2} on our bets)` : ""}` +
+        `${picked === TOTAL_PICKS ? " — full draw entered, this is now the outcome." : "."}`;
     document.getElementById("oddsNote").textContent =
-      `Expected fixed winnings (4th–7th) ≈ ${money(Math.round(fixedExp))} per draw against HK$560 staked; 1st–3rd pay from the prize fund on top.`;
-  })();
+      `Expected fixed winnings (4th–7th) ≈ ${money(Math.round(fixedExp))}${picked === TOTAL_PICKS ? "" : " per draw"} against HK$560 staked; 1st–3rd pay from the prize fund on top.`;
+  }
 
   // ---------- init ----------
   renderBets(null);
   renderSlots();
   refreshGrid();
+  renderOdds();
 </script>
 </body>
 </html>
