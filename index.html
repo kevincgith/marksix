@@ -202,13 +202,14 @@
   td.n { text-align: right; font-variant-numeric: tabular-nums; }
   tr.win td { color: var(--hit); font-weight: 650; }
   .result td.narrow, .result th.narrow { width: 1%; white-space: nowrap; }
+  .odds th { white-space: nowrap; }
   tfoot tr.total td { border-top: 2px solid var(--border); border-bottom: none; font-weight: 800; color: var(--text); padding-top: .5rem; }
   tfoot tr.total td.n:last-child { color: var(--hit); }
   .none { color: var(--muted); font-style: italic; font-size: .9rem; }
   th.n { text-align: right; }
   @media (max-width: 420px) {
-    .result table { font-size: .8rem; }
-    .result th, .result td { padding: .35rem .3rem; }
+    .result table, .odds { font-size: .8rem; }
+    .result th, .result td, .odds th, .odds td { padding: .35rem .3rem; }
   }
   footer { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 2rem; }
 
@@ -310,7 +311,7 @@
     <h2>Our odds this draw</h2>
     <p class="sub" id="oddsSub">Exact probability that our two 8-number banker entries (56 combinations, HK$560 staked) land each division in one draw. The two bets share no numbers.</p>
     <table class="odds">
-      <thead><tr><th>Division</th><th class="n">Chance</th><th class="n">≈ 1 in</th><th class="n">Exp. wins</th></tr></thead>
+      <thead><tr><th>Division</th><th class="n">Chance</th><th class="n">Exp. combos</th><th class="n">Exp. HK$</th></tr></thead>
       <tbody id="oddsBody"></tbody>
       <tfoot><tr class="total" id="oddsAny"></tr></tfoot>
     </table>
@@ -686,15 +687,22 @@
       }
     }
 
-    const pct = p => p <= 0 ? "0" : p >= 1 ? "100%" : (p * 100 >= 1 ? (p * 100).toFixed(1) + "%" : (p * 100).toPrecision(2) + "%");
-    const oneIn = p => p <= 0 ? "—" : p >= 1 ? "1" : Math.round(1 / p).toLocaleString("en-US");
+    // adaptive: rare odds read as "1 in N", common odds as a percentage
+    const chance = p => {
+      if (p <= 0) return "—";
+      if (p >= 1) return "certain";
+      if (p * 100 >= 1) return (p * 100).toFixed(1) + "%";
+      if (p * 100 >= 0.1) return (p * 100).toPrecision(2) + "%";
+      return "1 in " + Math.round(1 / p).toLocaleString("en-US");
+    };
     const exp = e => e >= 0.1 ? e.toFixed(2) : e >= 0.001 ? e.toFixed(4) : e <= 0 ? "0" : e.toExponential(1);
+    const expPay = d => PRIZE[d] == null ? "pool" : expct[d] <= 0 ? "HK$0" : money(Math.round(expct[d] * PRIZE[d]));
     document.getElementById("oddsBody").innerHTML = DIVISIONS.map((name, d) =>
-      `<tr><td>${name}</td><td class="n">${pct(pAtLeast[d])}</td><td class="n">${oneIn(pAtLeast[d])}</td><td class="n">${exp(expct[d])}</td></tr>`
+      `<tr><td>${name}</td><td class="n">${chance(pAtLeast[d])}</td><td class="n">${exp(expct[d])}</td><td class="n">${expPay(d)}</td></tr>`
     ).join("");
-    document.getElementById("oddsAny").innerHTML =
-      `<td>Any prize</td><td class="n">${pct(pAny)}</td><td class="n">${oneIn(pAny)}</td><td class="n"></td>`;
     const fixedExp = [3, 4, 5, 6].reduce((s, d) => s + expct[d] * PRIZE[d], 0);
+    document.getElementById("oddsAny").innerHTML =
+      `<td>Any prize</td><td class="n">${chance(pAny)}</td><td class="n"></td><td class="n">${money(Math.round(fixedExp))}</td>`;
     const picked = k + (knownSpecial != null ? 1 : 0);
     document.getElementById("oddsSub").textContent = picked === 0
       ? "Exact probability that our two 8-number banker entries (56 combinations, HK$560 staked) land each division in one draw. The two bets share no numbers."
