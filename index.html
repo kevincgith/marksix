@@ -207,12 +207,14 @@
   .chip.green { background: var(--ball-green); }
   .b3-empty { color: var(--muted); font-size: .85rem; font-style: italic; }
 
-  /* ---- How to spend it ---- */
-  #spend h3 { margin: 1.3rem 0 .5rem; font-size: .92rem; color: var(--accent); letter-spacing: .01em; }
-  #spend h3:first-of-type { margin-top: .4rem; }
+  /* ---- How to spend it / Claiming ---- */
+  #spend h3, #claim h3 { margin: 1.3rem 0 .5rem; font-size: .92rem; color: var(--accent); letter-spacing: .01em; }
+  #spend h3:first-of-type, #claim h3:first-of-type { margin-top: .4rem; }
   .spend-list { margin: 0; padding-left: 1.25rem; }
   .spend-list li { margin: .5rem 0; font-size: .92rem; }
   .spend-list li::marker { color: var(--accent); }
+  #claim p { font-size: .92rem; margin: .4rem 0; }
+  #claim a, .sub a { color: var(--accent); }
 
   .result { margin-top: 1.2rem; display: none; }
   .result.show { display: block; }
@@ -387,6 +389,32 @@
       <li>Fund a peer-reviewed study proving the numbers were destiny. Fund a second one when the first one fails.</li>
       <li>Replace your entire wardrobe with 60 identical outfits, cartoon-character style, and never once address it.</li>
       <li>Buy the flat upstairs, the flat downstairs, and both neighbours' flats. Live in the middle one. Silence, at last.</li>
+    </ul>
+  </section>
+
+  <section class="card" id="claim">
+    <h2>Claiming the big one 🧾</h2>
+    <p class="sub">Official HKJC procedure. Rules and hotline numbers change — always confirm the current details on <a href="https://www.hkjc.com/marksix/" target="_blank" rel="noopener">hkjc.com</a> before acting.</p>
+
+    <h3>The 60-day rule</h3>
+    <p>A valid winning ticket must be presented for payment <strong>within 60 days</strong> of the day after the draw. After that the prize is forfeited. Claims are made on business days only.</p>
+
+    <h3>Where to collect, by amount</h3>
+    <table>
+      <tbody>
+        <tr><td>Up to HK$1,000,000 (incl. 4th–7th)</td><td>Any off-course betting branch or racecourse</td></tr>
+        <tr><td>Over HK$1,000,000</td><td>HKJC Headquarters, 1 Sports Road, Happy Valley</td></tr>
+        <tr><td>1st / 2nd division over HK$5,000,000</td><td>Register on the HKJC prize hotline within the 60 days, then collect at HKJC Headquarters</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Betting-account bets</h3>
+    <p>Winnings up to HK$5,000,000 are credited to the account automatically. A 1st or 2nd division win over HK$5,000,000 still needs hotline registration within 60 days.</p>
+
+    <h3>Bring with you</h3>
+    <ul class="spend-list">
+      <li>The <strong>original winning ticket</strong> — it is a bearer instrument. Keep it flat and undamaged; a lost or destroyed ticket cannot be replaced. Photograph it.</li>
+      <li>Your <strong>HKID card or passport</strong> and a contact address. Large prizes are normally paid by cheque.</li>
     </ul>
   </section>
 
