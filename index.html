@@ -311,7 +311,7 @@
     <h2>Our odds this draw</h2>
     <p class="sub" id="oddsSub">Exact probability that our two 8-number banker entries (56 combinations, HK$560 staked) land each division in one draw. The two bets share no numbers.</p>
     <table class="odds">
-      <thead><tr><th>Division</th><th class="n">Chance</th><th class="n">Exp. combos</th><th class="n">Exp. HK$</th></tr></thead>
+      <thead><tr><th>Division</th><th class="n">Chance</th><th class="n">Exp. combos</th><th class="n">Exp. winnings</th></tr></thead>
       <tbody id="oddsBody"></tbody>
       <tfoot><tr class="total" id="oddsAny"></tr></tfoot>
     </table>
@@ -338,6 +338,8 @@
   const DIVISIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th"];
   // Fixed prize per HK$10 unit for divisions 4-7 (index 3-6); null = pool-based.
   const PRIZE = [null, null, null, 9600, 640, 320, 40];
+  // Value used for expected-winnings: 1st-3rd = historical average payout, 4th-7th = fixed.
+  const PRIZE_EV = [22000000, 1200000, 74000, 9600, 640, 320, 40];
   const MAIN_COUNT = 6;
   const TOTAL_PICKS = 7;
   const money = v => "HK$" + v.toLocaleString("en-US");
@@ -696,13 +698,13 @@
       return "1 in " + Math.round(1 / p).toLocaleString("en-US");
     };
     const exp = e => e >= 0.1 ? e.toFixed(2) : e >= 0.001 ? e.toFixed(4) : e <= 0 ? "0" : e.toExponential(1);
-    const expPay = d => PRIZE[d] == null ? "pool" : expct[d] <= 0 ? "HK$0" : money(Math.round(expct[d] * PRIZE[d]));
+    const expWin = d => expct[d] <= 0 ? "HK$0" : money(Math.round(expct[d] * PRIZE_EV[d]));
     document.getElementById("oddsBody").innerHTML = DIVISIONS.map((name, d) =>
-      `<tr><td>${name}</td><td class="n">${chance(pAtLeast[d])}</td><td class="n">${exp(expct[d])}</td><td class="n">${expPay(d)}</td></tr>`
+      `<tr><td>${name}</td><td class="n">${chance(pAtLeast[d])}</td><td class="n">${exp(expct[d])}</td><td class="n">${expWin(d)}</td></tr>`
     ).join("");
-    const fixedExp = [3, 4, 5, 6].reduce((s, d) => s + expct[d] * PRIZE[d], 0);
+    const totalExp = expct.reduce((s, e, d) => s + e * PRIZE_EV[d], 0);
     document.getElementById("oddsAny").innerHTML =
-      `<td>Any prize</td><td class="n">${chance(pAny)}</td><td class="n"></td><td class="n">${money(Math.round(fixedExp))}</td>`;
+      `<td>Any prize</td><td class="n">${chance(pAny)}</td><td class="n"></td><td class="n">${money(Math.round(totalExp))}</td>`;
     const picked = k + (knownSpecial != null ? 1 : 0);
     document.getElementById("oddsSub").textContent = picked === 0
       ? "Exact probability that our two 8-number banker entries (56 combinations, HK$560 staked) land each division in one draw. The two bets share no numbers."
@@ -710,7 +712,8 @@
         `${a1 + a2 ? ` (${a1 + a2} on our bets)` : ""}` +
         `${picked === TOTAL_PICKS ? " — full draw entered, this is now the outcome." : "."}`;
     document.getElementById("oddsNote").textContent =
-      `Expected fixed winnings (4th–7th) ≈ ${money(Math.round(fixedExp))}${picked === TOTAL_PICKS ? "" : " per draw"} against HK$560 staked; 1st–3rd pay from the prize fund on top.`;
+      `Total expected winnings ≈ ${money(Math.round(totalExp))}${picked === TOTAL_PICKS ? "" : " per draw"} against HK$560 staked. ` +
+      `1st–3rd valued at historical averages (HK$22M / HK$1.2M / HK$74k); actual pool prizes vary.`;
   }
 
   // ---------- init ----------
