@@ -75,6 +75,12 @@
     h1 { font-size: 1.6rem; }
     h1 .amount { font-size: 2.1rem; }
   }
+  #unlockToast {
+    text-align: center; color: var(--hit); font-weight: 700; font-size: .88rem;
+    margin-top: .7rem; opacity: 0; height: 0; overflow: hidden;
+    transition: opacity .4s ease;
+  }
+  #unlockToast.show { opacity: 1; height: auto; }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -192,21 +198,6 @@
   button.action:active { transform: translateY(1px); }
   .err { color: var(--accent); font-size: .85rem; margin: .6rem 0 0; min-height: 1.2em; }
 
-  /* ---- Bet 3 (user-defined) ---- */
-  #bet3Add { width: 100%; padding: .8rem; font-size: .95rem; }
-  #bet3Panel[hidden], .grid[hidden], .row[hidden] { display: none; }
-  .b3-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .2rem 0 1rem; min-height: 34px; align-items: center; }
-  .chip {
-    width: 34px; height: 34px; border-radius: 50%;
-    display: grid; place-items: center;
-    font-weight: 700; font-size: .85rem; color: #fff;
-    font-variant-numeric: tabular-nums;
-  }
-  .chip.red { background: var(--ball-red); }
-  .chip.blue { background: var(--ball-blue); }
-  .chip.green { background: var(--ball-green); }
-  .b3-empty { color: var(--muted); font-size: .85rem; font-style: italic; }
-
   /* ---- How to spend it / Claiming ---- */
   #spend h3, #claim h3 { margin: 1.3rem 0 .5rem; font-size: .92rem; color: var(--accent); letter-spacing: .01em; }
   #spend h3:first-of-type, #claim h3:first-of-type { margin-top: .4rem; }
@@ -292,29 +283,12 @@
 <div class="wrap">
   <header>
     <p class="kicker">迷惑六合彩 · Snowball 金多寶 · Draw 5 Sep 2026</p>
-    <h1>We are <span style="white-space:nowrap">GOING to WIN</span><span class="amount">HK$228,000,000</span></h1>
-    <p>Two 8-number compound bets · 56 combinations working for us · 🎉 see you at the payout counter</p>
+    <h1>We are <span style="white-space:nowrap">GOING to WIN</span><span class="amount" id="amountTap">HK$228,000,000</span></h1>
+    <p id="heroSub">Two 8-number compound bets · 56 combinations working for us · 🎉 see you at the payout counter</p>
+    <p id="unlockToast"></p>
   </header>
 
   <section class="card" id="bets"></section>
-
-  <section class="card" id="bet3Card">
-    <button class="ghost action" id="bet3Add" type="button">➕ Add your own Bet 3</button>
-    <div id="bet3Panel" hidden>
-      <h2>Bet 3 <span class="tag" id="bet3Tag">pick 6–12</span></h2>
-      <p class="sub">Your own compound entry — tap 6 to 12 numbers, then confirm. Checked against the draw below; not part of the odds table.</p>
-      <div class="b3-chips" id="bet3Chips"></div>
-      <div class="grid" id="bet3Grid"></div>
-      <div class="row" id="bet3EditRow">
-        <button class="action" id="bet3Confirm" type="button">Confirm Bet 3</button>
-        <button class="ghost action" id="bet3Cancel" type="button">Cancel</button>
-      </div>
-      <div class="row" id="bet3DoneRow" hidden>
-        <button class="ghost action" id="bet3Edit" type="button">Edit numbers</button>
-        <button class="ghost action" id="bet3Remove" type="button">Remove Bet 3</button>
-      </div>
-    </div>
-  </section>
 
   <section class="card">
     <h2>Check a draw</h2>
@@ -418,7 +392,7 @@
     </ul>
   </section>
 
-  <footer>迷惑六合彩 · static page · not affiliated with the HKJC · for personal tracking only.</footer>
+  <footer>迷惑六合彩 · static page · not affiliated with the HKJC · for personal tracking only.<br>v2026-09-04 23:53 HKT</footer>
 </div>
 
 <div class="egg" id="egg" hidden>
@@ -435,18 +409,16 @@
     { name: "Bet 1", nums: [1, 9, 17, 22, 28, 32, 36, 46] },
     { name: "Bet 2", nums: [3, 12, 14, 30, 34, 37, 38, 47] },
   ];
-  const BET3_MIN = 6, BET3_MAX = 12;
-  let bet3 = [];
-  try {
-    const s = JSON.parse(localStorage.getItem("marksix.bet3") || "[]");
-    if (Array.isArray(s)) bet3 = s.filter(n => Number.isInteger(n) && n >= 1 && n <= 49).slice(0, BET3_MAX);
-  } catch (e) {}
-  const saveBet3 = () => { try { localStorage.setItem("marksix.bet3", JSON.stringify(bet3)); } catch (e) {} };
-  // Bet 3 joins the display + draw check once it has enough numbers; it is never
-  // part of the odds table (which stays about Bet 1 & Bet 2 only).
-  const activeBets = () => bet3.length >= BET3_MIN
-    ? [...BETS, { name: "Bet 3", nums: bet3.slice().sort((a, b) => a - b), own: true }]
-    : BETS;
+  // Secret bets — hidden until the jackpot amount is tapped 10x in a row.
+  // Never checked against a draw and never part of the odds table while locked.
+  const HIDDEN_BETS = [
+    { name: "Bet 3", nums: [8, 13, 15, 19, 24, 28, 33] },
+    { name: "Bet 4", nums: [4, 6, 9, 17, 18, 23, 29, 44] },
+  ];
+  let bets34Unlocked = false;
+  try { bets34Unlocked = localStorage.getItem("marksix.unlocked34") === "1"; } catch (e) {}
+  // Bets currently shown, checked against a draw, and counted in the result summary.
+  const visibleBets = () => bets34Unlocked ? [...BETS, ...HIDDEN_BETS] : BETS;
 
   const DIVISIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th"];
   // Fixed prize per HK$10 unit for divisions 4-7 (index 3-6); null = pool-based.
@@ -469,7 +441,7 @@
   const comboLabel = cnt => cnt < 6 ? `${cnt} numbers` : cnt === 6 ? "single · 1 combo" : `複式 · ${cnt} numbers · ${_C(cnt, 6)} combos`;
   function renderBets(hits) {
     betsEl.innerHTML = "";
-    const list = activeBets();
+    const list = visibleBets();
     list.forEach((bet, idx) => {
       const h2 = document.createElement("h2");
       h2.innerHTML = `${bet.name} <span class="tag">${comboLabel(bet.nums.length)}</span>`;
@@ -494,7 +466,7 @@
   function currentHits() {
     const mainSet = new Set(picks.slice(0, MAIN_COUNT));
     const special = picks[MAIN_COUNT];
-    return activeBets().map(bet => ({
+    return visibleBets().map(bet => ({
       main: new Set(bet.nums.filter(n => mainSet.has(n))),
       special: special != null && bet.nums.includes(special) ? special : null,
       specialHit: special != null && bet.nums.includes(special),
@@ -637,77 +609,40 @@
     renderOdds();
   });
 
-  // ---------- Bet 3 (user-defined compound entry) ----------
-  let bet3Draft = [];       // numbers being picked in the editor
-  let bet3Editing = false;   // is the ball picker open
-  const bet3Panel = document.getElementById("bet3Panel");
-  const bet3AddBtn = document.getElementById("bet3Add");
-  const bet3ChipsEl = document.getElementById("bet3Chips");
-  const bet3TagEl = document.getElementById("bet3Tag");
-  const bet3GridEl = document.getElementById("bet3Grid");
-  const bet3EditRow = document.getElementById("bet3EditRow");
-  const bet3DoneRow = document.getElementById("bet3DoneRow");
-  const bet3ConfirmBtn = document.getElementById("bet3Confirm");
-  const bet3Cells = makeGrid(bet3GridEl, bet3Toggle);
+  // ---------- secret unlock: tap the jackpot amount 5x in a row ----------
+  const UNLOCK_TAPS = 5, UNLOCK_WINDOW_MS = 900;
+  let unlockTapCount = 0, unlockTapTimer = null;
+  const heroSubEl = document.getElementById("heroSub");
+  const unlockToastEl = document.getElementById("unlockToast");
 
-  function bet3Toggle(n) {
-    if (!bet3Editing) return;
-    const i = bet3Draft.indexOf(n);
-    if (i !== -1) bet3Draft.splice(i, 1);
-    else if (bet3Draft.length < BET3_MAX) bet3Draft.push(n);
-    else { flash(`Bet 3 is capped at ${BET3_MAX} numbers — remove one first.`); return; }
-    renderBet3();
+  function updateHeroSub() {
+    const bets = visibleBets();
+    const totalCombos = bets.reduce((s, b) => s + _C(b.nums.length, 6), 0);
+    const words = { 2: "Two", 3: "Three", 4: "Four" };
+    heroSubEl.textContent =
+      `${words[bets.length] || bets.length} compound bets · ${totalCombos} combinations working for us · 🎉 see you at the payout counter`;
   }
 
-  function renderBet3() {
-    const src = bet3Editing ? bet3Draft : bet3;
-    bet3Cells.forEach((btn, n) => { if (btn) btn.classList.toggle("pick", bet3Editing && bet3Draft.includes(n)); });
-    const sorted = src.slice().sort((a, b) => a - b);
-    bet3ChipsEl.innerHTML = sorted.length
-      ? sorted.map(n => `<div class="chip ${ballColor(n)}">${n}</div>`).join("")
-      : `<span class="b3-empty">No numbers yet — tap ${BET3_MIN}+ to build Bet 3.</span>`;
-    const cnt = src.length;
-    bet3TagEl.textContent = cnt < BET3_MIN
-      ? `${cnt}/${BET3_MIN} — pick ${BET3_MIN}–${BET3_MAX}`
-      : comboLabel(cnt);
-    bet3ConfirmBtn.disabled = bet3Draft.length < BET3_MIN;
+  function toast(msg) {
+    unlockToastEl.textContent = msg;
+    unlockToastEl.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => unlockToastEl.classList.remove("show"), 3500);
   }
 
-  function bet3Apply() {
+  document.getElementById("amountTap").addEventListener("click", () => {
+    clearTimeout(unlockTapTimer);
+    unlockTapCount++;
+    unlockTapTimer = setTimeout(() => { unlockTapCount = 0; }, UNLOCK_WINDOW_MS);
+    if (unlockTapCount < UNLOCK_TAPS) return;
+    unlockTapCount = 0;
+    if (bets34Unlocked) { toast("🔓 Bet 3 & Bet 4 are already in play."); return; }
+    bets34Unlocked = true;
+    try { localStorage.setItem("marksix.unlocked34", "1"); } catch (e) {}
+    updateHeroSub();
     renderBets(picks.length ? currentHits() : null);
     if (picks.length === TOTAL_PICKS) check();
-  }
-
-  function showBet3Panel(open) {
-    bet3Panel.hidden = !open;
-    bet3AddBtn.hidden = open;
-  }
-  function setBet3Editing(on) {
-    bet3Editing = on;
-    if (on) bet3Draft = bet3.slice();
-    bet3GridEl.hidden = !on;
-    bet3EditRow.hidden = !on;
-    bet3DoneRow.hidden = on || bet3.length < BET3_MIN;
-    renderBet3();
-  }
-
-  bet3AddBtn.addEventListener("click", () => { showBet3Panel(true); setBet3Editing(true); });
-  bet3ConfirmBtn.addEventListener("click", () => {
-    if (bet3Draft.length < BET3_MIN) return;
-    bet3 = bet3Draft.slice();
-    saveBet3();
-    setBet3Editing(false);
-    bet3Apply();
-  });
-  document.getElementById("bet3Cancel").addEventListener("click", () => {
-    if (bet3.length >= BET3_MIN) setBet3Editing(false);
-    else showBet3Panel(false);
-  });
-  document.getElementById("bet3Edit").addEventListener("click", () => setBet3Editing(true));
-  document.getElementById("bet3Remove").addEventListener("click", () => {
-    bet3 = []; bet3Draft = []; saveBet3();
-    showBet3Panel(false); setBet3Editing(false);
-    bet3Apply();
+    toast("🔓 Bet 3 & Bet 4 unlocked — now in play.");
   });
 
   // ---------- combinatorics ----------
@@ -743,7 +678,7 @@
     const special = picks[MAIN_COUNT];
     const mainSet = new Set(mains);
 
-    const hits = activeBets().map(bet => {
+    const hits = visibleBets().map(bet => {
       const main = new Set(bet.nums.filter(n => mainSet.has(n)));
       const specialHit = bet.nums.includes(special);
       const counts = [0, 0, 0, 0, 0, 0, 0];
@@ -766,7 +701,7 @@
 
   function renderResult(mains, special, hits) {
     let html = `<p class="summary">Draw: <strong>${mains.slice().sort((a,b)=>a-b).join(", ")}</strong> + special <strong>${special}</strong></p>`;
-    activeBets().forEach((bet, idx) => {
+    visibleBets().forEach((bet, idx) => {
       const h = hits[idx];
       const total = _C(bet.nums.length, 6);
       const matched = [...h.main].sort((a, b) => a - b);
@@ -909,8 +844,7 @@
   }
 
   // ---------- init ----------
-  if (bet3.length >= BET3_MIN) { showBet3Panel(true); setBet3Editing(false); }
-  else { bet3 = []; renderBet3(); }
+  updateHeroSub();
   renderBets(null);
   renderSlots();
   refreshGrid();
