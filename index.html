@@ -413,8 +413,8 @@
   // the sequence again re-hides them. Resets to hidden on every page load, and
   // are never checked against a draw or counted in the odds table while hidden.
   const HIDDEN_BETS = [
-    { name: "Bet 3", nums: [8, 13, 15, 19, 24, 28, 33, 38] },
-    { name: "Bet 4", nums: [4, 6, 9, 17, 18, 23, 29, 44] },
+    { name: "CG b1", nums: [8, 13, 15, 19, 24, 28, 33, 38] },
+    { name: "CB b2", nums: [4, 6, 9, 17, 18, 23, 29, 44] },
   ];
   let bets34Unlocked = false;
   // Bets currently shown, checked against a draw, and counted in the result summary.
@@ -506,7 +506,7 @@
     }
   }
 
-  // ---------- 1-49 grid (reused by the draw picker and by Bet 3) ----------
+  // ---------- 1-49 grid (reused by the draw picker) ----------
   function makeGrid(container, onClick) {
     const cs = [];
     for (let n = 1; n <= 49; n++) {
@@ -640,7 +640,7 @@
     updateHeroSub();
     renderBets(picks.length ? currentHits() : null);
     if (picks.length === TOTAL_PICKS) check();
-    toast(bets34Unlocked ? "🔓 Bet 3 & Bet 4 unlocked — now in play." : "🔒 Bet 3 & Bet 4 hidden again.");
+    toast(bets34Unlocked ? "🔓 CG b1 & CB b2 unlocked — now in play." : "🔒 CG b1 & CB b2 hidden again.");
   });
 
   // ---------- combinatorics ----------
