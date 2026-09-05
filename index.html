@@ -409,14 +409,14 @@
     { name: "Bet 1", nums: [1, 9, 17, 22, 28, 32, 36, 46] },
     { name: "Bet 2", nums: [3, 12, 14, 30, 34, 37, 38, 47] },
   ];
-  // Secret bets — hidden until the jackpot amount is tapped 10x in a row.
-  // Never checked against a draw and never part of the odds table while locked.
+  // Secret bets — hidden until the jackpot amount is tapped 5x in a row; tapping
+  // the sequence again re-hides them. Resets to hidden on every page load, and
+  // are never checked against a draw or counted in the odds table while hidden.
   const HIDDEN_BETS = [
     { name: "Bet 3", nums: [8, 13, 15, 19, 24, 28, 33] },
     { name: "Bet 4", nums: [4, 6, 9, 17, 18, 23, 29, 44] },
   ];
   let bets34Unlocked = false;
-  try { bets34Unlocked = localStorage.getItem("marksix.unlocked34") === "1"; } catch (e) {}
   // Bets currently shown, checked against a draw, and counted in the result summary.
   const visibleBets = () => bets34Unlocked ? [...BETS, ...HIDDEN_BETS] : BETS;
 
@@ -636,13 +636,11 @@
     unlockTapTimer = setTimeout(() => { unlockTapCount = 0; }, UNLOCK_WINDOW_MS);
     if (unlockTapCount < UNLOCK_TAPS) return;
     unlockTapCount = 0;
-    if (bets34Unlocked) { toast("🔓 Bet 3 & Bet 4 are already in play."); return; }
-    bets34Unlocked = true;
-    try { localStorage.setItem("marksix.unlocked34", "1"); } catch (e) {}
+    bets34Unlocked = !bets34Unlocked;
     updateHeroSub();
     renderBets(picks.length ? currentHits() : null);
     if (picks.length === TOTAL_PICKS) check();
-    toast("🔓 Bet 3 & Bet 4 unlocked — now in play.");
+    toast(bets34Unlocked ? "🔓 Bet 3 & Bet 4 unlocked — now in play." : "🔒 Bet 3 & Bet 4 hidden again.");
   });
 
   // ---------- combinatorics ----------
