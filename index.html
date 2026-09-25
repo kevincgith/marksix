@@ -3,16 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>We're Winning HK$228,000,000 🎉</title>
+<title>We're Winning HK$68,000,000 🥮</title>
 <style>
+  /* Mid-Autumn palette: lantern red + moon gold, warm parchment by day, night sky by night. */
   :root {
-    --bg: #f4f5f7;
-    --card: #ffffff;
-    --text: #1c1d21;
-    --muted: #6b7280;
-    --border: #e3e5e9;
+    --bg: #fbf4e6;
+    --card: #fffaf0;
+    --text: #2a1d14;
+    --muted: #7b6a58;
+    --border: #eadcc2;
     --accent: #b3121d;
-    --accent-soft: #fdecec;
+    --accent-soft: #fbe3dc;
+    --gold: #b7791f;
+    --moon: #f6d77a;
+    --moon-glow: rgba(246, 205, 98, .45);
     --hit: #1f9d55;
     --hit-soft: #e6f6ec;
     --special: #d98200;
@@ -20,44 +24,109 @@
     --ball-blue: #0067b1;
     --ball-green: #068a3c;
     --ball-ink: #ffffff;
-    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+    --shadow: 0 1px 3px rgba(80,50,20,.10), 0 1px 2px rgba(80,50,20,.06);
+    --sky: none;
+    --amt1: #dd9d2e;
+    --amt2: #9a4f0e;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #16171a;
-      --card: #1f2126;
-      --text: #e8e9ec;
-      --muted: #9aa0aa;
-      --border: #2e3138;
+      --bg: #0d1230;
+      --card: #161c42;
+      --text: #f1ead8;
+      --muted: #a7a3bd;
+      --border: #28305c;
       --accent: #ef4a54;
-      --accent-soft: #3a1e20;
+      --accent-soft: #3b1d2c;
+      --gold: #f2c14e;
+      --moon: #fbe7a1;
+      --moon-glow: rgba(251, 222, 140, .38);
       --hit: #3ecf7a;
-      --hit-soft: #1c3226;
+      --hit-soft: #1a3a34;
       --special: #f2a53c;
       --ball-red: #e23b3f;
       --ball-blue: #1f86d0;
       --ball-green: #17a24f;
-      --shadow: 0 1px 3px rgba(0,0,0,.4);
+      --shadow: 0 1px 3px rgba(0,0,0,.45);
+      --amt1: #fff1bf;
+      --amt2: #f2c14e;
+      --sky:
+        radial-gradient(1px 1px at 12% 8%, #fff8 50%, transparent 51%),
+        radial-gradient(1px 1px at 78% 5%, #fff9 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 30% 18%, #fff7 50%, transparent 51%),
+        radial-gradient(1px 1px at 88% 22%, #fff6 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 55% 3%, #fffa 50%, transparent 51%),
+        radial-gradient(1px 1px at 5% 30%, #fff6 50%, transparent 51%),
+        radial-gradient(1px 1px at 95% 40%, #fff5 50%, transparent 51%),
+        radial-gradient(1px 1px at 42% 34%, #fff5 50%, transparent 51%);
     }
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     padding: 2rem 1rem 4rem;
-    background: var(--bg);
+    background: var(--sky), var(--bg);
+    background-attachment: fixed;
     color: var(--text);
     font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang HK", "Microsoft JhengHei", sans-serif;
   }
   .wrap { max-width: 760px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 2rem; }
+  header { text-align: center; margin-bottom: 2rem; position: relative; }
+
+  /* ---- moon + lanterns ---- */
+  .moon {
+    width: 88px; height: 88px; margin: .2rem auto 1rem;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 34% 38%, rgba(0,0,0,.06) 0 9%, transparent 10%),
+      radial-gradient(circle at 62% 64%, rgba(0,0,0,.05) 0 7%, transparent 8%),
+      radial-gradient(circle at 66% 30%, rgba(0,0,0,.045) 0 5%, transparent 6%),
+      radial-gradient(circle at 40% 35%, #fffbe8, var(--moon) 70%);
+    box-shadow: 0 0 28px 8px var(--moon-glow), 0 0 80px 24px var(--moon-glow);
+    position: relative;
+  }
+  .moon::after { /* the jade rabbit */
+    content: "🐇"; position: absolute; right: -6px; bottom: -4px;
+    font-size: 1.35rem; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25));
+  }
+  .lantern {
+    position: absolute; top: -2rem; width: 38px;
+    transform-origin: 50% 0; animation: sway 3.6s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .lantern.l { left: 4%; }
+  .lantern.r { right: 4%; animation-delay: -1.8s; }
+  .lantern .string { width: 2px; height: 34px; margin: 0 auto; background: var(--gold); opacity: .7; }
+  .lantern .cap { width: 18px; height: 6px; margin: 0 auto; background: var(--gold); border-radius: 2px; }
+  .lantern .body {
+    width: 38px; height: 44px; margin: 0 auto;
+    border-radius: 45% / 50%;
+    background: radial-gradient(circle at 50% 40%, #ff6a4d, #c4161c 70%);
+    box-shadow: 0 0 18px rgba(255, 90, 60, .45);
+    background-image:
+      linear-gradient(90deg, transparent 30%, rgba(0,0,0,.12) 31% 33%, transparent 34% 66%, rgba(0,0,0,.12) 67% 69%, transparent 70%),
+      radial-gradient(circle at 50% 40%, #ff6a4d, #c4161c 70%);
+  }
+  .lantern .tassel { width: 4px; height: 16px; margin: 0 auto; background: var(--gold); border-radius: 0 0 2px 2px; }
+  .lantern.small { width: 30px; top: -2.6rem; }
+  .lantern.small .body { width: 30px; height: 34px; }
+  @keyframes sway { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+  @media (max-width: 480px) {
+    .lantern.l { left: 0; } .lantern.r { right: 0; }
+    .lantern { transform: scale(.8); }
+    .moon { width: 72px; height: 72px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .lantern { animation: none; } }
+
   .kicker {
     text-transform: uppercase;
     letter-spacing: .18em;
     font-size: .72rem;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--gold);
     margin: 0 0 .5rem;
   }
+  .festive { margin: 0 0 .6rem; font-size: 1.05rem; letter-spacing: .4em; color: var(--accent); font-weight: 700; }
   h1 {
     margin: 0 0 .4rem;
     font-size: 2rem;
@@ -67,8 +136,12 @@
   h1 .amount {
     display: block;
     font-size: 2.9rem;
-    color: var(--accent);
     font-variant-numeric: tabular-nums;
+    color: var(--gold);
+    background: linear-gradient(180deg, var(--amt1), var(--amt2) 75%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 14px var(--moon-glow));
   }
   header p { margin: .5rem 0 0; color: var(--muted); font-size: .95rem; }
   @media (max-width: 480px) {
@@ -282,9 +355,13 @@
 <body>
 <div class="wrap">
   <header>
-    <p class="kicker">迷惑六合彩 · Snowball 金多寶 · Draw 5 Sep 2026</p>
-    <h1>We are <span style="white-space:nowrap">GOING to WIN</span><span class="amount" id="amountTap">HK$228,000,000</span></h1>
-    <p id="heroSub">Two 8-number compound bets · 56 combinations working for us · 🎉 see you at the payout counter</p>
+    <div class="lantern l" aria-hidden="true"><div class="string"></div><div class="cap"></div><div class="body"></div><div class="cap"></div><div class="tassel"></div></div>
+    <div class="lantern r small" aria-hidden="true"><div class="string"></div><div class="cap"></div><div class="body"></div><div class="cap"></div><div class="tassel"></div></div>
+    <div class="moon" aria-hidden="true"></div>
+    <p class="festive">中秋快樂</p>
+    <p class="kicker">迷惑六合彩 · 26/104 MAF Mid-Autumn Festival Snowball</p>
+    <h1>We are <span style="white-space:nowrap">GOING to WIN</span><span class="amount" id="amountTap">HK$68,000,000</span></h1>
+    <p id="heroSub">Two 8-number compound bets · 56 combinations working for us · 🥮 see you at the payout counter</p>
     <p id="unlockToast"></p>
   </header>
 
@@ -336,7 +413,7 @@
 
   <section class="card" id="spend">
     <h2>How to spend it 💸</h2>
-    <p class="sub">A responsible, well-considered plan for HK$228,000,000.</p>
+    <p class="sub">A responsible, well-considered plan for HK$68,000,000.</p>
 
     <h3>Tier 1 · Warming up</h3>
     <ul class="spend-list">
@@ -392,7 +469,7 @@
     </ul>
   </section>
 
-  <footer>迷惑六合彩 · static page · not affiliated with the HKJC · for personal tracking only.<br>v2026-09-04 23:53 HKT</footer>
+  <footer>迷惑六合彩 · static page · not affiliated with the HKJC · for personal tracking only.<br>v2026-09-25 23:30 HKT</footer>
 </div>
 
 <div class="egg" id="egg" hidden>
@@ -406,8 +483,8 @@
 
 <script>
   const BETS = [
-    { name: "Bet 1", nums: [1, 9, 17, 22, 28, 32, 36, 46] },
-    { name: "Bet 2", nums: [3, 12, 14, 30, 34, 37, 38, 47] },
+    { name: "Bet 1", nums: [1, 3, 11, 24, 30, 37, 42, 44] },
+    { name: "Bet 2", nums: [6, 15, 18, 25, 27, 29, 46, 47] },
   ];
   // Secret bets — hidden until the jackpot amount is tapped 5x in a row; tapping
   // the sequence again re-hides them. Resets to hidden on every page load, and
@@ -556,7 +633,7 @@
 
   // ---------- easter egg for a 1st/2nd/3rd division hit ----------
   const EGG = {
-    0: { swear: "HOLY SHIT!!!", div: "1st DIVISION · 頭獎 💰🎉", sub: "HK$228,000,000. We actually did it. Somebody sit down." },
+    0: { swear: "HOLY SHIT!!!", div: "1st DIVISION · 頭獎 💰🎉", sub: "HK$68,000,000. We actually did it. Somebody sit down." },
     1: { swear: "OH FUCK, SO CLOSE!", div: "2nd DIVISION · 二獎 🎊", sub: "One number off the jackpot. Still millions though." },
     2: { swear: "OH FUCK, NOT AGAIN!", div: "3rd DIVISION · 三獎 😮‍💨", sub: "Another third. It's basically our salary at this point." },
   };
@@ -569,7 +646,7 @@
     document.getElementById("eggDiv").textContent = m.div;
     document.getElementById("eggSub").textContent = m.sub;
     eggEl.querySelectorAll(".conf").forEach(c => c.remove());
-    const emojis = ["🎉", "💰", "🧧", "🎊", "✨", "🤑", "💵"];
+    const emojis = ["🥮", "🏮", "🌕", "🐇", "💰", "✨", "🧧"];
     for (let i = 0; i < 28; i++) {
       const s = document.createElement("span");
       s.className = "conf";
@@ -620,7 +697,7 @@
     const totalCombos = bets.reduce((s, b) => s + _C(b.nums.length, 6), 0);
     const words = { 2: "Two", 3: "Three", 4: "Four" };
     heroSubEl.textContent =
-      `${words[bets.length] || bets.length} compound bets · ${totalCombos} combinations working for us · 🎉 see you at the payout counter`;
+      `${words[bets.length] || bets.length} compound bets · ${totalCombos} combinations working for us · 🥮 see you at the payout counter`;
   }
 
   function toast(msg) {
