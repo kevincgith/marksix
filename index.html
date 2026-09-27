@@ -3,20 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>We're Winning HK$98,000,000 🥮</title>
+<title>We're Winning HK$98,000,000 💘</title>
 <style>
-  /* Mid-Autumn palette: lantern red + moon gold, warm parchment by day, night sky by night. */
+  /* National Boyfriend Day palette: hot pink + rose, blush by day, plum night by night. */
   :root {
-    --bg: #fbf4e6;
-    --card: #fffaf0;
-    --text: #2a1d14;
-    --muted: #7b6a58;
-    --border: #eadcc2;
-    --accent: #b3121d;
-    --accent-soft: #fbe3dc;
-    --gold: #b7791f;
-    --moon: #f6d77a;
-    --moon-glow: rgba(246, 205, 98, .45);
+    --bg: #fff1f4;
+    --card: #fffafb;
+    --text: #2b1620;
+    --muted: #86606d;
+    --border: #f5d3dd;
+    --accent: #d6336c;
+    --accent-soft: #ffe0ea;
+    --gold: #b0305a;
+    --glow: rgba(255, 92, 138, .35);
     --hit: #1f9d55;
     --hit-soft: #e6f6ec;
     --special: #d98200;
@@ -24,23 +23,22 @@
     --ball-blue: #0067b1;
     --ball-green: #068a3c;
     --ball-ink: #ffffff;
-    --shadow: 0 1px 3px rgba(80,50,20,.10), 0 1px 2px rgba(80,50,20,.06);
+    --shadow: 0 1px 3px rgba(120,30,60,.10), 0 1px 2px rgba(120,30,60,.06);
     --sky: none;
-    --amt1: #dd9d2e;
-    --amt2: #9a4f0e;
+    --amt1: #ff5c8a;
+    --amt2: #b0126b;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0d1230;
-      --card: #161c42;
-      --text: #f1ead8;
-      --muted: #a7a3bd;
-      --border: #28305c;
-      --accent: #ef4a54;
-      --accent-soft: #3b1d2c;
-      --gold: #f2c14e;
-      --moon: #fbe7a1;
-      --moon-glow: rgba(251, 222, 140, .38);
+      --bg: #1c0f1f;
+      --card: #2a1630;
+      --text: #fbe9f0;
+      --muted: #c3a3b4;
+      --border: #43263f;
+      --accent: #ff5c8a;
+      --accent-soft: #4a1d33;
+      --gold: #ff9fbd;
+      --glow: rgba(255, 92, 138, .4);
       --hit: #3ecf7a;
       --hit-soft: #1a3a34;
       --special: #f2a53c;
@@ -48,17 +46,17 @@
       --ball-blue: #1f86d0;
       --ball-green: #17a24f;
       --shadow: 0 1px 3px rgba(0,0,0,.45);
-      --amt1: #fff1bf;
-      --amt2: #f2c14e;
+      --amt1: #ffd1e0;
+      --amt2: #ff5c8a;
       --sky:
-        radial-gradient(1px 1px at 12% 8%, #fff8 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 12% 8%, #ff9fbd99 50%, transparent 51%),
         radial-gradient(1px 1px at 78% 5%, #fff9 50%, transparent 51%),
-        radial-gradient(1.5px 1.5px at 30% 18%, #fff7 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 30% 18%, #ff9fbd88 50%, transparent 51%),
         radial-gradient(1px 1px at 88% 22%, #fff6 50%, transparent 51%),
         radial-gradient(1.5px 1.5px at 55% 3%, #fffa 50%, transparent 51%),
-        radial-gradient(1px 1px at 5% 30%, #fff6 50%, transparent 51%),
+        radial-gradient(1px 1px at 5% 30%, #ff9fbd77 50%, transparent 51%),
         radial-gradient(1px 1px at 95% 40%, #fff5 50%, transparent 51%),
-        radial-gradient(1px 1px at 42% 34%, #fff5 50%, transparent 51%);
+        radial-gradient(1px 1px at 42% 34%, #ff9fbd66 50%, transparent 51%);
     }
   }
   * { box-sizing: border-box; }
@@ -73,50 +71,32 @@
   .wrap { max-width: 760px; margin: 0 auto; }
   header { text-align: center; margin-bottom: 2rem; position: relative; }
 
-  /* ---- moon + lanterns ---- */
-  .moon {
-    width: 88px; height: 88px; margin: .2rem auto 1rem;
-    border-radius: 50%;
-    background:
-      radial-gradient(circle at 34% 38%, rgba(0,0,0,.06) 0 9%, transparent 10%),
-      radial-gradient(circle at 62% 64%, rgba(0,0,0,.05) 0 7%, transparent 8%),
-      radial-gradient(circle at 66% 30%, rgba(0,0,0,.045) 0 5%, transparent 6%),
-      radial-gradient(circle at 40% 35%, #fffbe8, var(--moon) 70%);
-    box-shadow: 0 0 28px 8px var(--moon-glow), 0 0 80px 24px var(--moon-glow);
-    position: relative;
+  /* ---- beating heart + balloons ---- */
+  .heart {
+    font-size: 76px; line-height: 1; margin: .2rem auto .9rem;
+    filter: drop-shadow(0 0 18px var(--glow)) drop-shadow(0 0 40px var(--glow));
+    animation: beat 1.3s ease-in-out infinite;
+    display: inline-block; position: relative;
   }
-  .moon::after { /* the jade rabbit */
-    content: "🐇"; position: absolute; right: -6px; bottom: -4px;
-    font-size: 1.35rem; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25));
+  .heart::after { /* the only guy who never leaves */
+    content: "🤑"; position: absolute; right: -14px; bottom: -2px; font-size: 1.5rem;
   }
-  .lantern {
-    position: absolute; top: -2rem; width: 38px;
-    transform-origin: 50% 0; animation: sway 3.6s ease-in-out infinite;
-    pointer-events: none;
+  @keyframes beat { 0%,100% { transform: scale(1); } 15% { transform: scale(1.12); } 30% { transform: scale(1); } 45% { transform: scale(1.08); } }
+  .balloon {
+    position: absolute; top: -1.6rem; text-align: center;
+    animation: bob 3.4s ease-in-out infinite; pointer-events: none;
   }
-  .lantern.l { left: 4%; }
-  .lantern.r { right: 4%; animation-delay: -1.8s; }
-  .lantern .string { width: 2px; height: 34px; margin: 0 auto; background: var(--gold); opacity: .7; }
-  .lantern .cap { width: 18px; height: 6px; margin: 0 auto; background: var(--gold); border-radius: 2px; }
-  .lantern .body {
-    width: 38px; height: 44px; margin: 0 auto;
-    border-radius: 45% / 50%;
-    background: radial-gradient(circle at 50% 40%, #ff6a4d, #c4161c 70%);
-    box-shadow: 0 0 18px rgba(255, 90, 60, .45);
-    background-image:
-      linear-gradient(90deg, transparent 30%, rgba(0,0,0,.12) 31% 33%, transparent 34% 66%, rgba(0,0,0,.12) 67% 69%, transparent 70%),
-      radial-gradient(circle at 50% 40%, #ff6a4d, #c4161c 70%);
-  }
-  .lantern .tassel { width: 4px; height: 16px; margin: 0 auto; background: var(--gold); border-radius: 0 0 2px 2px; }
-  .lantern.small { width: 30px; top: -2.6rem; }
-  .lantern.small .body { width: 30px; height: 34px; }
-  @keyframes sway { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+  .balloon .b { font-size: 2.4rem; line-height: 1; display: block; }
+  .balloon .str { width: 1.5px; height: 46px; margin: -2px auto 0; background: var(--gold); opacity: .6; }
+  .balloon.l { left: 4%; }
+  .balloon.r { right: 4%; animation-delay: -1.7s; }
+  .balloon.r .b { font-size: 1.9rem; }
+  @keyframes bob { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-8px) rotate(4deg); } }
   @media (max-width: 480px) {
-    .lantern.l { left: 0; } .lantern.r { right: 0; }
-    .lantern { transform: scale(.8); }
-    .moon { width: 72px; height: 72px; }
+    .balloon.l { left: 0; } .balloon.r { right: 0; }
+    .heart { font-size: 62px; }
   }
-  @media (prefers-reduced-motion: reduce) { .lantern { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .balloon, .heart { animation: none; } }
 
   .kicker {
     text-transform: uppercase;
@@ -126,7 +106,8 @@
     color: var(--gold);
     margin: 0 0 .5rem;
   }
-  .festive { margin: 0 0 .6rem; font-size: 1.05rem; letter-spacing: .4em; color: var(--accent); font-weight: 700; }
+  .festive { margin: 0 0 .6rem; font-size: 1rem; letter-spacing: .08em; color: var(--accent); font-weight: 800; }
+  .quip { margin: .35rem 0 0; font-size: .85rem; font-style: italic; color: var(--muted); }
   h1 {
     margin: 0 0 .4rem;
     font-size: 2rem;
@@ -141,7 +122,7 @@
     background: linear-gradient(180deg, var(--amt1), var(--amt2) 75%);
     -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 14px var(--moon-glow));
+    filter: drop-shadow(0 0 14px var(--glow));
   }
   header p { margin: .5rem 0 0; color: var(--muted); font-size: .95rem; }
   @media (max-width: 480px) {
@@ -279,6 +260,10 @@
   .spend-list li::marker { color: var(--accent); }
   #claim p { font-size: .92rem; margin: .4rem 0; }
   #claim a, .sub a { color: var(--accent); }
+  #bfvs td:first-child { font-weight: 700; width: 30%; }
+  @media (max-width: 420px) { #bfvs table { font-size: .82rem; } #bfvs th, #bfvs td { padding: .4rem .3rem; } }
+  #bfvs td:nth-child(2) { color: var(--muted); }
+  #bfvs td:nth-child(3) { color: var(--accent); font-weight: 600; }
 
   .result { margin-top: 1.2rem; display: none; }
   .result.show { display: block; }
@@ -355,13 +340,14 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="lantern l" aria-hidden="true"><div class="string"></div><div class="cap"></div><div class="body"></div><div class="cap"></div><div class="tassel"></div></div>
-    <div class="lantern r small" aria-hidden="true"><div class="string"></div><div class="cap"></div><div class="body"></div><div class="cap"></div><div class="tassel"></div></div>
-    <div class="moon" aria-hidden="true"></div>
-    <p class="festive">中秋快樂</p>
+    <div class="balloon l" aria-hidden="true"><span class="b">💗</span><div class="str"></div></div>
+    <div class="balloon r" aria-hidden="true"><span class="b">💖</span><div class="str"></div></div>
+    <div class="heart" aria-hidden="true">💘</div>
+    <p class="festive">💐 Happy National Boyfriend Day 💐</p>
     <p class="kicker">迷惑六合彩 · 3/10 First Prize 98M HKD</p>
     <h1>We are <span style="white-space:nowrap">GOING to WIN</span><span class="amount" id="amountTap">HK$98,000,000</span></h1>
-    <p id="heroSub">Two 8-number compound bets · 56 combinations working for us · 🥮 see you at the payout counter</p>
+    <p id="heroSub">Two 8-number compound bets · 56 combinations working for us · 💘 more committed to us than any boyfriend ever was</p>
+    <p class="quip">He forgot our anniversary. HK$98,000,000 never would.</p>
     <p id="unlockToast"></p>
   </header>
 
@@ -409,6 +395,23 @@
       <tfoot><tr class="total" id="oddsAny"></tr></tfoot>
     </table>
     <p class="sub" id="oddsNote"></p>
+  </section>
+
+  <section class="card" id="bfvs">
+    <h2>Boyfriend vs HK$98,000,000 💘</h2>
+    <p class="sub">An objective, peer-reviewed comparison.</p>
+    <table>
+      <thead><tr><th></th><th>Boyfriend</th><th>HK$98M</th></tr></thead>
+      <tbody>
+        <tr><td>Texts back</td><td>"Seen 3h ago"</td><td>Instant FPS transfer</td></tr>
+        <tr><td>Dinner</td><td>"Split it?"</td><td>Buys the restaurant</td></tr>
+        <tr><td>Commitment</td><td>"Needs space"</td><td>Locked in for 60 days</td></tr>
+        <tr><td>Your parents</td><td>"Maybe next year"</td><td>Pays off their mortgage</td></tr>
+        <tr><td>Anniversaries</td><td>Forgets</td><td>Draw date engraved on a gold Octopus card</td></tr>
+        <tr><td>Leaves you on read</td><td>Constantly</td><td>Legally cannot</td></tr>
+        <tr><td>Odds it works out</td><td>Unclear</td><td>1 in 249,711 — at least it's honest</td></tr>
+      </tbody>
+    </table>
   </section>
 
   <section class="card" id="spend">
@@ -469,7 +472,7 @@
     </ul>
   </section>
 
-  <footer>迷惑六合彩 · static page · not affiliated with the HKJC · for personal tracking only.<br>v2026-09-27 23:56 HKT</footer>
+  <footer>迷惑六合彩 · static page · not affiliated with the HKJC · for personal tracking only.<br>v2026-09-27 23:59 HKT</footer>
 </div>
 
 <div class="egg" id="egg" hidden>
@@ -633,9 +636,9 @@
 
   // ---------- easter egg for a 1st/2nd/3rd division hit ----------
   const EGG = {
-    0: { swear: "HOLY SHIT!!!", div: "1st DIVISION · 頭獎 💰🎉", sub: "HK$98,000,000. We actually did it. Somebody sit down." },
-    1: { swear: "OH FUCK, SO CLOSE!", div: "2nd DIVISION · 二獎 🎊", sub: "One number off the jackpot. Still millions though." },
-    2: { swear: "OH FUCK, NOT AGAIN!", div: "3rd DIVISION · 三獎 😮‍💨", sub: "Another third. It's basically our salary at this point." },
+    0: { swear: "HOLY SHIT!!!", div: "1st DIVISION · 頭獎 💰🎉", sub: "HK$98,000,000. Who needs a boyfriend? We have a family office now." },
+    1: { swear: "OH FUCK, SO CLOSE!", div: "2nd DIVISION · 二獎 🎊", sub: "One number off. Story of our love life. Still millions though." },
+    2: { swear: "OH FUCK, NOT AGAIN!", div: "3rd DIVISION · 三獎 😮‍💨", sub: "Another third. Like every relationship: close, but never quite there." },
   };
   const eggEl = document.getElementById("egg");
   let eggConfTimer;
@@ -646,7 +649,7 @@
     document.getElementById("eggDiv").textContent = m.div;
     document.getElementById("eggSub").textContent = m.sub;
     eggEl.querySelectorAll(".conf").forEach(c => c.remove());
-    const emojis = ["🥮", "🏮", "🌕", "🐇", "💰", "✨", "🧧"];
+    const emojis = ["💘", "🌹", "🍫", "💍", "💸", "🤑", "💐"];
     for (let i = 0; i < 28; i++) {
       const s = document.createElement("span");
       s.className = "conf";
@@ -697,7 +700,7 @@
     const totalCombos = bets.reduce((s, b) => s + _C(b.nums.length, 6), 0);
     const words = { 2: "Two", 3: "Three", 4: "Four" };
     heroSubEl.textContent =
-      `${words[bets.length] || bets.length} compound bets · ${totalCombos} combinations working for us · 🥮 see you at the payout counter`;
+      `${words[bets.length] || bets.length} compound bets · ${totalCombos} combinations working for us · 💘 more committed to us than any boyfriend ever was`;
   }
 
   function toast(msg) {
