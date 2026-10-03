@@ -362,6 +362,7 @@
     <div class="grid" id="grid"></div>
 
     <div class="row">
+      <button class="ghost action" id="sortBtn" type="button">Sort ↑</button>
       <button class="ghost action" id="clearBtn" type="button">Clear</button>
     </div>
     <p class="err" id="err"></p>
@@ -472,7 +473,7 @@
     </ul>
   </section>
 
-  <footer>迷惑六合彩 · static page · not affiliated with the HKJC · for personal tracking only.<br>v2026-10-03 21:32 HKT</footer>
+  <footer>迷惑六合彩 · static page · not affiliated with the HKJC · for personal tracking only.<br>v2026-10-03 22:15 HKT</footer>
 </div>
 
 <div class="egg" id="egg" hidden>
@@ -676,6 +677,14 @@
     clearTimeout(flashTimer);
     flashTimer = setTimeout(() => { if (errEl.textContent === msg) errEl.textContent = ""; }, 2500);
   }
+
+  // Sort the drawn main numbers ascending; the special (7th pick) stays in its slot.
+  document.getElementById("sortBtn").addEventListener("click", () => {
+    const mains = picks.slice(0, MAIN_COUNT).sort((a, b) => a - b);
+    picks = [...mains, ...picks.slice(MAIN_COUNT)];
+    renderSlots();
+    refreshGrid();
+  });
 
   document.getElementById("clearBtn").addEventListener("click", () => {
     picks = [];
