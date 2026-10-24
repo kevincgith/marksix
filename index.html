@@ -3,225 +3,168 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>We're Winning HK$98,000,000 💘</title>
+<title>Mark Six Checker</title>
+<meta name="description" content="Save your Mark Six bets, enter the draw, and see what you won.">
 <style>
-  /* National Boyfriend Day palette: hot pink + rose, blush by day, plum night by night. */
   :root {
-    --bg: #fff1f4;
-    --card: #fffafb;
-    --text: #2b1620;
-    --muted: #86606d;
-    --border: #f5d3dd;
-    --accent: #d6336c;
-    --accent-soft: #ffe0ea;
-    --gold: #b0305a;
-    --glow: rgba(255, 92, 138, .35);
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #1b1f24;
+    --muted: #616a76;
+    --border: #e2e5e9;
+    --accent: #4f46e5;
+    --accent-soft: #eceafd;
+    --primary: #1b1f24;
+    --primary-ink: #ffffff;
     --hit: #1f9d55;
     --hit-soft: #e6f6ec;
+    --warn: #c2410c;
     --special: #d98200;
     --ball-red: #d8232a;
     --ball-blue: #0067b1;
     --ball-green: #068a3c;
     --ball-ink: #ffffff;
-    --shadow: 0 1px 3px rgba(120,30,60,.10), 0 1px 2px rgba(120,30,60,.06);
-    --sky: none;
-    --amt1: #ff5c8a;
-    --amt2: #b0126b;
+    --shadow: 0 1px 3px rgba(20,25,35,.08), 0 1px 2px rgba(20,25,35,.05);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1c0f1f;
-      --card: #2a1630;
-      --text: #fbe9f0;
-      --muted: #c3a3b4;
-      --border: #43263f;
-      --accent: #ff5c8a;
-      --accent-soft: #4a1d33;
-      --gold: #ff9fbd;
-      --glow: rgba(255, 92, 138, .4);
+      --bg: #121418;
+      --card: #1b1e24;
+      --text: #eef0f3;
+      --muted: #9aa3ae;
+      --border: #2c3139;
+      --accent: #8b83ff;
+      --accent-soft: #29274a;
+      --primary: #eef0f3;
+      --primary-ink: #121418;
       --hit: #3ecf7a;
-      --hit-soft: #1a3a34;
+      --hit-soft: #183229;
+      --warn: #fb923c;
       --special: #f2a53c;
       --ball-red: #e23b3f;
       --ball-blue: #1f86d0;
       --ball-green: #17a24f;
       --shadow: 0 1px 3px rgba(0,0,0,.45);
-      --amt1: #ffd1e0;
-      --amt2: #ff5c8a;
-      --sky:
-        radial-gradient(1.5px 1.5px at 12% 8%, #ff9fbd99 50%, transparent 51%),
-        radial-gradient(1px 1px at 78% 5%, #fff9 50%, transparent 51%),
-        radial-gradient(1.5px 1.5px at 30% 18%, #ff9fbd88 50%, transparent 51%),
-        radial-gradient(1px 1px at 88% 22%, #fff6 50%, transparent 51%),
-        radial-gradient(1.5px 1.5px at 55% 3%, #fffa 50%, transparent 51%),
-        radial-gradient(1px 1px at 5% 30%, #ff9fbd77 50%, transparent 51%),
-        radial-gradient(1px 1px at 95% 40%, #fff5 50%, transparent 51%),
-        radial-gradient(1px 1px at 42% 34%, #ff9fbd66 50%, transparent 51%);
     }
   }
   * { box-sizing: border-box; }
-  html { touch-action: manipulation; } /* no double-tap zoom when tapping fast (grid, secret unlock) */
+  html { touch-action: manipulation; } /* no double-tap zoom when tapping fast */
   body {
     margin: 0;
-    padding: 2rem 1rem 4rem;
-    background: var(--sky), var(--bg);
-    background-attachment: fixed;
+    padding: 1.75rem 1rem 4rem;
+    background: var(--bg);
     color: var(--text);
     font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang HK", "Microsoft JhengHei", sans-serif;
   }
   .wrap { max-width: 760px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 2rem; position: relative; }
+  header { text-align: center; margin-bottom: 1.5rem; }
+  header .logo { display: inline-flex; gap: .3rem; }
+  header .logo .ball { width: 2.6rem; height: 2.6rem; font-size: 1.15rem; box-shadow: inset -3px -4px 0 rgba(0,0,0,.18); }
+  header .logo .ball:nth-child(2) { transform: translateY(-.35rem); }
+  h1 { margin: .4rem 0 .2rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -.01em; }
+  header p { margin: 0; color: var(--muted); font-size: .95rem; }
 
-  /* ---- beating heart + balloons ---- */
-  .heart {
-    font-size: 76px; line-height: 1; margin: .2rem auto .9rem;
-    filter: drop-shadow(0 0 18px var(--glow)) drop-shadow(0 0 40px var(--glow));
-    animation: beat 1.3s ease-in-out infinite;
-    display: inline-block; position: relative;
-  }
-  .heart::after { /* the only guy who never leaves */
-    content: "🤑"; position: absolute; right: -14px; bottom: -2px; font-size: 1.5rem;
-  }
-  @keyframes beat { 0%,100% { transform: scale(1); } 15% { transform: scale(1.12); } 30% { transform: scale(1); } 45% { transform: scale(1.08); } }
-  .balloon {
-    position: absolute; top: -1.6rem; text-align: center;
-    animation: bob 3.4s ease-in-out infinite; pointer-events: none;
-  }
-  .balloon .b { font-size: 2.4rem; line-height: 1; display: block; }
-  .balloon .str { width: 1.5px; height: 46px; margin: -2px auto 0; background: var(--gold); opacity: .6; }
-  .balloon.l { left: 4%; }
-  .balloon.r { right: 4%; animation-delay: -1.7s; }
-  .balloon.r .b { font-size: 1.9rem; }
-  @keyframes bob { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-8px) rotate(4deg); } }
-  @media (max-width: 480px) {
-    .balloon.l { left: 0; } .balloon.r { right: 0; }
-    .heart { font-size: 62px; }
-  }
-
-  .kicker {
-    text-transform: uppercase;
-    letter-spacing: .18em;
-    font-size: .72rem;
-    font-weight: 700;
-    color: var(--gold);
-    margin: 0 0 .5rem;
-  }
-  .festive { margin: 0 0 .6rem; font-size: 1rem; letter-spacing: .08em; color: var(--accent); font-weight: 800; }
-  .quip { margin: .35rem 0 0; font-size: .85rem; font-style: italic; color: var(--muted); }
-  h1 {
-    margin: 0 0 .4rem;
-    font-size: 2rem;
-    line-height: 1.15;
-    letter-spacing: -.01em;
-  }
-  h1 .amount {
-    display: block;
-    font-size: 2.9rem;
-    font-variant-numeric: tabular-nums;
-    color: var(--gold);
-    background: linear-gradient(180deg, var(--amt1), var(--amt2) 75%);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 14px var(--glow));
-    user-select: none; -webkit-user-select: none;
-  }
-  header p { margin: .5rem 0 0; color: var(--muted); font-size: .95rem; }
-  @media (max-width: 480px) {
-    h1 { font-size: 1.6rem; }
-    h1 .amount { font-size: 2.1rem; }
-  }
-  #unlockToast {
-    text-align: center; color: var(--hit); font-weight: 700; font-size: .88rem;
-    margin-top: .7rem; opacity: 0; height: 0; overflow: hidden;
-    transition: opacity .4s ease;
-  }
-  #unlockToast.show { opacity: 1; height: auto; }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 14px;
-    padding: 1.25rem 1.25rem 1.4rem;
-    margin-bottom: 1.25rem;
+    padding: 1.2rem 1.2rem 1.3rem;
+    margin-bottom: 1.1rem;
     box-shadow: var(--shadow);
   }
-  .card h2 {
-    margin: 0 0 .15rem;
-    font-size: 1.05rem;
-    display: flex;
-    align-items: baseline;
-    gap: .5rem;
-    flex-wrap: wrap;
-  }
-  .card h2 .tag {
-    font-size: .72rem;
-    font-weight: 600;
-    color: var(--accent);
-    background: var(--accent-soft);
-    padding: .12rem .5rem;
-    border-radius: 999px;
-    letter-spacing: .02em;
-  }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin-bottom: .2rem; }
+  .card h2 { margin: 0; font-size: 1.05rem; }
+  .card-head .row { flex: 0 0 auto; }
   .sub { color: var(--muted); font-size: .85rem; margin: 0 0 .9rem; }
+  .tag {
+    display: inline-block;
+    font-size: .72rem; font-weight: 600;
+    color: var(--accent); background: var(--accent-soft);
+    padding: .1rem .5rem; border-radius: 6px;
+  }
 
   /* ---- collapsible reference cards ---- */
-  details.card { padding-bottom: 1.25rem; }
   details.card > summary {
     list-style: none; cursor: pointer;
     display: flex; align-items: center; justify-content: space-between; gap: .5rem;
     -webkit-tap-highlight-color: transparent;
   }
   details.card > summary::-webkit-details-marker { display: none; }
-  details.card > summary h2 { margin: 0; }
   details.card > summary::after {
     content: "›"; font-size: 1.5rem; line-height: 1; color: var(--muted);
     transform: rotate(90deg); transition: transform .2s ease;
   }
   details.card[open] > summary::after { transform: rotate(-90deg); }
-  details.card[open] > summary { margin-bottom: .5rem; }
+  details.card[open] > summary { margin-bottom: .6rem; }
 
-  /* ---- our bets ---- */
-  .bet + .bet { margin-top: 1.4rem; }
-  .balls { display: flex; flex-wrap: nowrap; gap: .4rem; margin-top: .7rem; }
+  /* ---- buttons ---- */
+  .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+  button.btn {
+    appearance: none; border: 1px solid transparent;
+    background: var(--primary); color: var(--primary-ink);
+    font: inherit; font-size: .92rem; font-weight: 650;
+    padding: .55rem 1rem; border-radius: 10px; cursor: pointer;
+    white-space: nowrap;
+  }
+  button.btn.ghost { background: transparent; color: var(--text); border-color: var(--border); }
+  button.btn.danger { background: transparent; color: var(--warn); border-color: var(--border); }
+  button.btn.small { font-size: .84rem; padding: .4rem .75rem; }
+  button.btn:active { transform: translateY(1px); }
+  button.btn:disabled { opacity: .4; cursor: default; transform: none; }
+  .draw-actions button.btn { flex: 1 1 auto; padding-inline: .6rem; }
+  .draw-actions #dipBtn { flex-grow: 2; }
+
+  /* ---- balls ---- */
+  .balls { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .55rem; }
   .ball {
-    flex: 1 1 0;
-    min-width: 0;
-    max-width: 46px;
-    aspect-ratio: 1 / 1;
+    width: 2.2rem; height: 2.2rem; flex: 0 0 auto;
     border-radius: 50%;
     display: grid; place-items: center;
-    font-weight: 700;
-    font-size: clamp(.72rem, 3.3vw, 1rem);
-    background: var(--ball-red);
+    font-weight: 700; font-size: .92rem;
     color: var(--ball-ink);
-    border: 2px solid transparent;
     font-variant-numeric: tabular-nums;
     transition: outline-color .2s ease, box-shadow .2s ease;
   }
   .ball.red { background: var(--ball-red); }
   .ball.blue { background: var(--ball-blue); }
   .ball.green { background: var(--ball-green); }
-  .ball.hit { outline: 3px solid #f5b301; outline-offset: 1px; box-shadow: 0 0 0 4px var(--hit-soft); }
-  .ball.hit-special { outline: 3px solid #cfd3da; outline-offset: 1px; box-shadow: 0 0 0 4px rgba(207, 211, 218, .28); }
-  .legend { color: var(--muted); font-size: .75rem; margin: 1rem 0 0; }
-  .ring { display: inline-block; width: .7em; height: .7em; border-radius: 50%; vertical-align: -.05em; margin-right: .15em; }
+  .ball.banker { box-shadow: inset 0 0 0 2.5px rgba(255,255,255,.85); }
+  .ball.hit { outline: 3px solid #f5b301; outline-offset: 1px; }
+  .ball.hit-special { outline: 3px solid #b8bec8; outline-offset: 1px; }
+  .grp { font-size: .75rem; font-weight: 700; color: var(--muted); }
+  .grp.sep { margin: 0 .1rem; }
+  .legend { color: var(--muted); font-size: .75rem; margin: .9rem 0 0; }
+  .ring { display: inline-block; width: .7em; height: .7em; border-radius: 50%; vertical-align: -.05em; margin-right: .2em; }
   .ring.gold { border: 2px solid #f5b301; }
-  .ring.silver { border: 2px solid #cfd3da; }
+  .ring.silver { border: 2px solid #b8bec8; }
 
-  /* ---- slots ---- */
-  .hint { font-size: .9rem; font-weight: 650; color: var(--text); margin: 0 0 .7rem; min-height: 1.5em; }
-  .hint.warn { color: var(--accent); }
+  /* ---- bet list ---- */
+  .bet { padding: .7rem 0; }
+  .bet + .bet { border-top: 1px solid var(--border); padding-top: .85rem; }
+  .bet-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .bet-name { font-weight: 700; margin-right: .4rem; }
+  .bet-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem .4rem; min-width: 0; }
+  .totals { color: var(--muted); font-size: .82rem; margin: .5rem 0 0; }
+  .empty { text-align: center; padding: 1.2rem .5rem .4rem; color: var(--muted); }
+  .empty .big { font-size: 2rem; }
+  .banner {
+    background: var(--accent-soft); border-radius: 10px;
+    padding: .7rem .8rem; margin: .5rem 0 .6rem; font-size: .9rem;
+  }
+  .banner .row { margin-top: .5rem; }
+
+  /* ---- draw slots ---- */
+  .hint { font-size: .9rem; font-weight: 650; margin: 0 0 .7rem; min-height: 1.5em; }
+  .hint.warn { color: var(--warn); }
   .slots { display: flex; flex-wrap: nowrap; gap: .3rem; align-items: center; margin-bottom: 1rem; }
   .slot {
     appearance: none;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    padding: 0;
+    width: 100%; aspect-ratio: 1 / 1; padding: 0;
     border-radius: 10px;
     border: 1px solid var(--border);
     background: var(--bg);
     display: grid; place-items: center;
-    font: inherit;
-    font-size: clamp(.8rem, 3.6vw, 1.15rem); font-weight: 700;
+    font: inherit; font-size: clamp(.8rem, 3.6vw, 1.15rem); font-weight: 700;
     color: var(--muted);
     font-variant-numeric: tabular-nums;
     -webkit-tap-highlight-color: transparent;
@@ -241,22 +184,21 @@
   .pop { animation: pop .3s cubic-bezier(.3, 1.6, .6, 1); }
   @keyframes pop { from { transform: scale(.55); } to { transform: scale(1); } }
 
-  /* ---- 1-49 grid ---- */
+  /* ---- 1-49 grid (draw entry and bet editor) ---- */
   .grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: .5rem;
+    gap: .45rem;
     margin-bottom: 1rem;
   }
   .grid button {
-    appearance: none;
+    appearance: none; position: relative;
     aspect-ratio: 1 / 1;
     border: 1px solid var(--border);
     border-radius: 12px;
     background: var(--card);
     color: var(--text);
-    font-size: 1.15rem;
-    font-weight: 650;
+    font: inherit; font-size: 1.1rem; font-weight: 650;
     cursor: pointer;
     font-variant-numeric: tabular-nums;
     transition: transform .05s ease, background .1s ease;
@@ -272,175 +214,191 @@
   .grid button.pick.c-blue { background: var(--ball-blue); }
   .grid button.pick.c-green { background: var(--ball-green); }
   .grid button.pick.special { background: var(--special); }
+  .grid button.banker { box-shadow: inset 0 0 0 3px rgba(255,255,255,.8); }
+  .grid button.banker::after {
+    content: "膽"; position: absolute; top: 1px; right: 4px;
+    font-size: .58rem; font-weight: 700; color: var(--ball-ink);
+  }
   .grid.want-special button:not(.pick) { border: 1px dashed var(--special); }
   @media (max-width: 560px) {
-    .grid { gap: .4rem; }
+    .grid { gap: .35rem; }
     .grid button { font-size: 1rem; border-radius: 10px; }
   }
 
-  .row { display: flex; gap: .5rem; align-items: center; }
-  .row button.action { flex: 1 1 auto; padding-inline: .6rem; white-space: nowrap; }
-  .row #dipBtn { flex-grow: 2; }
-  button.action {
-    appearance: none; border: none;
-    background: var(--accent); color: #fff;
-    font-size: .95rem; font-weight: 650;
-    padding: .6rem 1.2rem; border-radius: 10px; cursor: pointer;
+  /* ---- bet editor ---- */
+  dialog#editor {
+    border: none; padding: 0;
+    width: min(560px, calc(100vw - 16px));
+    max-height: calc(100dvh - 16px);
+    border-radius: 16px;
+    background: var(--card); color: var(--text);
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
   }
-  button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-  button.action:active { transform: translateY(1px); }
-  button.action:disabled { opacity: .4; cursor: default; transform: none; }
-
-  /* ---- How to spend it / Claiming ---- */
-  #spend h3, #claim h3 { margin: 1.3rem 0 .5rem; font-size: .92rem; color: var(--accent); letter-spacing: .01em; }
-  #spend h3:first-of-type, #claim h3:first-of-type { margin-top: .4rem; }
-  .spend-list { margin: 0; padding-left: 1.25rem; }
-  .spend-list li { margin: .5rem 0; font-size: .92rem; }
-  .spend-list li::marker { color: var(--accent); }
-  #claim p { font-size: .92rem; margin: .4rem 0; }
-  #claim a, .sub a { color: var(--accent); }
-  #bfvs td:first-child { font-weight: 700; width: 30%; }
-  @media (max-width: 420px) { #bfvs table { font-size: .82rem; } #bfvs th, #bfvs td { padding: .4rem .3rem; } }
-  #bfvs td:nth-child(2) { color: var(--muted); }
-  #bfvs td:nth-child(3) { color: var(--accent); font-weight: 600; }
+  dialog#editor::backdrop { background: rgba(10, 12, 16, .5); }
+  .ed { padding: 1.1rem 1.1rem 1.2rem; }
+  .ed h2 { margin: 0 0 .8rem; font-size: 1.1rem; }
+  .ed label.name { display: block; font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: .8rem; }
+  .ed input[type=text] {
+    display: block; width: 100%; margin-top: .25rem;
+    font: inherit; font-size: 1rem; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: .5rem .7rem;
+  }
+  .ed input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .seg { display: flex; border: 1px solid var(--border); border-radius: 10px; padding: 3px; background: var(--bg); margin-bottom: .45rem; }
+  .seg button {
+    flex: 1; appearance: none; border: 0; background: transparent;
+    font: inherit; font-size: .9rem; font-weight: 650; color: var(--muted);
+    padding: .45rem .6rem; border-radius: 8px; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+  .ed .help { color: var(--muted); font-size: .8rem; margin: 0 0 .7rem; }
+  .ed .status { font-size: .9rem; font-weight: 650; margin: 0 0 .7rem; min-height: 1.5em; }
+  .ed .status.warn { color: var(--warn); }
+  .ed .foot { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
 
   /* ---- result ---- */
   .result { margin-top: 1.2rem; }
   .verdict {
     text-align: center; padding: 1rem .8rem 1.1rem; border-radius: 12px;
-    background: var(--accent-soft); margin-bottom: .4rem;
+    background: var(--bg); margin-bottom: .5rem;
   }
   .verdict.win { background: var(--hit-soft); }
-  .verdict .v-emoji { font-size: 2.2rem; line-height: 1.1; }
-  .verdict .v-amt { font-size: 2rem; font-weight: 900; line-height: 1.2; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .verdict .v-emoji { font-size: 2.1rem; line-height: 1.1; }
+  .verdict .v-amt { font-size: 1.9rem; font-weight: 900; line-height: 1.2; font-variant-numeric: tabular-nums; }
   .verdict.win .v-amt { color: var(--hit); }
   .verdict .v-pool { font-size: .95rem; font-weight: 700; color: var(--hit); }
-  .verdict .v-quip { margin-top: .25rem; color: var(--muted); font-size: .9rem; font-style: italic; }
+  .verdict .v-line { margin-top: .2rem; color: var(--muted); font-size: .9rem; }
   .result h3 { margin: 1rem 0 .3rem; font-size: .95rem; }
   .result h3 small { font-weight: 500; color: var(--muted); font-size: .82rem; }
   .summary { font-size: .9rem; color: var(--muted); margin: 0 0 .6rem; }
   table { width: 100%; border-collapse: collapse; font-size: .88rem; }
   th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 600; }
-  td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
   tr.win td { color: var(--hit); font-weight: 650; }
   .result td.narrow, .result th.narrow { width: 1%; white-space: nowrap; }
   .odds th { white-space: nowrap; }
-  tfoot tr.total td { border-top: 2px solid var(--border); border-bottom: none; font-weight: 800; color: var(--text); padding-top: .5rem; }
+  tfoot tr.total td { border-top: 2px solid var(--border); border-bottom: none; font-weight: 800; padding-top: .5rem; }
   tfoot tr.total td.n:last-child { color: var(--hit); }
-  .none { color: var(--muted); font-style: italic; font-size: .9rem; margin: 0; }
-  th.n { text-align: right; }
+  .none { color: var(--muted); font-size: .9rem; margin: 0; }
   @media (max-width: 420px) {
     .result table, .odds { font-size: .8rem; }
     .result th, .result td, .odds th, .odds td { padding: .35rem .3rem; }
   }
+
+  #claim h3 { margin: 1.2rem 0 .4rem; font-size: .92rem; color: var(--accent); }
+  #claim h3:first-of-type { margin-top: .3rem; }
+  #claim p, #claim li { font-size: .92rem; }
+  #claim p { margin: .4rem 0; }
+  #claim ul { margin: 0; padding-left: 1.25rem; }
+  #claim li { margin: .4rem 0; }
+  a { color: var(--accent); }
   footer { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 2rem; }
 
-  /* ---- falling emoji (small wins rain over the page; 1st–3rd get the full egg) ---- */
+  /* ---- toast ---- */
+  .toast {
+    position: fixed; left: 50%; bottom: 1.2rem; z-index: 1000;
+    transform: translate(-50%, 1rem); opacity: 0; pointer-events: none;
+    background: var(--primary); color: var(--primary-ink);
+    padding: .6rem 1rem; border-radius: 999px; font-size: .9rem; font-weight: 600;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    transition: opacity .2s ease, transform .2s ease;
+    max-width: calc(100vw - 2rem); text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---- confetti and the big-win overlay ---- */
   .burst { position: fixed; inset: 0; z-index: 998; pointer-events: none; overflow: hidden; }
   .conf {
     position: absolute; top: -10vh; font-size: 1.8rem;
-    animation: eggFall linear forwards;
+    animation: fall linear forwards;
     z-index: 1; user-select: none;
   }
-  @keyframes eggFall { to { transform: translateY(120vh) rotate(720deg); } }
-
-  /* ---- easter egg: 1st–3rd division hit ---- */
-  .egg {
+  @keyframes fall { to { transform: translateY(120vh) rotate(720deg); } }
+  .bigwin {
     position: fixed; inset: 0; z-index: 999;
     display: grid; place-items: center;
-    padding: 1.5rem;
-    text-align: center;
-    background: rgba(8, 4, 4, .82);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    cursor: pointer;
-    animation: eggFlash .5s ease-out;
-    overflow: hidden;
+    padding: 1.5rem; text-align: center;
+    background: rgba(8, 10, 14, .85);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    cursor: pointer; overflow: hidden;
+    animation: fadeIn .4s ease-out;
   }
-  .egg[hidden] { display: none; }
-  .egg .egg-inner { position: relative; z-index: 2; max-width: 520px; }
-  .egg .swear {
-    font-size: clamp(2.4rem, 12vw, 5rem);
-    font-weight: 900;
-    line-height: 1.05;
-    letter-spacing: -.02em;
-    color: #ffd21f;
-    text-shadow: 0 3px 0 #b3121d, 0 0 30px rgba(255,210,31,.6);
-    animation: eggShake .5s ease-in-out 3;
+  .bigwin[hidden] { display: none; }
+  .bigwin .inner { position: relative; z-index: 2; max-width: 520px; }
+  .bigwin .title {
+    font-size: clamp(2.4rem, 12vw, 4.6rem); font-weight: 900; line-height: 1.05;
+    color: #ffd21f; text-shadow: 0 3px 0 #a16207, 0 0 30px rgba(255,210,31,.5);
+    animation: shake .5s ease-in-out 3;
   }
-  .egg .egg-div {
-    margin-top: .6rem;
-    font-size: clamp(1.1rem, 5vw, 1.7rem);
-    font-weight: 800;
-    color: #fff;
-  }
-  .egg .egg-sub { margin-top: 1rem; color: #f3d9d9; font-size: .95rem; }
-  .egg .egg-hint { margin-top: 1.4rem; color: #b9a9a9; font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; }
-  @keyframes eggFlash { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes eggShake {
+  .bigwin .div { margin-top: .6rem; font-size: clamp(1.1rem, 5vw, 1.6rem); font-weight: 800; color: #fff; }
+  .bigwin .bw-sub { margin-top: 1rem; color: #d6dae0; font-size: .95rem; }
+  .bigwin .bw-hint { margin-top: 1.4rem; color: #9aa3ae; font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes shake {
     0%, 100% { transform: translateX(0) rotate(0); }
     25% { transform: translateX(-8px) rotate(-3deg); }
     75% { transform: translateX(8px) rotate(3deg); }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .balloon, .heart, .pop, .egg, .egg .swear { animation: none; }
-    .burst, .egg .conf { display: none; }
+    .pop, .bigwin, .bigwin .title { animation: none; }
+    .burst, .bigwin .conf { display: none; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="balloon l" aria-hidden="true"><span class="b">💗</span><div class="str"></div></div>
-    <div class="balloon r" aria-hidden="true"><span class="b">💖</span><div class="str"></div></div>
-    <div class="heart" aria-hidden="true">💘</div>
-    <p class="festive">💐 Happy National Boyfriend Day 💐</p>
-    <p class="kicker">迷惑六合彩 · 3/10 First Prize 98M HKD</p>
-    <h1>We are <span style="white-space:nowrap">GOING to WIN</span><span class="amount" id="amountTap">HK$98,000,000</span></h1>
-    <p id="heroSub">Two compound bets · 56 combinations working for us · 💘 more committed to us than any boyfriend ever was</p>
-    <p class="quip">He forgot our anniversary. HK$98,000,000 never would.</p>
-    <p id="unlockToast" role="status"></p>
+    <div class="logo" aria-hidden="true"><span class="ball red">6</span><span class="ball blue">2</span><span class="ball green">5</span></div>
+    <h1>Mark Six Checker</h1>
+    <p>Save your bets, enter the draw, see what you won.</p>
   </header>
 
-  <section class="card">
+  <section class="card" id="betsCard">
+    <div class="card-head">
+      <h2 id="betsTitle">My bets</h2>
+      <div class="row" id="betsActions">
+        <button class="btn ghost small" id="shareBtn" type="button">🔗 Share</button>
+        <button class="btn small" id="addBtn" type="button">+ Add bet</button>
+      </div>
+    </div>
     <div id="bets"></div>
-    <p class="legend"><span class="ring gold"></span>drawn number &nbsp;·&nbsp; <span class="ring silver"></span>special number</p>
   </section>
 
   <section class="card">
     <h2>Check a draw</h2>
-    <p class="sub">Tap a number again to remove it. 🎲 Lucky dip rolls a what-if draw.</p>
+    <p class="sub">Tap a number again to remove it. 🎲 Random draw makes a what-if draw.</p>
 
     <p class="hint" id="hint" aria-live="polite"></p>
     <div class="slots" id="slots"></div>
 
     <div class="grid" id="grid"></div>
 
-    <div class="row">
-      <button class="action" id="dipBtn" type="button">🎲 Lucky dip</button>
-      <button class="ghost action" id="sortBtn" type="button">Sort ↑</button>
-      <button class="ghost action" id="clearBtn" type="button">Clear</button>
+    <div class="row draw-actions">
+      <button class="btn" id="dipBtn" type="button">🎲 Random draw</button>
+      <button class="btn ghost" id="sortBtn" type="button">Sort ↑</button>
+      <button class="btn ghost" id="clearBtn" type="button">Clear</button>
     </div>
 
     <div class="result" id="result" hidden></div>
   </section>
 
-  <section class="card">
-    <h2>Our odds this draw</h2>
+  <section class="card" id="oddsCard" hidden>
+    <h2>Odds</h2>
     <p class="sub" id="oddsSub"></p>
     <table class="odds">
       <thead><tr><th>Division</th><th class="n">Chance</th><th class="n">Exp. combos</th><th class="n">Exp. winnings</th></tr></thead>
       <tbody id="oddsBody"></tbody>
       <tfoot><tr class="total" id="oddsAny"></tr></tfoot>
     </table>
-    <p class="sub" id="oddsNote"></p>
+    <p class="sub" id="oddsNote" style="margin-top:.7rem"></p>
   </section>
 
   <details class="card">
     <summary><h2>Prize tiers</h2></summary>
-    <p class="sub">A single entry matches 6 of the 49 numbers. The special number only counts for the 2nd, 4th and 6th divisions. 4th–7th prizes are fixed (per HK$10 unit); 1st–3rd are shares of the prize fund and only known after the draw.</p>
+    <p class="sub">Each entry is 6 numbers. The special number only counts for the 2nd, 4th and 6th divisions. 4th–7th prizes are fixed (per HK$10 unit); 1st–3rd are shares of the prize fund and only known after the draw.</p>
     <table>
       <thead><tr><th>Division</th><th>Match</th><th>Prize</th></tr></thead>
       <tbody>
@@ -453,60 +411,12 @@
         <tr><td>7th</td><td>3 numbers</td><td>HK$40</td></tr>
       </tbody>
     </table>
-  </details>
-
-  <details class="card" id="bfvs">
-    <summary><h2>Boyfriend vs HK$98,000,000 💘</h2></summary>
-    <p class="sub">An objective, peer-reviewed comparison.</p>
-    <table>
-      <thead><tr><th></th><th>Boyfriend</th><th>HK$98M</th></tr></thead>
-      <tbody>
-        <tr><td>Texts back</td><td>"Seen 3h ago"</td><td>Instant FPS transfer</td></tr>
-        <tr><td>Dinner</td><td>"Split it?"</td><td>Buys the restaurant</td></tr>
-        <tr><td>Commitment</td><td>"Needs space"</td><td>Locked in for 60 days</td></tr>
-        <tr><td>Your parents</td><td>"Maybe next year"</td><td>Pays off their mortgage</td></tr>
-        <tr><td>Anniversaries</td><td>Forgets</td><td>Draw date engraved on a gold Octopus card</td></tr>
-        <tr><td>Leaves you on read</td><td>Constantly</td><td>Legally cannot</td></tr>
-        <tr><td>Odds it works out</td><td>Unclear</td><td>1 in 249,711 — at least it's honest</td></tr>
-      </tbody>
-    </table>
-  </details>
-
-  <details class="card" id="spend">
-    <summary><h2>How to spend it 💸</h2></summary>
-    <p class="sub">A responsible, well-considered plan for HK$98,000,000.</p>
-
-    <h3>Tier 1 · Warming up</h3>
-    <ul class="spend-list">
-      <li>Quit your job with a single voice memo that is just 47 seconds of laughing.</li>
-      <li>Buy a parking space in Central. Do not park in it. Frame the deed.</li>
-      <li>Order one of everything at the cha chaan teng, including the dishes you hate, then leave.</li>
-      <li>Solid 24k gold Octopus card. It does not tap. You explain this to the bus driver every single morning.</li>
-      <li>Fly to Tokyo for one bowl of ramen. Be home before dinner. Tell no one where you went.</li>
-    </ul>
-
-    <h3>Tier 2 · Poor judgement</h3>
-    <ul class="spend-list">
-      <li>Charter a helicopter to skip the Friday drive to Sai Kung. Land on the seafood restaurant.</li>
-      <li>Buy the minibus route you used to take to work. Keep the fare exactly the same, out of spite.</li>
-      <li>Commission a 12-metre bronze statue of the winning numbers for your building's void deck. Unveil it yourself, to yourself.</li>
-      <li>Purchase every egg tart on Hong Kong Island before 9am. Do not distribute them.</li>
-      <li>Hire a man whose only job is to appear at 7pm and say "you were right about that."</li>
-    </ul>
-
-    <h3>Tier 3 · Full supervillain</h3>
-    <ul class="spend-list">
-      <li>Build a wave pool shaped like a 6. Refuse to explain the second pool.</li>
-      <li>Acquire a small vineyard solely so your email signature can say "vintner."</li>
-      <li>Fund a peer-reviewed study proving the numbers were destiny. Fund a second one when the first one fails.</li>
-      <li>Replace your entire wardrobe with 60 identical outfits, cartoon-character style, and never once address it.</li>
-      <li>Buy the flat upstairs, the flat downstairs, and both neighbours' flats. Live in the middle one. Silence, at last.</li>
-    </ul>
+    <p class="sub" style="margin-top:.8rem"><strong>Bet types.</strong> Single: 6 numbers, 1 entry. Multiple (複式): 7+ numbers, every 6-number combination. Banker (膽拖): 1–5 bankers that appear in every entry, plus legs that fill the rest.</p>
   </details>
 
   <details class="card" id="claim">
-    <summary><h2>Claiming the big one 🧾</h2></summary>
-    <p class="sub">Official HKJC procedure. Rules and hotline numbers change — always confirm the current details on <a href="https://www.hkjc.com/marksix/" target="_blank" rel="noopener">hkjc.com</a> before acting.</p>
+    <summary><h2>Claiming a prize</h2></summary>
+    <p class="sub">Rules and hotline numbers change — always confirm the current details on <a href="https://www.hkjc.com/marksix/" target="_blank" rel="noopener">hkjc.com</a> before acting.</p>
 
     <h3>The 60-day rule</h3>
     <p>A valid winning ticket must be presented for payment <strong>within 60 days</strong> of the day after the draw. After that the prize is forfeited. Claims are made on business days only.</p>
@@ -524,63 +434,72 @@
     <p>Winnings up to HK$5,000,000 are credited to the account automatically. A 1st or 2nd division win over HK$5,000,000 still needs hotline registration within 60 days.</p>
 
     <h3>Bring with you</h3>
-    <ul class="spend-list">
+    <ul>
       <li>The <strong>original winning ticket</strong> — it is a bearer instrument. Keep it flat and undamaged; a lost or destroyed ticket cannot be replaced. Photograph it.</li>
       <li>Your <strong>HKID card or passport</strong> and a contact address. Large prizes are normally paid by cheque.</li>
     </ul>
   </details>
 
-  <footer>迷惑六合彩 · static page · not affiliated with the HKJC · for personal tracking only.<br>v2026-10-22 11:15 HKT</footer>
+  <footer>Not affiliated with the HKJC. Bets are saved in this browser only.<br>v2026-10-24</footer>
 </div>
 
-<div class="burst" id="burst" aria-hidden="true"></div>
+<dialog id="editor" aria-labelledby="edTitle">
+  <div class="ed">
+    <h2 id="edTitle">New bet</h2>
+    <label class="name">Name (optional)
+      <input type="text" id="edName" maxlength="40" placeholder="Bet 1" autocomplete="off">
+    </label>
+    <div class="seg" role="group" aria-label="Tap numbers as">
+      <button type="button" id="roleLegs" aria-pressed="true">Numbers</button>
+      <button type="button" id="roleBankers" aria-pressed="false">Bankers 膽</button>
+    </div>
+    <p class="help" id="edHelp"></p>
+    <p class="status" id="edStatus" aria-live="polite"></p>
+    <div class="grid" id="edGrid"></div>
+    <div class="row" style="margin-bottom:1rem">
+      <button class="btn ghost small" id="edQuick" type="button">🎲 Quick pick</button>
+      <button class="btn ghost small" id="edClear" type="button">Clear</button>
+    </div>
+    <div class="foot">
+      <button class="btn danger" id="edDelete" type="button">Delete</button>
+      <div class="row" style="margin-left:auto">
+        <button class="btn ghost" id="edCancel" type="button">Cancel</button>
+        <button class="btn" id="edSave" type="button">Save bet</button>
+      </div>
+    </div>
+  </div>
+</dialog>
 
-<div class="egg" id="egg" role="alertdialog" aria-label="Top division win" hidden>
-  <div class="egg-inner">
-    <div class="swear" id="eggSwear"></div>
-    <div class="egg-div" id="eggDiv"></div>
-    <div class="egg-sub" id="eggSub"></div>
-    <div class="egg-hint">tap anywhere to dismiss</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="burst" id="burst" aria-hidden="true"></div>
+<div class="bigwin" id="bigwin" role="alertdialog" aria-label="Top division win" hidden>
+  <div class="inner">
+    <div class="title" id="bwTitle"></div>
+    <div class="div" id="bwDiv"></div>
+    <div class="bw-sub">Sign the back of the ticket, keep it safe, and check “Claiming a prize” below.</div>
+    <div class="bw-hint">tap anywhere to dismiss</div>
   </div>
 </div>
 
 <script>
-  const BETS = [
-    { name: "Bet 1", nums: [9, 17, 26, 29, 30, 35, 40, 44] },
-    { name: "Bet 2", nums: [4, 5, 6, 13, 21, 33, 37, 47] },
-  ];
-  // Secret bets — hidden until the jackpot amount is tapped 5x in a row; tapping
-  // the sequence again re-hides them. Resets to hidden on every page load, and
-  // are only checked against a draw and counted in the odds table while shown.
-  const HIDDEN_BETS = [
-    { name: "CG b1", nums: [8, 13, 15, 19, 24, 28, 33, 38] },
-    { name: "CB b2", nums: [4, 6, 9, 17, 18, 23, 29, 44] },
-  ];
-  let secretUnlocked = false;
-  const visibleBets = () => secretUnlocked ? [...BETS, ...HIDDEN_BETS] : BETS;
-
+  const STORE_KEY = "marksix.bets.v1";
+  const MAX_BETS = 50, MAX_BANKERS = 5, MAIN_COUNT = 6, UNIT_STAKE = 10;
   const DIVISIONS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th"];
   // Fixed prize per HK$10 unit for divisions 4-7 (index 3-6); null = pool-based.
   const PRIZE = [null, null, null, 9600, 640, 320, 40];
-  // Value used for expected-winnings: 1st-3rd = historical average payout, 4th-7th = fixed.
+  // Value used for expected winnings: 1st-3rd = historical average payout, 4th-7th = fixed.
   const PRIZE_EV = [22000000, 1200000, 74000, 9600, 640, 320, 40];
-  const MAIN_COUNT = 6;
-  const UNIT_STAKE = 10;
   const money = v => "HK$" + v.toLocaleString("en-US");
+  const plural = (n, word) => `${n.toLocaleString("en-US")} ${word}${n === 1 ? "" : "s"}`;
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const byNum = (a, b) => a - b;
 
   // Official HKJC Mark Six ball colours (17 red, 16 blue, 16 green).
   const BALL_RED = new Set([1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46]);
   const BALL_BLUE = new Set([3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48]);
   const ballColor = n => BALL_RED.has(n) ? "red" : BALL_BLUE.has(n) ? "blue" : "green";
-
-  // The draw being entered. Mains and special are kept apart so removing a main
-  // never shifts the special into the mains.
-  let mains = [];
-  let special = null;
-  let lastAdded = null; // number to animate on the next render
-  const isComplete = () => mains.length === MAIN_COUNT && special != null;
-  const isPicked = n => mains.includes(n) || special === n;
 
   // ---------- combinatorics ----------
   // binomial coefficient (returns 0 for out-of-range k)
@@ -591,60 +510,89 @@
     for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1);
     return r;
   };
+  const zeros = () => [0, 0, 0, 0, 0, 0, 0];
   const divisionOf = (j, sp) => j === 6 ? 0 : j === 5 ? (sp ? 1 : 2) : j === 4 ? (sp ? 3 : 4) : (sp ? 5 : 6);
-  // Division counts across the C(size, 6) entries of one compound bet, given m of
-  // its numbers are among the 6 mains and s (0/1) marks whether it holds the special.
-  function wheel(size, m, s) {
-    const counts = [0, 0, 0, 0, 0, 0, 0], rest = size - m - s;
-    for (let j = 3; j <= Math.min(6, m); j++) {
-      const w = C(m, j);
-      if (s) counts[divisionOf(j, true)] += w * C(rest, 5 - j);
-      counts[divisionOf(j, false)] += w * C(rest, 6 - j);
-    }
-    return counts;
-  }
-  const combosOf = bet => C(bet.nums.length, 6);
 
-  // Exact odds for any set of bets (overlapping or not), conditional on the
-  // numbers entered so far. Undrawn numbers are grouped by which bets hold them,
-  // so we only enumerate how many of the remaining mains land in each group.
-  function computeOdds(bets, knownMains, knownSpecial) {
+  // A bet is { bankers, legs }: every entry holds all the bankers plus (6 - bankers)
+  // of the legs. A plain single/multiple has no bankers.
+  const combosOf = bet => C(bet.legs.length, MAIN_COUNT - bet.bankers.length);
+  const roleIn = (bet, n) => bet.bankers.includes(n) ? 2 : bet.legs.includes(n) ? 1 : 0;
+
+  // Adds to `out` the division counts across a bet's entries, given mb of its
+  // bankers and ml of its legs are among the 6 mains, and where the special sits
+  // in the bet (sRole: 0 = not in it, 1 = a leg, 2 = a banker).
+  function addBetCounts(out, nBankers, nLegs, mb, ml, sRole) {
+    if (mb + ml < 3) return out;
+    const need = MAIN_COUNT - nBankers, miss = nLegs - ml;
+    for (let j = Math.max(0, 3 - mb); j <= Math.min(ml, need); j++) {
+      const w = C(ml, j), k = need - j, hits = mb + j;
+      if (sRole === 2) out[divisionOf(hits, true)] += w * C(miss, k);
+      else if (sRole === 1) {
+        out[divisionOf(hits, true)] += w * C(miss - 1, k - 1);
+        out[divisionOf(hits, false)] += w * C(miss - 1, k);
+      } else out[divisionOf(hits, false)] += w * C(miss, k);
+    }
+    return out;
+  }
+  function countsFor(bet, mainsArr, sp) {
+    const mb = bet.bankers.filter(n => mainsArr.includes(n)).length;
+    const ml = bet.legs.filter(n => mainsArr.includes(n)).length;
+    return addBetCounts(zeros(), bet.bankers.length, bet.legs.length, mb, ml, sp == null ? 0 : roleIn(bet, sp));
+  }
+
+  // Exact odds for any set of bets, conditional on the numbers entered so far.
+  // Undrawn numbers are grouped by their role in every bet, so we only enumerate
+  // how many of the remaining mains land in each group. Returns null when that
+  // would take more than maxWork steps (many overlapping bets).
+  function exactOdds(bets, knownMains, knownSpecial, maxWork = Infinity) {
     const known = new Set(knownMains);
     if (knownSpecial != null) known.add(knownSpecial);
-    const groupSizes = new Map();
+    const groupMap = new Map();
     for (let n = 1; n <= 49; n++) {
       if (known.has(n)) continue;
-      const mask = bets.reduce((m, b, i) => b.nums.includes(n) ? m | (1 << i) : m, 0);
-      groupSizes.set(mask, (groupSizes.get(mask) || 0) + 1);
+      const roles = bets.map(b => roleIn(b, n)), key = roles.join("");
+      const g = groupMap.get(key);
+      if (g) g.size++; else groupMap.set(key, { roles, size: 1 });
     }
-    const groups = [...groupSizes].map(([mask, size]) => ({ mask, size }));
-    const inBet = (mask, i) => (mask >> i) & 1;
-    const baseM = bets.map(b => b.nums.filter(n => knownMains.includes(n)).length);
-    const knownS = knownSpecial == null ? null : bets.map(b => b.nums.includes(knownSpecial) ? 1 : 0);
+    const groups = [...groupMap.values()];
     const rMain = MAIN_COUNT - knownMains.length;
-    const denom = C(49 - known.size, rMain);
 
-    const pAtLeast = [0, 0, 0, 0, 0, 0, 0], expct = [0, 0, 0, 0, 0, 0, 0];
-    let pAny = 0;
-    const accum = (m, s, p) => {
-      const tot = [0, 0, 0, 0, 0, 0, 0];
-      bets.forEach((b, i) => wheel(b.nums.length, m[i], s[i]).forEach((c, d) => { tot[d] += c; }));
+    // count the outcomes before enumerating them
+    let poly = [1, ...Array(rMain).fill(0)];
+    for (const g of groups) {
+      const next = Array(rMain + 1).fill(0);
+      for (let i = 0; i <= rMain; i++)
+        for (let t = 0; t <= Math.min(g.size, i); t++) next[i] += poly[i - t];
+      poly = next;
+    }
+    if (poly[rMain] * (knownSpecial != null ? 1 : groups.length) * bets.length > maxWork) return null;
+
+    const baseB = bets.map(b => b.bankers.filter(n => knownMains.includes(n)).length);
+    const baseL = bets.map(b => b.legs.filter(n => knownMains.includes(n)).length);
+    const knownRoles = knownSpecial == null ? null : bets.map(b => roleIn(b, knownSpecial));
+    const denom = C(49 - known.size, rMain);
+    const res = { pAtLeast: zeros(), expct: zeros(), pAny: 0 };
+    const outcome = (mb, ml, sRoles, p) => {
+      const tot = zeros();
+      bets.forEach((b, i) => addBetCounts(tot, b.bankers.length, b.legs.length, mb[i], ml[i], sRoles[i]));
       let any = false;
-      tot.forEach((c, d) => { expct[d] += p * c; if (c > 0) { pAtLeast[d] += p; any = true; } });
-      if (any) pAny += p;
+      tot.forEach((c, d) => { res.expct[d] += p * c; if (c > 0) { res.pAtLeast[d] += p; any = true; } });
+      if (any) res.pAny += p;
     };
 
     const take = groups.map(() => 0);
     (function enumerate(g, left, ways) {
       if (g === groups.length) {
         if (left) return;
-        const p = ways / denom;
-        const m = baseM.map((v, i) => groups.reduce((s, gr, gi) => s + (inBet(gr.mask, i) ? take[gi] : 0), v));
-        if (knownS) { accum(m, knownS, p); return; }
+        const p = ways / denom, mb = baseB.slice(), ml = baseL.slice();
+        groups.forEach((gr, gi) => {
+          if (take[gi]) gr.roles.forEach((r, i) => { if (r === 2) mb[i] += take[gi]; else if (r === 1) ml[i] += take[gi]; });
+        });
+        if (knownRoles) { outcome(mb, ml, knownRoles, p); return; }
         // special is uniform over the 43 numbers left once the 6 mains are out
         groups.forEach((gr, gi) => {
-          const left = gr.size - take[gi];
-          if (left) accum(m, bets.map((_, i) => inBet(gr.mask, i)), p * left / (49 - MAIN_COUNT));
+          const rest = gr.size - take[gi];
+          if (rest) outcome(mb, ml, gr.roles, p * rest / (49 - MAIN_COUNT));
         });
         return;
       }
@@ -654,45 +602,366 @@
         enumerate(g + 1, left - t, ways * C(size, t));
       }
     })(0, rMain, 1);
-    return { pAtLeast, expct, pAny };
+    return res;
   }
 
-  // ---------- hits against the draw entered so far ----------
-  function currentHits() {
-    return visibleBets().map(bet => {
-      const main = bet.nums.filter(n => mains.includes(n));
-      const specialHit = special != null && bet.nums.includes(special);
-      const counts = isComplete() ? wheel(bet.nums.length, main.length, specialHit ? 1 : 0) : null;
-      return { main: new Set(main), specialHit, counts };
+  // Simulated "at least one" chances for when exact counting is too slow. Seeded,
+  // so the same bets and draw always show the same numbers.
+  function sampledOdds(bets, knownMains, knownSpecial, samples) {
+    let seed = 0x9e3779b9;
+    const rand = () => {
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const roles = bets.map(b => {
+      const r = new Uint8Array(50);
+      b.legs.forEach(n => { r[n] = 1; });
+      b.bankers.forEach(n => { r[n] = 2; });
+      return r;
     });
-  }
-
-  // ---------- bets ----------
-  const betsEl = document.getElementById("bets");
-  const comboLabel = cnt => cnt < 6 ? `${cnt} numbers` : cnt === 6 ? "single · 1 combo" : `複式 · ${cnt} numbers · ${C(cnt, 6)} combos`;
-  function renderBets(hits) {
-    betsEl.innerHTML = "";
-    visibleBets().forEach((bet, idx) => {
-      const h = hits[idx];
-      const wrap = document.createElement("div");
-      wrap.className = "bet";
-      const h2 = document.createElement("h2");
-      h2.innerHTML = `${bet.name} <span class="tag">${comboLabel(bet.nums.length)}</span>`;
-      const balls = document.createElement("div");
-      balls.className = "balls";
-      bet.nums.forEach(n => {
-        const b = document.createElement("div");
-        b.className = "ball " + ballColor(n) +
-          (h.main.has(n) ? " hit" : n === special ? " hit-special" : "");
-        b.textContent = n;
-        balls.appendChild(b);
+    const inMain = new Uint8Array(50);
+    knownMains.forEach(n => { inMain[n] = 1; });
+    const pool = [];
+    for (let n = 1; n <= 49; n++) if (!inMain[n] && n !== knownSpecial) pool.push(n);
+    const rMain = MAIN_COUNT - knownMains.length, draws = rMain + (knownSpecial == null ? 1 : 0);
+    const hits = zeros(), tot = zeros();
+    let any = 0;
+    for (let s = 0; s < samples; s++) {
+      for (let i = 0; i < draws; i++) {
+        const j = i + Math.floor(rand() * (pool.length - i));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      for (let i = 0; i < rMain; i++) inMain[pool[i]] = 1;
+      const sp = knownSpecial == null ? pool[rMain] : knownSpecial;
+      tot.fill(0);
+      bets.forEach((b, bi) => {
+        let mb = 0, ml = 0;
+        for (const n of b.bankers) mb += inMain[n];
+        for (const n of b.legs) ml += inMain[n];
+        addBetCounts(tot, b.bankers.length, b.legs.length, mb, ml, roles[bi][sp]);
       });
-      wrap.append(h2, balls);
-      betsEl.appendChild(wrap);
+      let won = false;
+      tot.forEach((c, d) => { if (c > 0) { hits[d]++; won = true; } });
+      if (won) any++;
+      for (let i = 0; i < rMain; i++) inMain[pool[i]] = 0;
+    }
+    return { pAtLeast: hits.map(h => h / samples), pAny: any / samples };
+  }
+
+  const EXACT_WORK_LIMIT = 300000, SAMPLES = 60000;
+  function computeOdds(bets, knownMains, knownSpecial) {
+    // expected counts add up per bet, so they are always exact
+    const expct = zeros();
+    bets.forEach(b => exactOdds([b], knownMains, knownSpecial).expct.forEach((e, d) => { expct[d] += e; }));
+    const exact = exactOdds(bets, knownMains, knownSpecial, EXACT_WORK_LIMIT);
+    if (exact) return { pAtLeast: exact.pAtLeast, pAny: exact.pAny, expct, sampled: false };
+    return { ...sampledOdds(bets, knownMains, knownSpecial, SAMPLES), expct, sampled: true };
+  }
+
+  // ---------- bets: validation, storage, share links ----------
+  function betError(bankers, legs) {
+    const total = bankers.length + legs.length;
+    if (bankers.length > MAX_BANKERS) return `Up to ${MAX_BANKERS} bankers per bet.`;
+    if (total < MAIN_COUNT) return `Pick ${plural(MAIN_COUNT - total, "more number")}.`;
+    return null;
+  }
+  function cleanBet(b) {
+    if (!b || typeof b !== "object") return null;
+    const nums = a => Array.isArray(a) ? a.map(Number).filter(n => Number.isInteger(n) && n >= 1 && n <= 49) : [];
+    const bankers = [...new Set(nums(b.bankers))].sort(byNum);
+    const legs = [...new Set(nums(b.legs))].filter(n => !bankers.includes(n)).sort(byNum);
+    if (betError(bankers, legs)) return null;
+    return {
+      id: typeof b.id === "string" && b.id ? b.id : newId(),
+      name: String(b.name ?? "").trim().slice(0, 40),
+      bankers, legs,
+    };
+  }
+  const cleanBets = arr => Array.isArray(arr) ? arr.map(cleanBet).filter(Boolean).slice(0, MAX_BETS) : [];
+  const betKey = b => b.bankers.join(".") + "-" + b.legs.join(".");
+  const betName = (b, idx) => b.name || `Bet ${idx + 1}`;
+  function betKind(b) {
+    const combos = combosOf(b);
+    if (combos === 1) return "Single";
+    if (b.bankers.length) return `Banker · ${b.bankers.length} 膽 + ${plural(b.legs.length, "leg")}`;
+    return `Multiple · ${b.legs.length} numbers`;
+  }
+
+  function loadBets() {
+    try { return cleanBets(JSON.parse(localStorage.getItem(STORE_KEY) || "[]")); }
+    catch { return []; }
+  }
+  function storeBets() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(myBets)); return true; }
+    catch { toast("Couldn't save — this browser is blocking storage."); return false; }
+  }
+
+  // Link format: #b=Name:bankers-legs (repeatable), plus d=mains&s=special when a draw is entered.
+  function shareUrl() {
+    const p = new URLSearchParams();
+    activeBets().forEach((b, i) => p.append("b", `${betName(b, i)}:${b.bankers.join(".")}-${b.legs.join(".")}`));
+    if (isComplete()) { p.set("d", mains.join(".")); p.set("s", special); }
+    return location.href.split("#")[0] + "#" + p.toString();
+  }
+  function parseHash() {
+    const h = location.hash.slice(1);
+    if (!h) return null;
+    const p = new URLSearchParams(h);
+    const split = s => (s || "").split(".").filter(Boolean);
+    const bets = cleanBets(p.getAll("b").map(v => {
+      const i = v.lastIndexOf(":");
+      const [bk, lg] = (i < 0 ? v : v.slice(i + 1)).split("-");
+      return { name: i < 0 ? "" : v.slice(0, i), bankers: split(bk), legs: split(lg) };
+    }));
+    let draw = null;
+    const d = [...new Set(split(p.get("d")).map(Number))].filter(n => Number.isInteger(n) && n >= 1 && n <= 49);
+    const s = Number(p.get("s"));
+    if (d.length === MAIN_COUNT && Number.isInteger(s) && s >= 1 && s <= 49 && !d.includes(s)) draw = { mains: d, special: s };
+    return { bets, draw };
+  }
+
+  // ---------- state ----------
+  let myBets = loadBets();
+  let shared = null; // { bets } while looking at bets from a share link
+  const activeBets = () => shared ? shared.bets : myBets;
+
+  // The draw being entered. Mains and special are kept apart so removing a main
+  // never shifts the special into the mains.
+  let mains = [];
+  let special = null;
+  let lastAdded = null; // number to animate on the next render
+  let dipping = false;
+  const isComplete = () => mains.length === MAIN_COUNT && special != null;
+  const isPicked = n => mains.includes(n) || special === n;
+
+  function currentHits() {
+    return activeBets().map(bet => {
+      const specialHit = special != null && roleIn(bet, special) > 0;
+      return {
+        main: new Set([...bet.bankers, ...bet.legs].filter(n => mains.includes(n))),
+        specialHit,
+        counts: isComplete() ? countsFor(bet, mains, special) : null,
+      };
     });
   }
 
-  // ---------- slots ----------
+  // ---------- toast ----------
+  const toastEl = document.getElementById("toast");
+  let toastTimer = null;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2600);
+  }
+
+  // ---------- bet list ----------
+  const betsEl = document.getElementById("bets");
+  const ballHtml = (n, h, banker) =>
+    `<span class="ball ${ballColor(n)}${banker ? " banker" : ""}${h.main.has(n) ? " hit" : n === special ? " hit-special" : ""}">${n}</span>`;
+  function renderBets(hits) {
+    const bets = activeBets();
+    document.getElementById("betsTitle").textContent = shared ? "Shared bets" : "My bets";
+    document.getElementById("betsActions").hidden = !!shared;
+    document.getElementById("shareBtn").disabled = !bets.length;
+
+    let html = "";
+    if (shared) {
+      html += `<div class="banner">📎 You opened a shared link with ${plural(bets.length, "bet")}. They aren't saved yet.` +
+        `<div class="row"><button class="btn small" type="button" data-act="save-shared">Save to my bets</button>` +
+        `<button class="btn ghost small" type="button" data-act="leave-shared">Back to my bets</button></div></div>`;
+    }
+    if (!bets.length) {
+      html += `<div class="empty"><div class="big">🎟️</div>No bets yet. Add the numbers on your ticket to check them against each draw.` +
+        `<div class="row" style="justify-content:center;margin-top:.8rem"><button class="btn" type="button" data-act="add">+ Add your first bet</button></div></div>`;
+    }
+    bets.forEach((bet, idx) => {
+      const h = hits[idx], combos = combosOf(bet);
+      html += `<div class="bet"><div class="bet-top"><div class="bet-meta">` +
+        `<span class="bet-name">${esc(betName(bet, idx))}</span>` +
+        `<span class="tag">${betKind(bet)} · ${plural(combos, "combo")} · ${money(combos * UNIT_STAKE)}</span></div>` +
+        (shared ? "" : `<button class="btn ghost small" type="button" data-act="edit" data-id="${esc(bet.id)}">Edit</button>`) +
+        `</div><div class="balls">` +
+        (bet.bankers.length
+          ? `<span class="grp">膽</span>${bet.bankers.map(n => ballHtml(n, h, true)).join("")}<span class="grp sep">+</span>`
+          : "") +
+        bet.legs.map(n => ballHtml(n, h, false)).join("") +
+        `</div></div>`;
+    });
+    if (bets.length) {
+      const combos = bets.reduce((s, b) => s + combosOf(b), 0);
+      html += `<p class="totals">${plural(bets.length, "bet")} · ${plural(combos, "combination")} · ${money(combos * UNIT_STAKE)} per draw</p>` +
+        `<p class="legend"><span class="ring gold"></span>drawn number &nbsp;·&nbsp; <span class="ring silver"></span>special number</p>`;
+    }
+    betsEl.innerHTML = html;
+  }
+  betsEl.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    const act = btn.dataset.act;
+    if (act === "add") openEditor(null);
+    else if (act === "edit") openEditor(myBets.find(b => b.id === btn.dataset.id));
+    else if (act === "save-shared") saveShared();
+    else if (act === "leave-shared") leaveShared();
+  });
+  document.getElementById("addBtn").addEventListener("click", () => openEditor(null));
+
+  // ---------- sharing ----------
+  document.getElementById("shareBtn").addEventListener("click", async () => {
+    const url = shareUrl();
+    if (navigator.share) {
+      try { await navigator.share({ title: "Mark Six bets", url }); return; }
+      catch (err) { if (err && err.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(url); toast("🔗 Link copied — paste it anywhere."); }
+    catch { window.prompt("Copy this link:", url); }
+  });
+  function clearHash() {
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+  function leaveShared() {
+    shared = null;
+    clearHash();
+    update();
+  }
+  function saveShared() {
+    const have = new Set(myBets.map(betKey));
+    const added = shared.bets.filter(b => !have.has(betKey(b))).map(b => ({ ...b, id: newId() }));
+    const room = MAX_BETS - myBets.length;
+    myBets.push(...added.slice(0, room));
+    if (added.length && !storeBets()) return;
+    leaveShared();
+    toast(!added.length ? "You already have all of these bets."
+      : added.length > room ? `Saved ${plural(room, "bet")} — you've hit the ${MAX_BETS}-bet limit.`
+      : `Saved ${plural(added.length, "bet")}.`);
+  }
+  function applyHash() {
+    const parsed = parseHash();
+    if (!parsed) return;
+    shared = parsed.bets.length ? { bets: parsed.bets } : null;
+    if (parsed.draw) { mains = parsed.draw.mains; special = parsed.draw.special; }
+    if (!shared) clearHash();
+  }
+  window.addEventListener("hashchange", () => { applyHash(); update(); });
+
+  // ---------- 1-49 grids ----------
+  function makeGrid(container, onTap) {
+    const cells = [];
+    for (let n = 1; n <= 49; n++) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "c-" + ballColor(n);
+      btn.textContent = n;
+      btn.addEventListener("click", () => onTap(n));
+      container.appendChild(btn);
+      cells[n] = btn;
+    }
+    return cells;
+  }
+
+  // ---------- bet editor ----------
+  const editor = document.getElementById("editor");
+  const edName = document.getElementById("edName");
+  const edStatus = document.getElementById("edStatus");
+  const edGrid = document.getElementById("edGrid");
+  const edCells = makeGrid(edGrid, edTap);
+  let draft = null, role = "legs", edFlashTimer = null;
+
+  function openEditor(bet) {
+    draft = bet
+      ? { id: bet.id, bankers: [...bet.bankers], legs: [...bet.legs] }
+      : { id: null, bankers: [], legs: [] };
+    role = "legs";
+    edName.value = bet ? bet.name : "";
+    edName.placeholder = `Bet ${bet ? myBets.indexOf(bet) + 1 : myBets.length + 1}`;
+    document.getElementById("edTitle").textContent = bet ? "Edit bet" : "New bet";
+    document.getElementById("edDelete").hidden = !bet;
+    renderEditor();
+    editor.showModal();
+  }
+  function edFlash(msg) {
+    clearTimeout(edFlashTimer);
+    edStatus.textContent = msg;
+    edStatus.className = "status warn";
+    edFlashTimer = setTimeout(() => { edFlashTimer = null; renderEditor(); }, 2200);
+  }
+  function edTap(n) {
+    const without = arr => arr.filter(x => x !== n);
+    if (role === "bankers") {
+      if (draft.bankers.includes(n)) draft.bankers = without(draft.bankers);
+      else if (draft.bankers.length >= MAX_BANKERS) return edFlash(`Up to ${MAX_BANKERS} bankers per bet.`);
+      else { draft.legs = without(draft.legs); draft.bankers.push(n); }
+    } else {
+      if (draft.legs.includes(n)) draft.legs = without(draft.legs);
+      else { draft.bankers = without(draft.bankers); draft.legs.push(n); }
+    }
+    clearTimeout(edFlashTimer); edFlashTimer = null;
+    renderEditor();
+  }
+  function renderEditor() {
+    for (let n = 1; n <= 49; n++) {
+      const isB = draft.bankers.includes(n), isL = draft.legs.includes(n);
+      edCells[n].classList.toggle("pick", isB || isL);
+      edCells[n].classList.toggle("banker", isB);
+      edCells[n].setAttribute("aria-pressed", isB || isL);
+      edCells[n].setAttribute("aria-label", isB ? `${n}, banker` : isL ? `${n}, selected` : String(n));
+    }
+    document.getElementById("roleLegs").setAttribute("aria-pressed", role === "legs");
+    document.getElementById("roleBankers").setAttribute("aria-pressed", role === "bankers");
+    document.getElementById("edHelp").textContent = role === "bankers"
+      ? `Bankers appear in every entry. Pick 1–${MAX_BANKERS}, then switch back to add the legs.`
+      : "6 numbers is a single entry, 7 or more is a multiple. Add bankers for a banker bet.";
+    const err = betError(draft.bankers, draft.legs);
+    document.getElementById("edSave").disabled = !!err;
+    if (edFlashTimer) return;
+    edStatus.className = "status" + (err ? " warn" : "");
+    if (err) { edStatus.textContent = err; return; }
+    const bet = { bankers: draft.bankers, legs: draft.legs }, combos = combosOf(bet);
+    edStatus.textContent = `${betKind(bet)} · ${plural(combos, "combo")} · ${money(combos * UNIT_STAKE)}`;
+  }
+  document.getElementById("roleLegs").addEventListener("click", () => { role = "legs"; renderEditor(); });
+  document.getElementById("roleBankers").addEventListener("click", () => { role = "bankers"; renderEditor(); });
+  // Quick pick: fill up to 6 numbers at random, keeping bankers; again re-rolls the legs.
+  document.getElementById("edQuick").addEventListener("click", () => {
+    const total = draft.bankers.length + draft.legs.length;
+    const keep = total < MAIN_COUNT ? draft.legs : [];
+    const want = total < MAIN_COUNT ? MAIN_COUNT - draft.bankers.length : draft.legs.length;
+    const pool = [];
+    for (let n = 1; n <= 49; n++) if (!draft.bankers.includes(n) && !keep.includes(n)) pool.push(n);
+    const legs = [...keep];
+    while (legs.length < want) legs.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    draft.legs = legs;
+    renderEditor();
+  });
+  document.getElementById("edClear").addEventListener("click", () => { draft.bankers = []; draft.legs = []; renderEditor(); });
+  document.getElementById("edCancel").addEventListener("click", () => editor.close());
+  editor.addEventListener("click", e => { if (e.target === editor) editor.close(); }); // backdrop
+  edName.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); edName.blur(); } });
+  document.getElementById("edSave").addEventListener("click", () => {
+    const bet = cleanBet({ id: draft.id, name: edName.value, bankers: draft.bankers, legs: draft.legs });
+    if (!bet) return;
+    const i = myBets.findIndex(b => b.id === bet.id);
+    if (i >= 0) myBets[i] = bet;
+    else if (myBets.length >= MAX_BETS) { edFlash(`You can save up to ${MAX_BETS} bets.`); return; }
+    else myBets.push(bet);
+    storeBets();
+    editor.close();
+    update();
+    toast(i >= 0 ? "Bet updated." : "Bet saved.");
+  });
+  document.getElementById("edDelete").addEventListener("click", () => {
+    const idx = myBets.findIndex(b => b.id === draft.id);
+    if (idx < 0 || !confirm(`Delete ${betName(myBets[idx], idx)}?`)) return;
+    myBets.splice(idx, 1);
+    storeBets();
+    editor.close();
+    update();
+    toast("Bet deleted.");
+  });
+
+  // ---------- draw slots ----------
   const slotsEl = document.getElementById("slots");
   function renderSlots() {
     slotsEl.innerHTML = "";
@@ -730,18 +999,9 @@
     }
   }
 
-  // ---------- 1-49 grid ----------
+  // ---------- draw grid ----------
   const gridEl = document.getElementById("grid");
-  const cells = [];
-  for (let n = 1; n <= 49; n++) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "c-" + ballColor(n);
-    btn.textContent = n;
-    btn.addEventListener("click", () => tap(n));
-    gridEl.appendChild(btn);
-    cells[n] = btn;
-  }
+  const cells = makeGrid(gridEl, tap);
   function refreshGrid() {
     gridEl.classList.toggle("want-special", mains.length === MAIN_COUNT && special == null);
     for (let n = 1; n <= 49; n++) {
@@ -773,8 +1033,6 @@
     flashTimer = setTimeout(() => { flashTimer = null; renderHint(); }, 2500);
   }
 
-  // ---------- tapping ----------
-  let dipping = false;
   function tap(n) {
     if (dipping) return;
     lastAdded = null;
@@ -787,65 +1045,47 @@
     update();
   }
 
-  // ---------- easter egg for a 1st/2nd/3rd division hit ----------
-  const EGG = {
-    0: { swear: "HOLY SHIT!!!", div: "1st DIVISION · 頭獎 💰🎉", sub: "HK$98,000,000. Who needs a boyfriend? We have a family office now." },
-    1: { swear: "OH FUCK, SO CLOSE!", div: "2nd DIVISION · 二獎 🎊", sub: "One number off. Story of our love life. Still millions though." },
-    2: { swear: "OH FUCK, NOT AGAIN!", div: "3rd DIVISION · 三獎 😮‍💨", sub: "Another third. Like every relationship: close, but never quite there." },
+  // ---------- celebrations ----------
+  const BIG_WIN = {
+    0: { title: "JACKPOT!", div: "1st Division · 頭獎 💰" },
+    1: { title: "WOW!", div: "2nd Division · 二獎 🎊" },
+    2: { title: "BIG WIN!", div: "3rd Division · 三獎 🎉" },
   };
-  const RAIN = ["💘", "🌹", "🍫", "💍", "💸", "🤑", "💐"];
-  const eggEl = document.getElementById("egg");
+  const CONFETTI = ["🎉", "🎊", "💰", "✨", "🍀", "💸"];
+  const bigEl = document.getElementById("bigwin");
   const burstEl = document.getElementById("burst");
-  let eggConfTimer, burstTimer;
+  let bigTimer, burstTimer;
   function rain(container, count) {
     container.querySelectorAll(".conf").forEach(c => c.remove());
     for (let i = 0; i < count; i++) {
       const s = document.createElement("span");
       s.className = "conf";
-      s.textContent = RAIN[i % RAIN.length];
+      s.textContent = CONFETTI[i % CONFETTI.length];
       s.style.left = Math.random() * 100 + "vw";
       s.style.animationDuration = (2.5 + Math.random() * 2.5) + "s";
       s.style.animationDelay = (Math.random() * 1.5) + "s";
       container.appendChild(s);
     }
   }
-  function showEgg(divIdx) {
-    const m = EGG[divIdx];
-    if (!m) return;
-    document.getElementById("eggSwear").textContent = m.swear;
-    document.getElementById("eggDiv").textContent = m.div;
-    document.getElementById("eggSub").textContent = m.sub;
-    rain(eggEl, 28);
-    eggEl.hidden = false;
-    clearTimeout(eggConfTimer);
-    eggConfTimer = setTimeout(() => eggEl.querySelectorAll(".conf").forEach(c => c.remove()), 7000);
+  function showBigWin(divIdx) {
+    document.getElementById("bwTitle").textContent = BIG_WIN[divIdx].title;
+    document.getElementById("bwDiv").textContent = BIG_WIN[divIdx].div;
+    rain(bigEl, 28);
+    bigEl.hidden = false;
+    clearTimeout(bigTimer);
+    bigTimer = setTimeout(() => bigEl.querySelectorAll(".conf").forEach(c => c.remove()), 7000);
   }
-  function hideEgg() {
-    eggEl.hidden = true;
-    eggEl.querySelectorAll(".conf").forEach(c => c.remove());
+  function hideBigWin() {
+    bigEl.hidden = true;
+    bigEl.querySelectorAll(".conf").forEach(c => c.remove());
   }
   function smallBurst() {
     rain(burstEl, 16);
     clearTimeout(burstTimer);
     burstTimer = setTimeout(() => burstEl.querySelectorAll(".conf").forEach(c => c.remove()), 6000);
   }
-  eggEl.addEventListener("click", hideEgg);
-  document.addEventListener("keydown", e => { if (e.key === "Escape") hideEgg(); });
-
-  // ---------- result ----------
-  const resultEl = document.getElementById("result");
-  const LOSE_QUIPS = [
-    "Nothing. Just like his texts.",
-    "Zero. Same as his effort.",
-    "Nada. Still more reliable than him.",
-    "Not this time. At least it didn't leave us on read.",
-  ];
-  const WIN_QUIPS = [
-    "He's never paid for dinner. This just did.",
-    "Money that actually shows up.",
-    "Finally, something that commits.",
-  ];
-  const pickOne = arr => arr[Math.floor(Math.random() * arr.length)];
+  bigEl.addEventListener("click", hideBigWin);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") hideBigWin(); });
 
   function countUp(el, to) {
     if (to === 0 || reducedMotion()) { el.textContent = money(to); return; }
@@ -858,37 +1098,49 @@
     requestAnimationFrame(tick);
   }
 
-  // Shown draw key: re-render (and celebrate) only when the draw or bet set changes,
-  // so Sort or a re-render never replays the confetti.
+  // ---------- result ----------
+  const resultEl = document.getElementById("result");
+  // Re-render (and celebrate) only when the draw or the bets change, so Sort or
+  // an unrelated re-render never replays the confetti.
   let shownKey = null;
   function renderResult(hits) {
+    const bets = activeBets();
     const key = isComplete()
-      ? [...mains].sort((a, b) => a - b).join(",") + "+" + special + (secretUnlocked ? "*" : "")
+      ? [...mains].sort(byNum).join(",") + "+" + special + "|" + bets.map((b, i) => betName(b, i) + ":" + betKey(b)).join(";")
       : null;
     if (key === shownKey) return;
     shownKey = key;
-    if (!key) { resultEl.hidden = true; resultEl.innerHTML = ""; hideEgg(); return; }
+    if (!key) { resultEl.hidden = true; resultEl.innerHTML = ""; hideBigWin(); return; }
 
-    let fixedTotal = 0, best = DIVISIONS.length;
+    const drawLine = `<p class="summary">Draw: <strong>${[...mains].sort(byNum).join(", ")}</strong> + special <strong>${special}</strong></p>`;
+    if (!bets.length) {
+      resultEl.innerHTML = drawLine + `<p class="none">Add a bet above to check it against this draw.</p>`;
+      resultEl.hidden = false;
+      hideBigWin();
+      return;
+    }
+
+    let fixedTotal = 0, winningCombos = 0, best = DIVISIONS.length;
     hits.forEach(h => h.counts.forEach((c, d) => {
       if (!c) return;
+      winningCombos += c;
       best = Math.min(best, d);
       if (PRIZE[d] != null) fixedTotal += c * PRIZE[d];
     }));
     const won = best < DIVISIONS.length, pool = best <= 2;
 
     let html = `<div class="verdict${won ? " win" : ""}">` +
-      `<div class="v-emoji">${pool ? "🤯" : won ? "🎉" : "💔"}</div>` +
+      `<div class="v-emoji">${pool ? "🤯" : won ? "🎉" : "😶"}</div>` +
       `<div class="v-amt" id="vAmt">${won ? money(0) : "No prize"}</div>` +
-      (pool ? `<div class="v-pool">+ ${DIVISIONS[best]} division pool prize!</div>` : "") +
-      `<div class="v-quip">${pickOne(won ? WIN_QUIPS : LOSE_QUIPS)}</div></div>`;
-    html += `<p class="summary">Draw: <strong>${[...mains].sort((a, b) => a - b).join(", ")}</strong> + special <strong>${special}</strong></p>`;
+      (pool ? `<div class="v-pool">+ ${DIVISIONS[best]} division pool prize</div>` : "") +
+      `<div class="v-line">${won ? `${plural(winningCombos, "winning combination")}` : "No winning combinations this draw."}</div></div>`;
+    html += drawLine;
 
-    visibleBets().forEach((bet, idx) => {
+    bets.forEach((bet, idx) => {
       const h = hits[idx];
       const winning = h.counts.reduce((s, c) => s + c, 0);
-      html += `<h3>${bet.name} <small>· ${h.main.size} matched${h.specialHit ? " + special" : ""} · ` +
-              `${winning} of ${combosOf(bet)} combos win</small></h3>`;
+      html += `<h3>${esc(betName(bet, idx))} <small>· ${h.main.size} matched${h.specialHit ? " + special" : ""} · ` +
+              `${winning.toLocaleString("en-US")} of ${plural(combosOf(bet), "combo")} win</small></h3>`;
       if (!winning) { html += `<p class="none">No winning combinations.</p>`; return; }
       let betTotal = 0;
       html += `<table><thead><tr><th>Division</th><th class="n narrow">#</th><th class="n">Prize each</th><th class="n">Subtotal</th></tr></thead><tbody>`;
@@ -896,7 +1148,7 @@
         if (!c) return;
         const p = PRIZE[d];
         if (p != null) betTotal += c * p;
-        html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n narrow">${c}</td>` +
+        html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n narrow">${c.toLocaleString("en-US")}</td>` +
                 `<td class="n">${p == null ? "pool-based" : money(p)}</td>` +
                 `<td class="n">${p == null ? "—" : money(c * p)}</td></tr>`;
       });
@@ -908,22 +1160,25 @@
     if (won) countUp(document.getElementById("vAmt"), fixedTotal);
     resultEl.firstChild.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "nearest" });
 
-    if (pool) showEgg(best);
-    else { hideEgg(); if (won) smallBurst(); }
+    if (pool) showBigWin(best);
+    else { hideBigWin(); if (won) smallBurst(); }
     if (won && navigator.vibrate) navigator.vibrate(pool ? [80, 60, 80, 60, 200] : [30, 40, 30]);
   }
 
   // ---------- odds table ----------
   function renderOdds() {
-    const bets = visibleBets();
-    const { pAtLeast, expct, pAny } = computeOdds(bets, mains, special);
+    const bets = activeBets();
+    document.getElementById("oddsCard").hidden = !bets.length;
+    if (!bets.length) return;
+    const { pAtLeast, expct, pAny, sampled } = computeOdds(bets, mains, special);
     // adaptive: rare odds read as "1 in N", common odds as a percentage
     const chance = p => {
-      if (p <= 1e-12) return "—";
-      if (p >= 1 - 1e-12) return "certain";
-      if (p * 100 >= 1) return (p * 100).toFixed(1) + "%";
-      if (p * 100 >= 0.1) return (p * 100).toPrecision(2) + "%";
-      return "1 in " + Math.round(1 / p).toLocaleString("en-US");
+      const approx = sampled ? "≈ " : "";
+      if (p <= 1e-12) return sampled ? `< 1 in ${SAMPLES.toLocaleString("en-US")}` : "—";
+      if (p >= 1 - 1e-12) return sampled ? "≈ 100%" : "certain";
+      if (p * 100 >= 1) return approx + (p * 100).toFixed(1) + "%";
+      if (p * 100 >= 0.1) return approx + (p * 100).toPrecision(2) + "%";
+      return approx + "1 in " + Math.round(1 / p).toLocaleString("en-US");
     };
     const exp = e => e >= 0.1 ? e.toFixed(2) : e >= 0.001 ? e.toFixed(4) : e <= 0 ? "0" : e.toExponential(1);
     const expWin = d => expct[d] <= 0 ? "HK$0" : money(Math.round(expct[d] * PRIZE_EV[d]));
@@ -937,23 +1192,24 @@
     const combos = bets.reduce((s, b) => s + combosOf(b), 0);
     const stake = money(combos * UNIT_STAKE);
     const picked = mains.length + (special != null ? 1 : 0);
-    const onBets = [...mains, ...(special != null ? [special] : [])].filter(n => bets.some(b => b.nums.includes(n))).length;
+    const onBets = [...mains, ...(special != null ? [special] : [])].filter(n => bets.some(b => roleIn(b, n))).length;
     document.getElementById("oddsSub").textContent = picked === 0
-      ? `Exact chance that our ${bets.length} compound bets (${combos} combinations, ${stake} staked) win each division in one draw.`
-      : `Live odds given the ${picked} number${picked === 1 ? "" : "s"} entered so far` +
-        `${onBets ? ` (${onBets} on our bets)` : ""}` +
+      ? `Chance that ${bets.length === 1 ? "this bet" : `these ${bets.length} bets`} (${plural(combos, "combination")}, ${stake}) win each division in one draw.`
+      : `Live odds given the ${plural(picked, "number")} entered so far` +
+        `${onBets ? ` (${onBets} on your bets)` : ""}` +
         `${isComplete() ? " — full draw entered, this is now the outcome." : "."}`;
     document.getElementById("oddsNote").textContent =
       `Expected winnings ≈ ${money(Math.round(totalExp))}${isComplete() ? "" : " per draw"} against ${stake} staked. ` +
-      `1st–3rd valued at historical averages (HK$22M / HK$1.2M / HK$74k); actual pool prizes vary.`;
+      `1st–3rd valued at historical averages (HK$22M / HK$1.2M / HK$74k); actual pool prizes vary.` +
+      (sampled ? ` Chances marked ≈ are estimated from ${SAMPLES.toLocaleString("en-US")} simulated draws — too many overlapping bets to count exactly.` : "");
   }
 
-  // ---------- buttons ----------
+  // ---------- draw buttons ----------
   const dipBtn = document.getElementById("dipBtn");
   const sortBtn = document.getElementById("sortBtn");
   const clearBtn = document.getElementById("clearBtn");
 
-  // Lucky dip: fill the empty slots one by one with random numbers (re-rolls a full draw).
+  // Random draw: fill the empty slots one by one (re-rolls a full draw).
   dipBtn.addEventListener("click", () => {
     if (dipping) return;
     if (isComplete()) { mains = []; special = null; }
@@ -980,7 +1236,7 @@
 
   // Sort the drawn main numbers ascending; the special stays in its slot.
   sortBtn.addEventListener("click", () => {
-    mains.sort((a, b) => a - b);
+    mains.sort(byNum);
     lastAdded = null;
     update();
   });
@@ -990,40 +1246,6 @@
     special = null;
     lastAdded = null;
     update();
-  });
-
-  // ---------- secret unlock: tap the jackpot amount 5x in a row ----------
-  const UNLOCK_TAPS = 5, UNLOCK_WINDOW_MS = 900;
-  let unlockTapCount = 0, unlockTapTimer = null;
-  const heroSubEl = document.getElementById("heroSub");
-  const unlockToastEl = document.getElementById("unlockToast");
-
-  function updateHeroSub() {
-    const bets = visibleBets();
-    const totalCombos = bets.reduce((s, b) => s + combosOf(b), 0);
-    const words = { 2: "Two", 3: "Three", 4: "Four" };
-    heroSubEl.textContent =
-      `${words[bets.length] || bets.length} compound bets · ${totalCombos} combinations working for us · 💘 more committed to us than any boyfriend ever was`;
-  }
-
-  let toastTimer = null;
-  function toast(msg) {
-    unlockToastEl.textContent = msg;
-    unlockToastEl.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => unlockToastEl.classList.remove("show"), 3500);
-  }
-
-  document.getElementById("amountTap").addEventListener("click", () => {
-    clearTimeout(unlockTapTimer);
-    unlockTapCount++;
-    unlockTapTimer = setTimeout(() => { unlockTapCount = 0; }, UNLOCK_WINDOW_MS);
-    if (unlockTapCount < UNLOCK_TAPS) return;
-    unlockTapCount = 0;
-    secretUnlocked = !secretUnlocked;
-    updateHeroSub();
-    update();
-    toast(secretUnlocked ? "🔓 CG b1 & CB b2 unlocked — now in play." : "🔒 CG b1 & CB b2 hidden again.");
   });
 
   // ---------- render everything from state ----------
@@ -1041,7 +1263,7 @@
     lastAdded = null;
   }
 
-  updateHeroSub();
+  applyHash();
   update();
 </script>
 </body>
