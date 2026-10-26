@@ -237,6 +237,17 @@
     .grid { gap: .35rem; }
     .grid button { font-size: 1rem; border-radius: 10px; }
   }
+  /* Laptops: 10 numbers a row (1–10, 11–20 …) keeps the grid to 5 short rows
+     instead of 7 huge ones, and the draw entry stays a comfortable width. */
+  @media (min-width: 600px) {
+    .grid { grid-template-columns: repeat(10, 1fr); gap: .4rem; }
+    .grid button { font-size: 1rem; border-radius: 10px; }
+    .picker { max-width: 32rem; margin: 0 auto; }
+    .picker .hint { text-align: center; }
+    .slots { max-width: 25rem; margin-inline: auto; }
+  }
+  .io { margin-top: .9rem; padding-top: .8rem; border-top: 1px solid var(--border); }
+  .io [data-act="clear-all"] { margin-left: auto; } /* keep the destructive one apart */
 
   /* ---- bet editor ---- */
   dialog#editor {
@@ -384,15 +395,17 @@
     <h2>Check a draw</h2>
     <p class="sub">Tap a number again to remove it. 🎲 Random draw makes a what-if draw.</p>
 
-    <p class="hint" id="hint" aria-live="polite"></p>
-    <div class="slots" id="slots"></div>
+    <div class="picker">
+      <p class="hint" id="hint" aria-live="polite"></p>
+      <div class="slots" id="slots"></div>
 
-    <div class="grid" id="grid"></div>
+      <div class="grid" id="grid"></div>
 
-    <div class="row draw-actions">
-      <button class="btn" id="dipBtn" type="button">🎲 Random draw</button>
-      <button class="btn ghost" id="sortBtn" type="button">Sort ↑</button>
-      <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+      <div class="row draw-actions">
+        <button class="btn" id="dipBtn" type="button">🎲 Random draw</button>
+        <button class="btn ghost" id="sortBtn" type="button">Sort ↑</button>
+        <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+      </div>
     </div>
 
     <div class="result" id="result" hidden></div>
@@ -688,7 +701,7 @@
     if (betError(bankers, legs)) return null;
     return {
       id: typeof b.id === "string" && b.id ? b.id : newId(),
-      name: String(b.name ?? "").trim().slice(0, 40),
+      name: String(b.name ?? "").replace(/\s+/g, " ").trim().slice(0, 40),
       bankers, legs,
     };
   }
@@ -767,7 +780,7 @@
     toastEl.textContent = msg;
     toastEl.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2600);
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), Math.max(2600, msg.length * 60));
   }
 
   // ---------- bet list ----------
@@ -788,7 +801,9 @@
     }
     if (!bets.length) {
       html += `<div class="empty"><div class="big">🎟️</div>No bets yet. Add the numbers on your ticket to check them against each draw.` +
-        `<div class="row" style="justify-content:center;margin-top:.8rem"><button class="btn" type="button" data-act="add">+ Add your first bet</button></div></div>`;
+        `<div class="row" style="justify-content:center;margin-top:.8rem"><button class="btn" type="button" data-act="add">+ Add your first bet</button>` +
+        (shared ? "" : `<button class="btn ghost" type="button" data-act="import" title="${CSV_HINT}">⬆ Import CSV</button>`) +
+        `</div></div>`;
     }
     bets.forEach((bet, idx) => {
       const h = hits[idx], combos = combosOf(bet);
@@ -807,6 +822,12 @@
       const combos = bets.reduce((s, b) => s + combosOf(b), 0);
       html += `<p class="totals">${plural(bets.length, "bet")} · ${plural(combos, "combination")} · ${money(combos * UNIT_STAKE)} per draw</p>` +
         `<p class="legend"><span class="ring gold"></span>drawn number &nbsp;·&nbsp; <span class="ring silver"></span>special number</p>`;
+      if (!shared) {
+        html += `<div class="row io">` +
+          `<button class="btn ghost small" type="button" data-act="import" title="${CSV_HINT}">⬆ Import CSV</button>` +
+          `<button class="btn ghost small" type="button" data-act="export">⬇ Export CSV</button>` +
+          `<button class="btn danger small" type="button" data-act="clear-all">Clear all</button></div>`;
+      }
     }
     betsEl.innerHTML = html;
   }
@@ -818,8 +839,111 @@
     else if (act === "edit") openEditor(myBets.find(b => b.id === btn.dataset.id));
     else if (act === "save-shared") saveShared();
     else if (act === "leave-shared") leaveShared();
+    else if (act === "import") csvInput.click();
+    else if (act === "export") exportCsv();
+    else if (act === "clear-all") clearAllBets();
   });
   document.getElementById("addBtn").addEventListener("click", () => openEditor(null));
+
+  function clearAllBets() {
+    const n = myBets.length;
+    if (!n || !confirm(`Delete all ${plural(n, "bet")}? This can't be undone — export a CSV first if you want a backup.`)) return;
+    myBets = [];
+    storeBets();
+    update();
+    toast(`Deleted ${plural(n, "bet")}.`);
+  }
+
+  // ---------- CSV import / export ----------
+  // Columns: name, bankers, legs — numbers inside a field are separated by spaces.
+  // Import also takes header-less rows of numbers (one per cell or all in one cell).
+  const CSV_HINT = "CSV columns: name, bankers, legs (numbers separated by spaces)";
+  const csvCell = v => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // stop spreadsheets reading a name as a formula
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const betsToCsv = bets =>
+    [["name", "bankers", "legs"], ...bets.map((b, i) => [betName(b, i), b.bankers.join(" "), b.legs.join(" ")])]
+      .map(r => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
+
+  function parseCsv(text) {
+    text = text.replace(/^﻿/, "");
+    const first = text.split(/\r?\n/, 1)[0];
+    const delim = [";", "\t"].reduce((best, d) => first.split(d).length > first.split(best).length ? d : best, ",");
+    const rows = [];
+    let row = [], cell = "", quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (quoted) {
+        if (c !== '"') cell += c;
+        else if (text[i + 1] === '"') { cell += '"'; i++; }
+        else quoted = false;
+      } else if (c === '"') quoted = true;
+      else if (c === delim) { row.push(cell); cell = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(cell); rows.push(row); row = []; cell = "";
+      } else cell += c;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter(r => r.some(c => c.trim()));
+  }
+
+  // Returns { bets, bad } where bad lists the (1-based) file rows that weren't valid bets.
+  function csvToBets(rows) {
+    const nums = s => ((s || "").match(/\d+/g) || []).map(Number);
+    const isNumCell = c => /^[\d\s.,;|\/+-]*$/.test(c);
+    const head = (rows[0] || []).map(c => c.trim().toLowerCase());
+    const col = names => head.findIndex(h => names.includes(h));
+    const iName = col(["name", "bet"]), iBank = col(["bankers", "banker", "膽"]), iLegs = col(["legs", "leg", "numbers", "腳", "號碼"]);
+    const hasHeader = iLegs >= 0;
+    const bets = [], bad = [];
+    (hasHeader ? rows.slice(1) : rows).forEach((r, i) => {
+      const raw = hasHeader
+        ? { name: iName >= 0 ? r[iName] : "", bankers: iBank >= 0 ? nums(r[iBank]) : [], legs: nums(r[iLegs]) }
+        : { name: r.find(c => c.trim() && !isNumCell(c)) || "", bankers: [], legs: r.filter(isNumCell).flatMap(nums) };
+      raw.name = String(raw.name || "").replace(/^'(?=[=+\-@])/, "");
+      const all = [...raw.bankers, ...raw.legs];
+      const bet = all.every(n => n >= 1 && n <= 49) && new Set(all).size === all.length ? cleanBet(raw) : null;
+      if (bet) bets.push(bet); else bad.push(i + (hasHeader ? 2 : 1));
+    });
+    return { bets, bad };
+  }
+
+  const csvInput = document.createElement("input");
+  csvInput.type = "file";
+  csvInput.accept = ".csv,text/csv,text/plain";
+  csvInput.addEventListener("change", async () => {
+    const file = csvInput.files[0];
+    csvInput.value = "";
+    if (!file) return;
+    if (file.size > 1e6) { toast("That file is too big to be a bet list."); return; }
+    let parsed;
+    try { parsed = csvToBets(parseCsv(await file.text())); }
+    catch { toast("Couldn't read that file."); return; }
+    const rowList = parsed.bad.slice(0, 5).join(", ") + (parsed.bad.length > 5 ? "…" : "");
+    if (!parsed.bets.length) {
+      toast(parsed.bad.length ? `No valid bets found (check row${parsed.bad.length === 1 ? "" : "s"} ${rowList}). ${CSV_HINT}.` : "That file has no bets in it.");
+      return;
+    }
+    const r = addBets(parsed.bets);
+    if (r.added && !storeBets()) return;
+    update();
+    toast(addSummary(r, "Imported", parsed.bad.length ? [`invalid row${parsed.bad.length === 1 ? "" : "s"} ${rowList} skipped`] : []));
+  });
+
+  function exportCsv() {
+    const d = new Date(), pad = n => String(n).padStart(2, "0");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + betsToCsv(myBets)], { type: "text/csv;charset=utf-8" }));
+    a.download = `marksix-bets-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast(`Exported ${plural(myBets.length, "bet")}.`);
+  }
 
   // ---------- sharing ----------
   document.getElementById("shareBtn").addEventListener("click", async () => {
@@ -839,16 +963,28 @@
     clearHash();
     update();
   }
+  // Append bets to My bets, skipping ones whose numbers are already saved.
+  function addBets(list) {
+    const have = new Set(myBets.map(betKey)), fresh = [];
+    list.forEach(b => {
+      const k = betKey(b);
+      if (!have.has(k)) { have.add(k); fresh.push({ ...b, id: newId() }); }
+    });
+    const room = Math.max(0, MAX_BETS - myBets.length);
+    myBets.push(...fresh.slice(0, room));
+    return { added: Math.min(fresh.length, room), dupes: list.length - fresh.length, overflow: Math.max(0, fresh.length - room) };
+  }
+  const addSummary = (r, verb, extra = []) => [
+    r.added ? `${verb} ${plural(r.added, "bet")}` : "No new bets",
+    r.dupes && `${plural(r.dupes, "duplicate")} skipped`,
+    r.overflow && `${r.overflow} over the ${MAX_BETS}-bet limit`,
+    ...extra,
+  ].filter(Boolean).join(" · ") + ".";
   function saveShared() {
-    const have = new Set(myBets.map(betKey));
-    const added = shared.bets.filter(b => !have.has(betKey(b))).map(b => ({ ...b, id: newId() }));
-    const room = MAX_BETS - myBets.length;
-    myBets.push(...added.slice(0, room));
-    if (added.length && !storeBets()) return;
+    const r = addBets(shared.bets);
+    if (r.added && !storeBets()) return;
     leaveShared();
-    toast(!added.length ? "You already have all of these bets."
-      : added.length > room ? `Saved ${plural(room, "bet")} — you've hit the ${MAX_BETS}-bet limit.`
-      : `Saved ${plural(added.length, "bet")}.`);
+    toast(addSummary(r, "Saved"));
   }
   function applyHash() {
     const parsed = parseHash();
