@@ -856,8 +856,9 @@
 
   // ---------- CSV import / export ----------
   // Columns: name, bankers, legs — numbers inside a field are separated by spaces.
-  // Import also takes header-less rows of numbers (one per cell or all in one cell).
-  const CSV_HINT = "CSV columns: name, bankers, legs (numbers separated by spaces)";
+  // Import also takes plain rows of numbers, e.g. "1,2,3,4,5,6" (one bet per row, optional
+  // name cell, optional title row).
+  const CSV_HINT = "CSV: one bet per row, e.g. 1,2,3,4,5,6 — or columns name, bankers, legs";
   const csvCell = v => {
     let s = String(v);
     if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // stop spreadsheets reading a name as a formula
@@ -870,7 +871,7 @@
   function parseCsv(text) {
     text = text.replace(/^﻿/, "");
     const first = text.split(/\r?\n/, 1)[0];
-    const delim = [";", "\t"].reduce((best, d) => first.split(d).length > first.split(best).length ? d : best, ",");
+    const delim = [";", "\t", "，"].reduce((best, d) => first.split(d).length > first.split(best).length ? d : best, ",");
     const rows = [];
     let row = [], cell = "", quoted = false;
     for (let i = 0; i < text.length; i++) {
@@ -893,20 +894,22 @@
   // Returns { bets, bad } where bad lists the (1-based) file rows that weren't valid bets.
   function csvToBets(rows) {
     const nums = s => ((s || "").match(/\d+/g) || []).map(Number);
-    const isNumCell = c => /^[\d\s.,;|\/+-]*$/.test(c);
+    const isNumCell = c => !/\p{L}/u.test(c); // no letters: a cell of numbers
     const head = (rows[0] || []).map(c => c.trim().toLowerCase());
     const col = names => head.findIndex(h => names.includes(h));
     const iName = col(["name", "bet"]), iBank = col(["bankers", "banker", "膽"]), iLegs = col(["legs", "leg", "numbers", "腳", "號碼"]);
     const hasHeader = iLegs >= 0;
+    // a first row of only text ("N1,N2,…") is a title row, not a bad bet
+    const skipFirst = hasHeader || (rows[0] || []).every(c => !c.trim() || !isNumCell(c));
     const bets = [], bad = [];
-    (hasHeader ? rows.slice(1) : rows).forEach((r, i) => {
+    (skipFirst ? rows.slice(1) : rows).forEach((r, i) => {
       const raw = hasHeader
         ? { name: iName >= 0 ? r[iName] : "", bankers: iBank >= 0 ? nums(r[iBank]) : [], legs: nums(r[iLegs]) }
         : { name: r.find(c => c.trim() && !isNumCell(c)) || "", bankers: [], legs: r.filter(isNumCell).flatMap(nums) };
       raw.name = String(raw.name || "").replace(/^'(?=[=+\-@])/, "");
       const all = [...raw.bankers, ...raw.legs];
       const bet = all.every(n => n >= 1 && n <= 49) && new Set(all).size === all.length ? cleanBet(raw) : null;
-      if (bet) bets.push(bet); else bad.push(i + (hasHeader ? 2 : 1));
+      if (bet) bets.push(bet); else bad.push(i + (skipFirst ? 2 : 1));
     });
     return { bets, bad };
   }

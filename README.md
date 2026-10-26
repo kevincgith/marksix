@@ -14,7 +14,14 @@ A single-page Mark Six checker for the Hong Kong lottery. Open `index.html` (or 
   Banker bet,10 20,11 12 13 14 15
   ```
 
-  Numbers inside a field are separated by spaces. Import also accepts files without a header: one bet per row, numbers in their own cells or together in one, with an optional name.
+  Numbers inside a field are separated by spaces. Import also accepts a plain list of bets, one per row, with each number in its own cell:
+
+  ```csv
+  1,2,3,4,5,6
+  7,8,9,10,11,12
+  ```
+
+  A name cell (e.g. `Mon,1,2,3,4,5,6`), a title row such as `N1,N2,…,N6`, and full-width commas (`，`) are all fine. A row with 7 or more numbers imports as a multiple.
 
 Not affiliated with the HKJC.
 
