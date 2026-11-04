@@ -250,7 +250,9 @@
 
   /* ---- past results ---- */
   .past { margin: 0 0 1.1rem; }
-  .past > button { width: 100%; }
+  .past-actions { display: flex; gap: .5rem; }
+  .past-actions #lastBtn { flex: 1 1 auto; font-size: 1.05rem; padding: .75rem 1rem; }
+  .past-actions #pastBtn { flex: 0 0 auto; }
   .past-list { display: grid; gap: .4rem; margin-top: .6rem; }
   .past-row {
     appearance: none; width: 100%; text-align: left;
@@ -271,6 +273,9 @@
   .past-row .ball { width: 1.75rem; height: 1.75rem; font-size: .78rem; }
   .past-row .grp { margin: 0 .05rem; }
   .past-note { color: var(--muted); font-size: .75rem; margin: .45rem 0 0; }
+  .past-foot { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .45rem; }
+  .past-foot .past-note { margin: 0; }
+  .past-foot button { flex: 0 0 auto; }
   .past-err { color: var(--warn); font-size: .85rem; margin: .55rem 0 0; }
   .io [data-act="clear-all"] { margin-left: auto; } /* keep the destructive one apart */
 
@@ -328,6 +333,8 @@
   .details dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
   .details .balls { margin: .6rem 0 .5rem; gap: .3rem; flex-wrap: nowrap; }
   .details .ball { width: 1.85rem; height: 1.85rem; font-size: .82rem; }
+  .share-row { margin-top: 1rem; }
+  .share-row button { width: 100%; }
   .details table.prizes td, .details table.prizes th { padding: .3rem .4rem; }
   table { width: 100%; border-collapse: collapse; font-size: .88rem; }
   th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--border); }
@@ -430,7 +437,10 @@
 
     <div class="picker">
       <div class="past">
-        <button class="btn ghost" id="pastBtn" type="button">📅 Load the last 5 results</button>
+        <div class="past-actions">
+          <button class="btn" id="lastBtn" type="button">📅 Last draw</button>
+          <button class="btn ghost" id="pastBtn" type="button" aria-expanded="false" aria-controls="pastList">Past 5</button>
+        </div>
         <div id="pastList" aria-live="polite"></div>
       </div>
       <p class="hint" id="hint" aria-live="polite"></p>
@@ -503,7 +513,7 @@
     </ul>
   </details>
 
-  <footer>Not affiliated with the HKJC. Bets are saved in this browser only; past results are fetched from HKJC only when you tap Load.<br>v2026-11-04</footer>
+  <footer>Not affiliated with the HKJC. Bets are saved in this browser only; results are fetched from HKJC only when you tap Last draw or Past 5.<br>v2026-11-04</footer>
 </div>
 
 <dialog id="editor" aria-labelledby="edTitle">
@@ -1296,6 +1306,8 @@
   let pastDraws = null;      // parsed results once fetched
   let pastState = "idle";    // idle | loading | ok | error
   let pastError = "";
+  let pastOpen = false;      // whether the Past 5 list is showing
+  let loadingBy = null;      // which button started the current fetch
 
   // Turn one HKJC draw into { id, label, date, snowball, mains, special, dividends }, or null if malformed.
   function parseDraw(d) {
@@ -1356,9 +1368,11 @@
     }
   }
 
-  async function loadPastDraws() {
-    if (pastState === "loading") return;
+  // Fetch the latest draws; resolves true when they loaded.
+  async function loadPastDraws(by) {
+    if (pastState === "loading") return false;
     pastState = "loading";
+    loadingBy = by;
     renderPast();
     try {
       // HKJC occasionally rejects a request it accepts a moment later, so try twice
@@ -1369,7 +1383,9 @@
       pastState = "error";
       pastError = err && err.message ? err.message : "network error";
     }
+    loadingBy = null;
     renderPast();
+    return pastState === "ok";
   }
 
   // The fetched official draw matching the numbers entered, if any.
@@ -1409,16 +1425,19 @@
     return { total, unknownPool, won };
   }
 
+  const lastBtn = document.getElementById("lastBtn");
   const pastBtn = document.getElementById("pastBtn");
   const pastListEl = document.getElementById("pastList");
   function renderPast() {
-    pastBtn.disabled = pastState === "loading";
-    pastBtn.textContent = pastState === "loading" ? "Loading results from HKJC…" : pastDraws ? "↻ Refresh results" : `📅 Load the last ${PAST_COUNT} results`;
-    if (pastState === "error") {
-      pastListEl.innerHTML = `<p class="past-err">Couldn't load results (${esc(pastError)}). Check your connection and try again, or tap the numbers in below.</p>`;
-      if (!pastDraws) return;
-    } else pastListEl.innerHTML = "";
-    if (!pastDraws) return;
+    const loading = pastState === "loading";
+    lastBtn.disabled = pastBtn.disabled = loading;
+    lastBtn.textContent = loadingBy === "last" ? "Loading from HKJC…" : "📅 Last draw";
+    pastBtn.textContent = loadingBy === "past" ? "Loading…" : pastOpen ? "Hide ▴" : `Past ${PAST_COUNT} ▾`;
+    pastBtn.setAttribute("aria-expanded", pastOpen);
+    pastListEl.innerHTML = pastState === "error"
+      ? `<p class="past-err">Couldn't load results (${esc(pastError)}). Check your connection and try again, or tap the numbers in below.</p>`
+      : "";
+    if (!pastOpen || !pastDraws) return;
     const bets = activeBets(), official = currentOfficial();
     const plainBall = n => `<span class="ball ${ballColor(n)}">${n}</span>`; // no hit rings: these are draws, not bets
     pastListEl.innerHTML += `<div class="past-list">` + pastDraws.map((r, i) => {
@@ -1431,18 +1450,36 @@
         `<span class="meta">${esc(r.label)} <small>· ${esc(r.date)}${r.snowball ? ` · ${esc(r.snowball)}` : ""}</small></span>${badge}` +
         `<span class="balls">${r.mains.map(plainBall).join("")}<span class="grp">+</span>${plainBall(r.special)}</span>` +
         `</button>`;
-    }).join("") + `</div><p class="past-note">Official results from HKJC. Tap a draw to check it below.</p>`;
+    }).join("") + `</div><div class="past-foot"><p class="past-note">Official results from HKJC. Tap a draw to check it below.</p>` +
+      `<button class="btn ghost small" type="button" data-act="collapse-past">Collapse ▴</button></div>`;
   }
-  pastBtn.addEventListener("click", loadPastDraws);
-  pastListEl.addEventListener("click", e => {
-    const row = e.target.closest(".past-row");
-    if (!row || dipping) return;
-    const r = pastDraws[Number(row.dataset.i)];
+  function loadDraw(r) {
+    if (dipping) return;
     mains = [...r.mains];
     special = r.special;
     lastAdded = null;
     clearTimeout(flashTimer); flashTimer = null;
     update();
+  }
+  // Last draw: always fetch fresh, then put the newest result straight into the checker.
+  lastBtn.addEventListener("click", async () => {
+    if (await loadPastDraws("last")) loadDraw(pastDraws[0]);
+  });
+  // Past 5: show or hide the list (fetching it the first time).
+  pastBtn.addEventListener("click", async () => {
+    if (pastOpen) { pastOpen = false; renderPast(); return; }
+    pastOpen = true;
+    if (!pastDraws) await loadPastDraws("past"); else renderPast();
+  });
+  pastListEl.addEventListener("click", e => {
+    if (e.target.closest('[data-act="collapse-past"]')) {
+      pastOpen = false;
+      renderPast();
+      pastBtn.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "nearest" });
+      return;
+    }
+    const row = e.target.closest(".past-row");
+    if (row) loadDraw(pastDraws[Number(row.dataset.i)]);
   });
 
   // ---------- result ----------
@@ -1450,6 +1487,7 @@
   // Re-render (and celebrate) only when the draw or the bets change, so Sort or
   // an unrelated re-render never replays the confetti.
   let shownKey = null;
+  let resultSummary = null; // what the result shows, for the share image
   function renderResult(hits) {
     const bets = activeBets(), official = currentOfficial(), dividends = official && official.dividends;
     const key = isComplete()
@@ -1458,12 +1496,14 @@
       : null;
     if (key === shownKey) return;
     shownKey = key;
-    if (!key) { resultEl.hidden = true; resultEl.innerHTML = ""; hideBigWin(); return; }
+    if (!key) { resultEl.hidden = true; resultEl.innerHTML = ""; resultSummary = null; hideBigWin(); return; }
+    const drawn = [...mains].sort(byNum);
 
     const drawLine = official ? drawDetailsHtml(official)
       : `<p class="summary">Draw: <strong>${[...mains].sort(byNum).join(", ")}</strong> + special <strong>${special}</strong></p>`;
     if (!bets.length) {
-      resultEl.innerHTML = drawLine + `<p class="none">Add a bet above to check it against this draw.</p>`;
+      resultSummary = { official, mains: drawn, special, bets: [] };
+      resultEl.innerHTML = drawLine + `<p class="none">Add a bet above to check it against this draw.</p>` + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">🖼️ Share result as image</button></div>`;
       resultEl.hidden = false;
       hideBigWin();
       return;
@@ -1486,9 +1526,15 @@
       `<div class="v-line">${won ? `${plural(winningCombos, "winning combination")}` : "No winning combinations this draw."}</div></div>`;
     html += drawLine;
 
+    const perBet = [];
     bets.forEach((bet, idx) => {
       const h = hits[idx];
       const winning = h.counts.reduce((s, c) => s + c, 0);
+      perBet.push({
+        name: betName(bet, idx), matched: h.main.size, specialHit: h.specialHit, winning, combos: combosOf(bet),
+        total: h.counts.reduce((s, c, d) => s + (c && prizeFor(d, dividends) != null ? c * prizeFor(d, dividends) : 0), 0),
+        unknownPool: h.counts.some((c, d) => c && prizeFor(d, dividends) == null),
+      });
       html += `<h3>${esc(betName(bet, idx))} <small>· ${h.main.size} matched${h.specialHit ? " + special" : ""} · ` +
               `${winning.toLocaleString("en-US")} of ${plural(combosOf(bet), "combo")} win</small></h3>`;
       if (!winning) { html += `<p class="none">No winning combinations.</p>`; return; }
@@ -1505,7 +1551,8 @@
       html += `</tbody><tfoot><tr class="total"><td colspan="3">Total${h.counts.some((c, d) => c && prizeFor(d, dividends) == null) ? " (fixed prizes)" : ""}</td>` +
               `<td class="n">${money(betTotal)}</td></tr></tfoot></table>`;
     });
-    resultEl.innerHTML = html;
+    resultSummary = { official, mains: drawn, special, won, fixedTotal, unknownPool, best, winningCombos, bets: perBet };
+    resultEl.innerHTML = html + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">🖼️ Share result as image</button></div>`;
     resultEl.hidden = false;
     if (won && (fixedTotal || !unknownPool)) countUp(document.getElementById("vAmt"), fixedTotal);
     resultEl.firstChild.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "nearest" });
@@ -1514,6 +1561,129 @@
     else { hideBigWin(); if (won) smallBurst(); }
     if (won && navigator.vibrate) navigator.vibrate(pool ? [80, 60, 80, 60, 200] : [30, 40, 30]);
   }
+
+  // ---------- share the result as a PNG ----------
+  const IMG = { bg: "#f4f5f7", card: "#ffffff", text: "#1b1f24", muted: "#616a76", line: "#e2e5e9", hit: "#1f9d55", hitSoft: "#e6f6ec", soft: "#eef0f3",
+    red: "#d8232a", blue: "#0067b1", green: "#068a3c" };
+  const IMG_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang HK", "Microsoft JhengHei", sans-serif';
+
+  function drawResultImage(sum) {
+    const W = 1080, PAD = 64, IN = PAD + 40, ROW = 96, MAX_ROWS = 12;
+    const rows = sum.bets.slice(0, MAX_ROWS), more = sum.bets.length - rows.length;
+    const o = sum.official;
+    // header and balls end at y = 474; then the bets block; then the footer with breathing room
+    const H = 474 + (sum.bets.length ? 230 + rows.length * ROW + (more ? 50 : 0) : 60) + 194;
+    const cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext("2d");
+    const font = (w, px) => { ctx.font = `${w} ${px}px ${IMG_FONT}`; };
+    const rr = (x, y, w, h, r, fill) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+      ctx.fillStyle = fill; ctx.fill();
+    };
+    const fit = (text, maxW) => {
+      if (ctx.measureText(text).width <= maxW) return text;
+      while (text.length > 1 && ctx.measureText(text + "…").width > maxW) text = text.slice(0, -1);
+      return text + "…";
+    };
+    const say = (text, x, y, { w = 400, px = 30, color = IMG.text, align = "left", maxW = W - 2 * IN } = {}) => {
+      font(w, px); ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = "alphabetic";
+      ctx.fillText(fit(text, maxW), x, y);
+    };
+
+    ctx.fillStyle = IMG.bg; ctx.fillRect(0, 0, W, H);
+    rr(PAD, PAD, W - 2 * PAD, H - 2 * PAD, 36, IMG.card);
+
+    // header
+    let y = PAD + 92;
+    say("Mark Six result", IN, y, { w: 800, px: 48 });
+    y += 52;
+    say(o ? `Draw ${o.label} · ${o.longDate}${o.snowball ? ` · ${o.snowball}` : ""}` : "Draw entered by hand", IN, y, { px: 30, color: IMG.muted });
+    if (o && o.turnover != null) { y += 42; say(`Total turnover ${money(o.turnover)}`, IN, y, { px: 28, color: IMG.muted }); }
+
+    // drawn balls: 6 mains + special
+    const R = 50, GAP = 18, PLUS = 54;
+    const rowW = 7 * 2 * R + 5 * GAP + PLUS + GAP;
+    let x = (W - rowW) / 2 + R;
+    const cy = PAD + 330 - 20;
+    const ball = n => {
+      ctx.beginPath(); ctx.arc(x, cy, R, 0, Math.PI * 2);
+      ctx.fillStyle = IMG[ballColor(n)]; ctx.fill();
+      font(800, 44); ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(n), x, cy + 2);
+    };
+    sum.mains.forEach((n, i) => { ball(n); x += 2 * R + (i < 5 ? GAP : 0); });
+    font(700, 44); ctx.fillStyle = IMG.muted; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("+", x - R + GAP / 2 + PLUS / 2, cy);
+    x += PLUS + GAP;
+    ball(sum.special);
+    ctx.textBaseline = "alphabetic";
+    y = cy + R + 50;
+
+    if (!sum.bets.length) {
+      say("No bets to check against this draw.", W / 2, y + 30, { px: 30, color: IMG.muted, align: "center" });
+      y += 60;
+    } else {
+      // verdict
+      const vh = 190;
+      rr(IN, y, W - 2 * IN, vh, 24, sum.won ? IMG.hitSoft : IMG.soft);
+      const headline = !sum.won ? "No prize" : sum.unknownPool && !sum.fixedTotal ? `${DIVISIONS[sum.best]} Division` : money(sum.fixedTotal);
+      say(headline, W / 2, y + 92, { w: 900, px: 68, color: sum.won ? IMG.hit : IMG.text, align: "center" });
+      say(sum.won
+        ? `${plural(sum.winningCombos, "winning combination")}${sum.unknownPool ? ` · + ${DIVISIONS[sum.best]} division pool prize` : ""}`
+        : "No winning combinations this draw.", W / 2, y + 148, { px: 30, color: IMG.muted, align: "center" });
+      y += vh + 40;
+
+      // one row per bet
+      rows.forEach((b, i) => {
+        if (i) { ctx.fillStyle = IMG.line; ctx.fillRect(IN, y - 8, W - 2 * IN, 2); }
+        const amount = b.winning ? `${money(b.total)}${b.unknownPool ? " + pool" : ""}` : "No prize";
+        font(800, 32);
+        const amountW = ctx.measureText(amount).width;
+        say(b.name, IN, y + 38, { w: 700, px: 34, maxW: W - 2 * IN - amountW - 30 });
+        say(amount, W - IN, y + 38, { w: 800, px: 32, color: b.winning ? IMG.hit : IMG.muted, align: "right" });
+        say(`${b.matched} matched${b.specialHit ? " + special" : ""} · ${b.winning.toLocaleString("en-US")} of ${plural(b.combos, "combo")} win`,
+          IN, y + 76, { px: 26, color: IMG.muted });
+        y += ROW;
+      });
+      if (more) { say(`+ ${plural(more, "more bet")}`, IN, y + 30, { px: 26, color: IMG.muted }); y += 50; }
+    }
+
+    // footer
+    const where = /^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname) ? ` · ${location.host}${location.pathname}` : "";
+    say(`Checked with Mark Six Checker${where}`, W / 2, H - PAD - 56, { px: 24, color: IMG.muted, align: "center" });
+    say(o ? "Official result from HKJC · not affiliated with the HKJC" : "Not affiliated with the HKJC", W / 2, H - PAD - 22, { px: 22, color: IMG.muted, align: "center" });
+    return cv;
+  }
+
+  async function shareResultImage() {
+    if (!resultSummary) return;
+    const cv = drawResultImage(resultSummary);
+    // build the file synchronously so the share sheet still counts as a response to the tap
+    const bin = atob(cv.toDataURL("image/png").split(",")[1]);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const o = resultSummary.official;
+    const name = `marksix-${o ? o.label.replace("/", "-") : "result"}.png`;
+    const file = new File([bytes], name, { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: "Mark Six result" }); return; }
+      catch (err) { if (err && err.name === "AbortError") return; }
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(file);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast("🖼️ Image saved.");
+  }
+  resultEl.addEventListener("click", e => {
+    if (e.target.closest('[data-act="share-png"]')) shareResultImage();
+  });
 
   // ---------- odds table ----------
   function renderOdds() {
