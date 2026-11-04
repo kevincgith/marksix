@@ -803,6 +803,9 @@
   let special = null;
   let lastAdded = null; // number to animate on the next render
   let dipping = false;
+  let dipTimer = null;
+  // Stop a Random draw mid-animation (another draw is being loaded over it).
+  function stopRandomDraw() { clearTimeout(dipTimer); dipTimer = null; dipping = false; }
   const isComplete = () => mains.length === MAIN_COUNT && special != null;
   const isPicked = n => mains.includes(n) || special === n;
 
@@ -829,6 +832,7 @@
 
   // ---------- bet list ----------
   const betsEl = document.getElementById("bets");
+  const plainBall = n => `<span class="ball ${ballColor(n)}">${n}</span>`; // a drawn number, no hit ring
   const ballHtml = (n, h, banker) =>
     `<span class="ball ${ballColor(n)}${banker ? " banker" : ""}${h.main.has(n) ? " hit" : n === special ? " hit-special" : ""}">${n}</span>`;
   function renderBets(hits) {
@@ -893,9 +897,9 @@
     const n = myBets.length;
     if (!n || !confirm(`Delete all ${plural(n, "bet")}? This can't be undone — export a CSV first if you want a backup.`)) return;
     myBets = [];
-    storeBets();
+    const stored = storeBets();
     update();
-    toast(`Deleted ${plural(n, "bet")}.`);
+    if (stored) toast(`Deleted ${plural(n, "bet")}.`);
   }
 
   // ---------- CSV import / export ----------
@@ -916,10 +920,14 @@
     text = text.replace(/^﻿/, "");
     const first = text.split(/\r?\n/, 1)[0];
     const delim = [";", "\t", "，"].reduce((best, d) => first.split(d).length > first.split(best).length ? d : best, ",");
+    // each row remembers the file line it starts on (row.line), for error messages
     const rows = [];
-    let row = [], cell = "", quoted = false;
+    let row = [], cell = "", quoted = false, line = 1;
+    row.line = 1;
+    const endRow = () => { row.push(cell); rows.push(row); row = []; row.line = line; cell = ""; };
     for (let i = 0; i < text.length; i++) {
       const c = text[i];
+      if (c === "\n" || (c === "\r" && text[i + 1] !== "\n")) line++;
       if (quoted) {
         if (c !== '"') cell += c;
         else if (text[i + 1] === '"') { cell += '"'; i++; }
@@ -927,15 +935,15 @@
       } else if (c === '"') quoted = true;
       else if (c === delim) { row.push(cell); cell = ""; }
       else if (c === "\n" || c === "\r") {
-        if (c === "\r" && text[i + 1] === "\n") i++;
-        row.push(cell); rows.push(row); row = []; cell = "";
+        if (c === "\r" && text[i + 1] === "\n") { i++; line++; }
+        endRow();
       } else cell += c;
     }
-    if (cell || row.length) { row.push(cell); rows.push(row); }
+    if (cell || row.length) endRow();
     return rows.filter(r => r.some(c => c.trim()));
   }
 
-  // Returns { bets, bad } where bad lists the (1-based) file rows that weren't valid bets.
+  // Returns { bets, bad } where bad lists the file lines of rows that weren't valid bets.
   function csvToBets(rows) {
     const nums = s => ((s || "").match(/\d+/g) || []).map(Number);
     const isNumCell = c => !/\p{L}/u.test(c); // no letters: a cell of numbers
@@ -953,7 +961,7 @@
       raw.name = String(raw.name || "").replace(/^'(?=[=+\-@])/, "");
       const all = [...raw.bankers, ...raw.legs];
       const bet = all.every(n => n >= 1 && n <= 49) && new Set(all).size === all.length ? cleanBet(raw) : null;
-      if (bet) bets.push(bet); else bad.push(i + (skipFirst ? 2 : 1));
+      if (bet) bets.push(bet); else bad.push(r.line);
     });
     return { bets, bad };
   }
@@ -1035,10 +1043,9 @@
   }
   function applyHash() {
     const parsed = parseHash();
-    if (!parsed) return;
-    shared = parsed.bets.length ? { bets: parsed.bets } : null;
-    if (parsed.draw) { mains = parsed.draw.mains; special = parsed.draw.special; }
-    if (!shared) clearHash();
+    shared = parsed && parsed.bets.length ? { bets: parsed.bets } : null;
+    if (parsed && parsed.draw) { stopRandomDraw(); mains = parsed.draw.mains; special = parsed.draw.special; }
+    if (parsed && !shared) clearHash();
   }
   window.addEventListener("hashchange", () => { applyHash(); update(); });
 
@@ -1063,7 +1070,9 @@
   const edStatus = document.getElementById("edStatus");
   const edGrid = document.getElementById("edGrid");
   const edCells = makeGrid(edGrid, edTap);
-  let draft = null, role = "legs", edFlashTimer = null;
+  let draft = null, role = "legs", edFlashTimer = null, edOriginal = "";
+  const edSnapshot = () => JSON.stringify([edName.value.trim(), [...draft.bankers].sort(byNum), [...draft.legs].sort(byNum)]);
+  const edDirty = () => draft && edSnapshot() !== edOriginal;
 
   function openEditor(bet) {
     draft = bet
@@ -1075,6 +1084,7 @@
     document.getElementById("edTitle").textContent = bet ? "Edit bet" : "New bet";
     document.getElementById("edDelete").hidden = !bet;
     renderEditor();
+    edOriginal = edSnapshot();
     editor.showModal();
   }
   function edFlash(msg) {
@@ -1133,7 +1143,14 @@
   });
   document.getElementById("edClear").addEventListener("click", () => { draft.bankers = []; draft.legs = []; renderEditor(); });
   document.getElementById("edCancel").addEventListener("click", () => editor.close());
-  editor.addEventListener("click", e => { if (e.target === editor) editor.close(); }); // backdrop
+  // Backdrop click or Escape: close, but only for a click that started on the backdrop
+  // (not a text selection dragged out of the dialog), and confirm before dropping edits.
+  let edDownOnBackdrop = false;
+  editor.addEventListener("pointerdown", e => { edDownOnBackdrop = e.target === editor; });
+  editor.addEventListener("click", e => {
+    if (e.target === editor && edDownOnBackdrop && (!edDirty() || confirm("Discard your changes to this bet?"))) editor.close();
+  });
+  editor.addEventListener("cancel", e => { if (edDirty() && !confirm("Discard your changes to this bet?")) e.preventDefault(); });
   edName.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); edName.blur(); } });
   document.getElementById("edSave").addEventListener("click", () => {
     const bet = cleanBet({ id: draft.id, name: edName.value, bankers: draft.bankers, legs: draft.legs });
@@ -1142,19 +1159,19 @@
     if (i >= 0) myBets[i] = bet;
     else if (myBets.length >= MAX_BETS) { edFlash(`You can save up to ${MAX_BETS} bets.`); return; }
     else myBets.push(bet);
-    storeBets();
+    const stored = storeBets(); // on failure storeBets has already warned
     editor.close();
     update();
-    toast(i >= 0 ? "Bet updated." : "Bet saved.");
+    if (stored) toast(i >= 0 ? "Bet updated." : "Bet saved.");
   });
   document.getElementById("edDelete").addEventListener("click", () => {
     const idx = myBets.findIndex(b => b.id === draft.id);
     if (idx < 0 || !confirm(`Delete ${betName(myBets[idx], idx)}?`)) return;
     myBets.splice(idx, 1);
-    storeBets();
+    const stored = storeBets();
     editor.close();
     update();
-    toast("Bet deleted.");
+    if (stored) toast("Bet deleted.");
   });
 
   // ---------- draw slots ----------
@@ -1385,6 +1402,9 @@
     return pastState === "ok";
   }
 
+  // Everything shown from an official draw, so a refresh that brings newly declared dividends re-renders.
+  const officialKey = r => [r.id, r.turnover, ...r.prizes.map(p => `${p.unitPrize}/${p.units}`)].join(":");
+
   // The fetched official draw matching the numbers entered, if any.
   function currentOfficial() {
     if (!isComplete() || !pastDraws) return null;
@@ -1399,27 +1419,36 @@
       row("Draw date", esc(r.longDate)) +
       row("Snowball", esc(r.snowball)) +
       row("Total turnover", r.turnover != null ? money(r.turnover) : "") +
-      `</dl><div class="balls">${r.mains.map(n => `<span class="ball ${ballColor(n)}">${n}</span>`).join("")}` +
-      `<span class="grp">+</span><span class="ball ${ballColor(r.special)}">${r.special}</span></div>` +
+      `</dl><div class="balls">${r.mains.map(plainBall).join("")}<span class="grp">+</span>${plainBall(r.special)}</div>` +
       `<table class="prizes"><thead><tr><th>Prize</th><th class="n">Unit prize</th><th class="n">Winning units</th></tr></thead><tbody>` +
       r.prizes.map((p, d) => `<tr><td>${DIVISIONS[d]}</td><td class="n">${p.unitPrize == null ? "-" : money(p.unitPrize)}</td><td class="n">${units(p.units)}</td></tr>`).join("") +
-      `</tbody></table><p class="past-note">Official result from HKJC. Unit prize is per ${money(r.unitBet || UNIT_STAKE)} unit; your winnings below use it.</p></div>`;
+      `</tbody></table><p class="past-note">Official result from HKJC. Unit prize is per ${money(r.unitBet || UNIT_STAKE)} unit; ` +
+      `your winnings below use it${r.prizes.some(p => p.unitPrize == null) ? " (\"-\" means none declared)" : ""}.</p></div>`;
   }
 
   // Prize per winning entry: HKJC's declared dividend when known, else the fixed 4th–7th amount (null = unknown pool prize).
   const prizeFor = (d, dividends) => (dividends && dividends[d] != null) ? dividends[d] : PRIZE[d];
 
-  // What all the bets won in one draw: { total, unknownPool, won }.
-  function winningsFor(bets, draw) {
-    let total = 0, unknownPool = false, won = false;
-    bets.forEach(b => countsFor(b, draw.mains, draw.special).forEach((c, d) => {
+  // What one bet's division counts are worth: { total, unknownPool, won, combos, best }.
+  // best is the top division hit (DIVISIONS.length when none); unknownPool flags a hit with no known prize.
+  function tally(counts, dividends) {
+    const t = { total: 0, unknownPool: false, won: false, combos: 0, best: DIVISIONS.length };
+    counts.forEach((c, d) => {
       if (!c) return;
-      won = true;
-      const p = prizeFor(d, draw.dividends);
-      if (p == null) unknownPool = true; else total += c * p;
-    }));
-    return { total, unknownPool, won };
+      t.won = true;
+      t.combos += c;
+      t.best = Math.min(t.best, d);
+      const p = prizeFor(d, dividends);
+      if (p == null) t.unknownPool = true; else t.total += c * p;
+    });
+    return t;
   }
+  const sumTallies = ts => ts.reduce((a, t) => ({
+    total: a.total + t.total, unknownPool: a.unknownPool || t.unknownPool, won: a.won || t.won,
+    combos: a.combos + t.combos, best: Math.min(a.best, t.best),
+  }), tally([], null));
+  // What all the bets won in one draw.
+  const winningsFor = (bets, draw) => sumTallies(bets.map(b => tally(countsFor(b, draw.mains, draw.special), draw.dividends)));
 
   const lastBtn = document.getElementById("lastBtn");
   const pastBtn = document.getElementById("pastBtn");
@@ -1435,7 +1464,6 @@
       : "";
     if (!pastOpen || !pastDraws) return;
     const bets = activeBets(), official = currentOfficial();
-    const plainBall = n => `<span class="ball ${ballColor(n)}">${n}</span>`; // no hit rings: these are draws, not bets
     pastListEl.innerHTML += `<div class="past-list">` + pastDraws.map((r, i) => {
       let badge = "";
       if (bets.length) {
@@ -1449,7 +1477,7 @@
     }).join("") + `</div><p class="past-note">Official results from HKJC. Tap a draw to check it below.</p>`;
   }
   function loadDraw(r) {
-    if (dipping) return;
+    stopRandomDraw();
     mains = [...r.mains];
     special = r.special;
     lastAdded = null;
@@ -1480,7 +1508,7 @@
   function renderResult(hits) {
     const bets = activeBets(), official = currentOfficial(), dividends = official && official.dividends;
     const key = isComplete()
-      ? [...mains].sort(byNum).join(",") + "+" + special + "|" + (official ? official.id : "") + "|" +
+      ? [...mains].sort(byNum).join(",") + "+" + special + "|" + (official ? officialKey(official) : "") + "|" +
         bets.map((b, i) => betName(b, i) + ":" + betKey(b)).join(";")
       : null;
     if (key === shownKey) return;
@@ -1489,7 +1517,7 @@
     const drawn = [...mains].sort(byNum);
 
     const drawLine = official ? drawDetailsHtml(official)
-      : `<p class="summary">Draw: <strong>${[...mains].sort(byNum).join(", ")}</strong> + special <strong>${special}</strong></p>`;
+      : `<p class="summary">Draw: <strong>${drawn.join(", ")}</strong> + special <strong>${special}</strong></p>`;
     if (!bets.length) {
       resultSummary = { official, mains: drawn, special, bets: [] };
       resultEl.innerHTML = drawLine + `<p class="none">Add a bet above to check it against this draw.</p>` + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">🖼️ Share result as image</button></div>`;
@@ -1498,49 +1526,40 @@
       return;
     }
 
-    let fixedTotal = 0, winningCombos = 0, best = DIVISIONS.length, unknownPool = false;
-    hits.forEach(h => h.counts.forEach((c, d) => {
-      if (!c) return;
-      winningCombos += c;
-      best = Math.min(best, d);
-      const p = prizeFor(d, dividends);
-      if (p == null) unknownPool = true; else fixedTotal += c * p;
-    }));
-    const won = best < DIVISIONS.length, pool = best <= 2;
+    const tallies = hits.map(h => tally(h.counts, dividends));
+    const { total: fixedTotal, combos: winningCombos, best, unknownPool, won } = sumTallies(tallies);
+    const pool = best <= 2;
 
     let html = `<div class="verdict${won ? " win" : ""}">` +
       `<div class="v-emoji">${pool ? "🤯" : won ? "🎉" : "😶"}</div>` +
       `<div class="v-amt" id="vAmt">${!won ? "No prize" : unknownPool && !fixedTotal ? `${DIVISIONS[best]} Division` : money(0)}</div>` +
-      (unknownPool ? `<div class="v-pool">${fixedTotal ? "+ " : ""}${DIVISIONS[best]} division pool prize — load the official result for the amount</div>` : "") +
+      (unknownPool ? `<div class="v-pool">${fixedTotal ? "+ " : ""}${DIVISIONS[best]} division pool prize — ` +
+        `${official ? "HKJC hasn't declared this prize yet" : "load the official result for the amount"}</div>` : "") +
       `<div class="v-line">${won ? `${plural(winningCombos, "winning combination")}` : "No winning combinations this draw."}</div></div>`;
     html += drawLine;
 
     const perBet = [];
     bets.forEach((bet, idx) => {
-      const h = hits[idx];
-      const winning = h.counts.reduce((s, c) => s + c, 0);
+      const h = hits[idx], t = tallies[idx], winning = t.combos;
       perBet.push({
         name: betName(bet, idx), matched: h.main.size, specialHit: h.specialHit, winning, combos: combosOf(bet),
-        total: h.counts.reduce((s, c, d) => s + (c && prizeFor(d, dividends) != null ? c * prizeFor(d, dividends) : 0), 0),
-        unknownPool: h.counts.some((c, d) => c && prizeFor(d, dividends) == null),
+        total: t.total, unknownPool: t.unknownPool,
         bankers: bet.bankers, legs: bet.legs, mainHits: [...h.main],
         kind: `${betKind(bet)} · ${plural(combosOf(bet), "combo")} · ${money(combosOf(bet) * UNIT_STAKE)}`,
       });
       html += `<h3>${esc(betName(bet, idx))} <small>· ${h.main.size} matched${h.specialHit ? " + special" : ""} · ` +
               `${winning.toLocaleString("en-US")} of ${plural(combosOf(bet), "combo")} win</small></h3>`;
       if (!winning) { html += `<p class="none">No winning combinations.</p>`; return; }
-      let betTotal = 0;
       html += `<table><thead><tr><th>Division</th><th class="n narrow">#</th><th class="n">Prize each</th><th class="n">Subtotal</th></tr></thead><tbody>`;
       h.counts.forEach((c, d) => {
         if (!c) return;
         const p = prizeFor(d, dividends);
-        if (p != null) betTotal += c * p;
         html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n narrow">${c.toLocaleString("en-US")}</td>` +
                 `<td class="n">${p == null ? "pool-based" : money(p)}</td>` +
                 `<td class="n">${p == null ? "—" : money(c * p)}</td></tr>`;
       });
-      html += `</tbody><tfoot><tr class="total"><td colspan="3">Total${h.counts.some((c, d) => c && prizeFor(d, dividends) == null) ? " (fixed prizes)" : ""}</td>` +
-              `<td class="n">${money(betTotal)}</td></tr></tfoot></table>`;
+      html += `</tbody><tfoot><tr class="total"><td colspan="3">Total${t.unknownPool ? " (fixed prizes)" : ""}</td>` +
+              `<td class="n">${money(t.total)}</td></tr></tfoot></table>`;
     });
     resultSummary = { official, mains: drawn, special, won, fixedTotal, unknownPool, best, winningCombos, bets: perBet };
     resultEl.innerHTML = html + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">🖼️ Share result as image</button></div>`;
@@ -1558,6 +1577,12 @@
     red: "#d8232a", blue: "#0067b1", green: "#068a3c" };
   const IMG_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang HK", "Microsoft JhengHei", sans-serif';
 
+  function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+
   function drawResultImage(sum) {
     const W = 1080, PAD = 64, IN = PAD + 44, CW = W - 2 * IN, MAX_BETS_SHOWN = 10;
     const o = sum.official;
@@ -1566,12 +1591,7 @@
     tall.width = W; tall.height = 8000;
     const ctx = tall.getContext("2d");
     const font = (w, px) => { ctx.font = `${w} ${px}px ${IMG_FONT}`; };
-    const rr = (x, y, w, h, r, fill) => {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
-      ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
-      ctx.fillStyle = fill; ctx.fill();
-    };
+    const rr = (x, y, w, h, r, fill) => { roundRectPath(ctx, x, y, w, h, r); ctx.fillStyle = fill; ctx.fill(); };
     const fit = (text, maxW) => {
       if (ctx.measureText(text).width <= maxW) return text;
       while (text.length > 1 && ctx.measureText(text + "…").width > maxW) text = text.slice(0, -1);
@@ -1693,10 +1713,7 @@
     cv.width = W; cv.height = H;
     const out = cv.getContext("2d");
     out.fillStyle = IMG.bg; out.fillRect(0, 0, W, H);
-    out.beginPath();
-    const x0 = PAD, y0 = PAD, w0 = W - 2 * PAD, h0 = H - 2 * PAD, r0 = 36;
-    out.moveTo(x0 + r0, y0); out.arcTo(x0 + w0, y0, x0 + w0, y0 + h0, r0); out.arcTo(x0 + w0, y0 + h0, x0, y0 + h0, r0);
-    out.arcTo(x0, y0 + h0, x0, y0, r0); out.arcTo(x0, y0, x0 + w0, y0, r0); out.closePath();
+    roundRectPath(out, PAD, PAD, W - 2 * PAD, H - 2 * PAD, 36);
     out.fillStyle = IMG.card; out.fill();
     out.drawImage(tall, 0, 0, W, H, 0, 0, W, H);
     return cv;
@@ -1730,10 +1747,14 @@
   });
 
   // ---------- odds table ----------
+  let oddsKey = null; // the table depends only on the bets and the numbers entered
   function renderOdds() {
     const bets = activeBets();
     document.getElementById("oddsCard").hidden = !bets.length;
     if (!bets.length) return;
+    const key = bets.map(betKey).join(";") + "|" + [...mains].sort(byNum).join(",") + "|" + special;
+    if (key === oddsKey) return;
+    oddsKey = key;
     const { pAtLeast, expct, pAny, sampled } = computeOdds(bets, mains, special);
     // adaptive: rare odds read as "1 in N", common odds as a percentage
     const chance = p => {
@@ -1791,11 +1812,11 @@
       const n = pool[i++];
       if (mains.length < MAIN_COUNT) mains.push(n); else special = n;
       lastAdded = n;
-      if (i < need) { update(); setTimeout(step, delay); }
-      else { dipping = false; update(); }
+      if (i < need) { update(); dipTimer = setTimeout(step, delay); }
+      else { stopRandomDraw(); update(); }
     };
     update();
-    setTimeout(step, delay ? 120 : 0);
+    dipTimer = setTimeout(step, delay ? 120 : 0);
   });
 
   // Sort the drawn main numbers ascending; the special stays in its slot.
