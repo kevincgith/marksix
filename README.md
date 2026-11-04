@@ -4,6 +4,9 @@ A single-page Mark Six checker for the Hong Kong lottery. Open `index.html` (or 
 
 - **Save your bets.** Singles (6 numbers), multiples (7+ numbers) and banker bets (1–5 bankers plus any number of legs). Bets are stored in the browser's localStorage, so they stay on that device.
 - **Check a draw.** Tap the 6 drawn numbers and the special to see which entries win and how much the 4th–7th divisions pay. 🎲 Random draw makes a what-if draw.
+- **Past results.** 📅 Load the last 5 results fetches the latest official draws from HKJC, in your browser, when you tap it, so the site never needs redeploying for new results. Each draw shows what your bets won; tap one to fill the checker and see its details as HKJC publishes them: draw number, date, snowball, total turnover, unit bet, and each division's unit prize and winning units. Your winnings use those official unit prizes, so 1st–3rd division prizes show real amounts.
+
+  This uses the same results service as HKJC's own results page (`info.cld.hkjc.com/graphql`). It isn't a documented public API, so it can stop working if HKJC changes its site. If it does, the page says so and you can still type the numbers in.
 - **Odds.** The chance of each division for your bets, recalculated as you enter the draw. It is exact unless there are too many overlapping bets, in which case it is estimated by simulating draws.
 - **Share.** 🔗 Share copies a link with your bets (and the draw, once it's fully entered). The link opens in a read-only "Shared bets" view, which the person can save to their own bets.
 - **CSV import / export.** Export saves your bets as a `.csv` file (also a handy backup); Import adds bets from one and skips any you already have. **Clear all** deletes every saved bet.

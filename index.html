@@ -247,6 +247,31 @@
     .slots { max-width: 25rem; margin-inline: auto; }
   }
   .io { margin-top: .9rem; padding-top: .8rem; border-top: 1px solid var(--border); }
+
+  /* ---- past results ---- */
+  .past { margin: 0 0 1.1rem; }
+  .past > button { width: 100%; }
+  .past-list { display: grid; gap: .4rem; margin-top: .6rem; }
+  .past-row {
+    appearance: none; width: 100%; text-align: left;
+    font: inherit; color: inherit;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: .55rem .7rem; cursor: pointer;
+    display: grid; grid-template-columns: 1fr auto; gap: .35rem .5rem; align-items: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) { .past-row:hover { border-color: var(--accent); } }
+  .past-row:active { transform: scale(.99); }
+  .past-row[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .past-row .meta { font-size: .85rem; font-weight: 700; min-width: 0; }
+  .past-row .meta small { color: var(--muted); font-weight: 500; }
+  .past-row .won { font-size: .8rem; font-weight: 700; color: var(--hit); white-space: nowrap; }
+  .past-row .won.nil { color: var(--muted); font-weight: 500; }
+  .past-row .balls { grid-column: 1 / -1; margin: 0; gap: .25rem; }
+  .past-row .ball { width: 1.75rem; height: 1.75rem; font-size: .78rem; }
+  .past-row .grp { margin: 0 .05rem; }
+  .past-note { color: var(--muted); font-size: .75rem; margin: .45rem 0 0; }
+  .past-err { color: var(--warn); font-size: .85rem; margin: .55rem 0 0; }
   .io [data-act="clear-all"] { margin-left: auto; } /* keep the destructive one apart */
 
   /* ---- bet editor ---- */
@@ -296,6 +321,14 @@
   .result h3 { margin: 1rem 0 .3rem; font-size: .95rem; }
   .result h3 small { font-weight: 500; color: var(--muted); font-size: .82rem; }
   .summary { font-size: .9rem; color: var(--muted); margin: 0 0 .6rem; }
+  .details { border: 1px solid var(--border); border-radius: 12px; background: var(--bg); padding: .8rem .9rem .7rem; margin: .7rem 0 .9rem; }
+  .result .details h3 { margin: 0 0 .5rem; }
+  .details dl { display: grid; grid-template-columns: auto 1fr; gap: .15rem .9rem; margin: 0; font-size: .88rem; }
+  .details dt { color: var(--muted); }
+  .details dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .details .balls { margin: .6rem 0 .5rem; gap: .3rem; flex-wrap: nowrap; }
+  .details .ball { width: 1.85rem; height: 1.85rem; font-size: .82rem; }
+  .details table.prizes td, .details table.prizes th { padding: .3rem .4rem; }
   table { width: 100%; border-collapse: collapse; font-size: .88rem; }
   th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 600; }
@@ -396,6 +429,10 @@
     <p class="sub">Tap a number again to remove it. 🎲 Random draw makes a what-if draw.</p>
 
     <div class="picker">
+      <div class="past">
+        <button class="btn ghost" id="pastBtn" type="button">📅 Load the last 5 results</button>
+        <div id="pastList" aria-live="polite"></div>
+      </div>
       <p class="hint" id="hint" aria-live="polite"></p>
       <div class="slots" id="slots"></div>
 
@@ -466,7 +503,7 @@
     </ul>
   </details>
 
-  <footer>Not affiliated with the HKJC. Bets are saved in this browser only.<br>v2026-10-24</footer>
+  <footer>Not affiliated with the HKJC. Bets are saved in this browser only; past results are fetched from HKJC only when you tap Load.<br>v2026-11-04</footer>
 </div>
 
 <dialog id="editor" aria-labelledby="edTitle">
@@ -1240,7 +1277,7 @@
   document.addEventListener("keydown", e => { if (e.key === "Escape") hideBigWin(); });
 
   function countUp(el, to) {
-    if (to === 0 || reducedMotion()) { el.textContent = money(to); return; }
+    if (to === 0 || reducedMotion() || document.hidden) { el.textContent = money(to); return; }
     const t0 = performance.now(), dur = 900;
     const tick = now => {
       const k = Math.min(1, (now - t0) / dur);
@@ -1250,21 +1287,181 @@
     requestAnimationFrame(tick);
   }
 
+  // ---------- past results (fetched from HKJC in the browser) ----------
+  // HKJC's results service only answers the exact queries its own results page sends
+  // (and allows any site to read the reply), so this text must match it character for character.
+  const HKJC_RESULTS_URL = "https://info.cld.hkjc.com/graphql/base-get/";
+  const HKJC_QUERY = "fragment lotteryDrawsFragment on LotteryDraw{id year no openDate closeDate drawDate status snowballCode snowballName_en snowballName_ch lotteryPool{sell status totalInvestment jackpot unitBet estimatedPrize derivedFirstPrizeDiv lotteryPrizes{type winningUnit dividend}}drawResult{drawnNo xDrawnNo}}query marksixResult($lastNDraw:Int$startDate:String$endDate:String$drawType:LotteryDrawType){lotteryDraws(lastNDraw:$lastNDraw startDate:$startDate endDate:$endDate drawType:$drawType){...lotteryDrawsFragment}}";
+  const PAST_COUNT = 5;
+  let pastDraws = null;      // parsed results once fetched
+  let pastState = "idle";    // idle | loading | ok | error
+  let pastError = "";
+
+  // Turn one HKJC draw into { id, label, date, snowball, mains, special, dividends }, or null if malformed.
+  function parseDraw(d) {
+    const r = d && d.drawResult, nums = r && r.drawnNo, sp = r && r.xDrawnNo;
+    const ok = n => Number.isInteger(n) && n >= 1 && n <= 49;
+    if (!Array.isArray(nums) || nums.length !== MAIN_COUNT || !nums.every(ok) || new Set(nums).size !== MAIN_COUNT || !ok(sp) || nums.includes(sp)) return null;
+    // dividends are per unit bet; scale to a HK$10 entry (units were HK$5 in older draws)
+    const pool = d.lotteryPool || {}, scale = UNIT_STAKE / (Number(pool.unitBet) || UNIT_STAKE);
+    const dividends = [null, null, null, null, null, null, null];
+    // as HKJC's results page shows them: unit prize per unit bet, and winning units
+    // (the API counts units in tenths, since HK$5 partial bets win half a unit)
+    const prizes = DIVISIONS.map(() => ({ unitPrize: null, units: null }));
+    (pool.lotteryPrizes || []).forEach(p => {
+      if (!p || !Number.isInteger(p.type) || p.type < 1 || p.type > 7) return;
+      const v = Number(p.dividend), u = Number(p.winningUnit);
+      if (v > 0) {
+        dividends[p.type - 1] = Math.round(v * scale);
+        prizes[p.type - 1].unitPrize = v;
+      }
+      if (u > 0) prizes[p.type - 1].units = u / 10;
+    });
+    const turnover = Number(pool.totalInvestment);
+    const [y, m, day] = String(d.drawDate || "").slice(0, 10).split("-").map(Number);
+    const utc = y ? new Date(Date.UTC(y, m - 1, day)) : null;
+    const fmt = opts => utc ? utc.toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" }) : "";
+    return {
+      id: String(d.id || `${d.year}-${d.no}`),
+      label: `${String(d.year || y || "").slice(-2)}/${String(d.no ?? "").padStart(3, "0")}`,
+      date: fmt({ weekday: "short", day: "numeric", month: "short", year: "numeric" }),
+      longDate: utc ? `${fmt({ day: "2-digit", month: "2-digit", year: "numeric" })} (${fmt({ weekday: "long" })})` : "",
+      snowball: d.snowballName_en ? String(d.snowballName_en) : "",
+      mains: [...nums].sort(byNum),
+      special: sp,
+      dividends,
+      prizes,
+      turnover: turnover > 0 ? turnover : null,
+      unitBet: Number(pool.unitBet) || null,
+    };
+  }
+
+  async function fetchPastDraws(n) {
+    const vars = { lastNDraw: n, drawType: "All", startDate: null, endDate: null };
+    const url = `${HKJC_RESULTS_URL}?query=${encodeURIComponent(HKJC_QUERY)}&operationName=marksixResult&variables=${encodeURIComponent(JSON.stringify(vars))}`;
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 15000);
+    try {
+      // HKJC rejects "last N draws" requests without the JSON content-type its own page sends
+      const res = await fetch(url, { signal: ctl.signal, cache: "no-store", headers: { accept: "*/*", "content-type": "application/json" } });
+      if (!res.ok) throw new Error(`HKJC replied ${res.status}`);
+      const json = await res.json();
+      if (json.errors && json.errors.length) throw new Error(String(json.errors[0].message || "HKJC returned an error"));
+      const draws = ((json.data && json.data.lotteryDraws) || []).map(parseDraw).filter(Boolean);
+      if (!draws.length) throw new Error("HKJC returned no results");
+      return draws.slice(0, n);
+    } catch (err) {
+      throw err.name === "AbortError" ? new Error("HKJC took too long to reply") : err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function loadPastDraws() {
+    if (pastState === "loading") return;
+    pastState = "loading";
+    renderPast();
+    try {
+      // HKJC occasionally rejects a request it accepts a moment later, so try twice
+      try { pastDraws = await fetchPastDraws(PAST_COUNT); }
+      catch { await new Promise(r => setTimeout(r, 800)); pastDraws = await fetchPastDraws(PAST_COUNT); }
+      pastState = "ok";
+    } catch (err) {
+      pastState = "error";
+      pastError = err && err.message ? err.message : "network error";
+    }
+    renderPast();
+  }
+
+  // The fetched official draw matching the numbers entered, if any.
+  function currentOfficial() {
+    if (!isComplete() || !pastDraws) return null;
+    return pastDraws.find(r => r.special === special && r.mains.every(n => mains.includes(n))) || null;
+  }
+  // The official draw's details, laid out like HKJC's results page.
+  function drawDetailsHtml(r) {
+    const units = u => u == null ? "-" : u.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const row = (label, value) => value ? `<dt>${label}</dt><dd>${value}</dd>` : "";
+    return `<div class="details"><h3>Draw details</h3><dl>` +
+      row("Draw number", esc(r.label)) +
+      row("Draw date", esc(r.longDate)) +
+      row("Snowball", esc(r.snowball)) +
+      row("Total turnover", r.turnover != null ? money(r.turnover) : "") +
+      row("Unit bet", r.unitBet ? money(r.unitBet) : "") +
+      `</dl><div class="balls">${r.mains.map(n => `<span class="ball ${ballColor(n)}">${n}</span>`).join("")}` +
+      `<span class="grp">+</span><span class="ball ${ballColor(r.special)}">${r.special}</span></div>` +
+      `<table class="prizes"><thead><tr><th>Prize</th><th class="n">Unit prize</th><th class="n">Winning units</th></tr></thead><tbody>` +
+      r.prizes.map((p, d) => `<tr><td>${DIVISIONS[d]}</td><td class="n">${p.unitPrize == null ? "-" : money(p.unitPrize)}</td><td class="n">${units(p.units)}</td></tr>`).join("") +
+      `</tbody></table><p class="past-note">Official result from HKJC. Unit prize is per ${money(r.unitBet || UNIT_STAKE)} unit; your winnings below use it.</p></div>`;
+  }
+
+  // Prize per winning entry: HKJC's declared dividend when known, else the fixed 4th–7th amount (null = unknown pool prize).
+  const prizeFor = (d, dividends) => (dividends && dividends[d] != null) ? dividends[d] : PRIZE[d];
+
+  // What all the bets won in one draw: { total, unknownPool, won }.
+  function winningsFor(bets, draw) {
+    let total = 0, unknownPool = false, won = false;
+    bets.forEach(b => countsFor(b, draw.mains, draw.special).forEach((c, d) => {
+      if (!c) return;
+      won = true;
+      const p = prizeFor(d, draw.dividends);
+      if (p == null) unknownPool = true; else total += c * p;
+    }));
+    return { total, unknownPool, won };
+  }
+
+  const pastBtn = document.getElementById("pastBtn");
+  const pastListEl = document.getElementById("pastList");
+  function renderPast() {
+    pastBtn.disabled = pastState === "loading";
+    pastBtn.textContent = pastState === "loading" ? "Loading results from HKJC…" : pastDraws ? "↻ Refresh results" : `📅 Load the last ${PAST_COUNT} results`;
+    if (pastState === "error") {
+      pastListEl.innerHTML = `<p class="past-err">Couldn't load results (${esc(pastError)}). Check your connection and try again, or tap the numbers in below.</p>`;
+      if (!pastDraws) return;
+    } else pastListEl.innerHTML = "";
+    if (!pastDraws) return;
+    const bets = activeBets(), official = currentOfficial();
+    const plainBall = n => `<span class="ball ${ballColor(n)}">${n}</span>`; // no hit rings: these are draws, not bets
+    pastListEl.innerHTML += `<div class="past-list">` + pastDraws.map((r, i) => {
+      let badge = "";
+      if (bets.length) {
+        const w = winningsFor(bets, r);
+        badge = w.won ? `<span class="won">🎉 ${money(w.total)}${w.unknownPool ? " + pool" : ""}</span>` : `<span class="won nil">No prize</span>`;
+      }
+      return `<button class="past-row" type="button" data-i="${i}" aria-pressed="${official === r}" aria-label="Load draw ${esc(r.label)}">` +
+        `<span class="meta">${esc(r.label)} <small>· ${esc(r.date)}${r.snowball ? ` · ${esc(r.snowball)}` : ""}</small></span>${badge}` +
+        `<span class="balls">${r.mains.map(plainBall).join("")}<span class="grp">+</span>${plainBall(r.special)}</span>` +
+        `</button>`;
+    }).join("") + `</div><p class="past-note">Official results from HKJC. Tap a draw to check it below.</p>`;
+  }
+  pastBtn.addEventListener("click", loadPastDraws);
+  pastListEl.addEventListener("click", e => {
+    const row = e.target.closest(".past-row");
+    if (!row || dipping) return;
+    const r = pastDraws[Number(row.dataset.i)];
+    mains = [...r.mains];
+    special = r.special;
+    lastAdded = null;
+    clearTimeout(flashTimer); flashTimer = null;
+    update();
+  });
+
   // ---------- result ----------
   const resultEl = document.getElementById("result");
   // Re-render (and celebrate) only when the draw or the bets change, so Sort or
   // an unrelated re-render never replays the confetti.
   let shownKey = null;
   function renderResult(hits) {
-    const bets = activeBets();
+    const bets = activeBets(), official = currentOfficial(), dividends = official && official.dividends;
     const key = isComplete()
-      ? [...mains].sort(byNum).join(",") + "+" + special + "|" + bets.map((b, i) => betName(b, i) + ":" + betKey(b)).join(";")
+      ? [...mains].sort(byNum).join(",") + "+" + special + "|" + (official ? official.id : "") + "|" +
+        bets.map((b, i) => betName(b, i) + ":" + betKey(b)).join(";")
       : null;
     if (key === shownKey) return;
     shownKey = key;
     if (!key) { resultEl.hidden = true; resultEl.innerHTML = ""; hideBigWin(); return; }
 
-    const drawLine = `<p class="summary">Draw: <strong>${[...mains].sort(byNum).join(", ")}</strong> + special <strong>${special}</strong></p>`;
+    const drawLine = official ? drawDetailsHtml(official)
+      : `<p class="summary">Draw: <strong>${[...mains].sort(byNum).join(", ")}</strong> + special <strong>${special}</strong></p>`;
     if (!bets.length) {
       resultEl.innerHTML = drawLine + `<p class="none">Add a bet above to check it against this draw.</p>`;
       resultEl.hidden = false;
@@ -1272,19 +1469,20 @@
       return;
     }
 
-    let fixedTotal = 0, winningCombos = 0, best = DIVISIONS.length;
+    let fixedTotal = 0, winningCombos = 0, best = DIVISIONS.length, unknownPool = false;
     hits.forEach(h => h.counts.forEach((c, d) => {
       if (!c) return;
       winningCombos += c;
       best = Math.min(best, d);
-      if (PRIZE[d] != null) fixedTotal += c * PRIZE[d];
+      const p = prizeFor(d, dividends);
+      if (p == null) unknownPool = true; else fixedTotal += c * p;
     }));
     const won = best < DIVISIONS.length, pool = best <= 2;
 
     let html = `<div class="verdict${won ? " win" : ""}">` +
       `<div class="v-emoji">${pool ? "🤯" : won ? "🎉" : "😶"}</div>` +
-      `<div class="v-amt" id="vAmt">${won ? money(0) : "No prize"}</div>` +
-      (pool ? `<div class="v-pool">+ ${DIVISIONS[best]} division pool prize</div>` : "") +
+      `<div class="v-amt" id="vAmt">${!won ? "No prize" : unknownPool && !fixedTotal ? `${DIVISIONS[best]} Division` : money(0)}</div>` +
+      (unknownPool ? `<div class="v-pool">${fixedTotal ? "+ " : ""}${DIVISIONS[best]} division pool prize — load the official result for the amount</div>` : "") +
       `<div class="v-line">${won ? `${plural(winningCombos, "winning combination")}` : "No winning combinations this draw."}</div></div>`;
     html += drawLine;
 
@@ -1298,18 +1496,18 @@
       html += `<table><thead><tr><th>Division</th><th class="n narrow">#</th><th class="n">Prize each</th><th class="n">Subtotal</th></tr></thead><tbody>`;
       h.counts.forEach((c, d) => {
         if (!c) return;
-        const p = PRIZE[d];
+        const p = prizeFor(d, dividends);
         if (p != null) betTotal += c * p;
         html += `<tr class="win"><td>${DIVISIONS[d]}</td><td class="n narrow">${c.toLocaleString("en-US")}</td>` +
                 `<td class="n">${p == null ? "pool-based" : money(p)}</td>` +
                 `<td class="n">${p == null ? "—" : money(c * p)}</td></tr>`;
       });
-      html += `</tbody><tfoot><tr class="total"><td colspan="3">Total${h.counts.slice(0, 3).some(c => c) ? " (4th–7th)" : ""}</td>` +
+      html += `</tbody><tfoot><tr class="total"><td colspan="3">Total${h.counts.some((c, d) => c && prizeFor(d, dividends) == null) ? " (fixed prizes)" : ""}</td>` +
               `<td class="n">${money(betTotal)}</td></tr></tfoot></table>`;
     });
     resultEl.innerHTML = html;
     resultEl.hidden = false;
-    if (won) countUp(document.getElementById("vAmt"), fixedTotal);
+    if (won && (fixedTotal || !unknownPool)) countUp(document.getElementById("vAmt"), fixedTotal);
     resultEl.firstChild.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "nearest" });
 
     if (pool) showBigWin(best);
@@ -1409,6 +1607,7 @@
     renderHint();
     renderOdds();
     renderResult(hits);
+    renderPast();
     dipBtn.disabled = dipping;
     sortBtn.disabled = dipping || mains.length < 2;
     clearBtn.disabled = dipping || (mains.length === 0 && special == null);
