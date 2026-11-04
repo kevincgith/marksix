@@ -273,9 +273,6 @@
   .past-row .ball { width: 1.75rem; height: 1.75rem; font-size: .78rem; }
   .past-row .grp { margin: 0 .05rem; }
   .past-note { color: var(--muted); font-size: .75rem; margin: .45rem 0 0; }
-  .past-foot { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .45rem; }
-  .past-foot .past-note { margin: 0; }
-  .past-foot button { flex: 0 0 auto; }
   .past-err { color: var(--warn); font-size: .85rem; margin: .55rem 0 0; }
   .io [data-act="clear-all"] { margin-left: auto; } /* keep the destructive one apart */
 
@@ -1402,7 +1399,6 @@
       row("Draw date", esc(r.longDate)) +
       row("Snowball", esc(r.snowball)) +
       row("Total turnover", r.turnover != null ? money(r.turnover) : "") +
-      row("Unit bet", r.unitBet ? money(r.unitBet) : "") +
       `</dl><div class="balls">${r.mains.map(n => `<span class="ball ${ballColor(n)}">${n}</span>`).join("")}` +
       `<span class="grp">+</span><span class="ball ${ballColor(r.special)}">${r.special}</span></div>` +
       `<table class="prizes"><thead><tr><th>Prize</th><th class="n">Unit prize</th><th class="n">Winning units</th></tr></thead><tbody>` +
@@ -1450,8 +1446,7 @@
         `<span class="meta">${esc(r.label)} <small>· ${esc(r.date)}${r.snowball ? ` · ${esc(r.snowball)}` : ""}</small></span>${badge}` +
         `<span class="balls">${r.mains.map(plainBall).join("")}<span class="grp">+</span>${plainBall(r.special)}</span>` +
         `</button>`;
-    }).join("") + `</div><div class="past-foot"><p class="past-note">Official results from HKJC. Tap a draw to check it below.</p>` +
-      `<button class="btn ghost small" type="button" data-act="collapse-past">Collapse ▴</button></div>`;
+    }).join("") + `</div><p class="past-note">Official results from HKJC. Tap a draw to check it below.</p>`;
   }
   function loadDraw(r) {
     if (dipping) return;
@@ -1472,12 +1467,6 @@
     if (!pastDraws) await loadPastDraws("past"); else renderPast();
   });
   pastListEl.addEventListener("click", e => {
-    if (e.target.closest('[data-act="collapse-past"]')) {
-      pastOpen = false;
-      renderPast();
-      pastBtn.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "nearest" });
-      return;
-    }
     const row = e.target.closest(".past-row");
     if (row) loadDraw(pastDraws[Number(row.dataset.i)]);
   });
@@ -1534,6 +1523,8 @@
         name: betName(bet, idx), matched: h.main.size, specialHit: h.specialHit, winning, combos: combosOf(bet),
         total: h.counts.reduce((s, c, d) => s + (c && prizeFor(d, dividends) != null ? c * prizeFor(d, dividends) : 0), 0),
         unknownPool: h.counts.some((c, d) => c && prizeFor(d, dividends) == null),
+        bankers: bet.bankers, legs: bet.legs, mainHits: [...h.main],
+        kind: `${betKind(bet)} · ${plural(combosOf(bet), "combo")} · ${money(combosOf(bet) * UNIT_STAKE)}`,
       });
       html += `<h3>${esc(betName(bet, idx))} <small>· ${h.main.size} matched${h.specialHit ? " + special" : ""} · ` +
               `${winning.toLocaleString("en-US")} of ${plural(combosOf(bet), "combo")} win</small></h3>`;
@@ -1568,14 +1559,12 @@
   const IMG_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang HK", "Microsoft JhengHei", sans-serif';
 
   function drawResultImage(sum) {
-    const W = 1080, PAD = 64, IN = PAD + 40, ROW = 96, MAX_ROWS = 12;
-    const rows = sum.bets.slice(0, MAX_ROWS), more = sum.bets.length - rows.length;
+    const W = 1080, PAD = 64, IN = PAD + 44, CW = W - 2 * IN, MAX_BETS_SHOWN = 10;
     const o = sum.official;
-    // header and balls end at y = 474; then the bets block; then the footer with breathing room
-    const H = 474 + (sum.bets.length ? 230 + rows.length * ROW + (more ? 50 : 0) : 60) + 194;
-    const cv = document.createElement("canvas");
-    cv.width = W; cv.height = H;
-    const ctx = cv.getContext("2d");
+    // paint on a tall transparent canvas, then crop it onto the card at the height used
+    const tall = document.createElement("canvas");
+    tall.width = W; tall.height = 8000;
+    const ctx = tall.getContext("2d");
     const font = (w, px) => { ctx.font = `${w} ${px}px ${IMG_FONT}`; };
     const rr = (x, y, w, h, r, fill) => {
       ctx.beginPath();
@@ -1588,73 +1577,128 @@
       while (text.length > 1 && ctx.measureText(text + "…").width > maxW) text = text.slice(0, -1);
       return text + "…";
     };
-    const say = (text, x, y, { w = 400, px = 30, color = IMG.text, align = "left", maxW = W - 2 * IN } = {}) => {
+    const say = (text, x, y, { w = 400, px = 30, color = IMG.text, align = "left", maxW = CW } = {}) => {
       font(w, px); ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = "alphabetic";
-      ctx.fillText(fit(text, maxW), x, y);
+      ctx.fillText(fit(String(text), maxW), x, y);
     };
-
-    ctx.fillStyle = IMG.bg; ctx.fillRect(0, 0, W, H);
-    rr(PAD, PAD, W - 2 * PAD, H - 2 * PAD, 36, IMG.card);
+    const line = y => { ctx.fillStyle = IMG.line; ctx.fillRect(IN, y, CW, 2); };
+    const ball = (n, cx, cy, r, ring, banker) => {
+      if (ring) { ctx.beginPath(); ctx.arc(cx, cy, r + 6, 0, Math.PI * 2); ctx.lineWidth = 5; ctx.strokeStyle = ring; ctx.stroke(); }
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = IMG[ballColor(n)]; ctx.fill();
+      if (banker) { ctx.beginPath(); ctx.arc(cx, cy, r - 5, 0, Math.PI * 2); ctx.lineWidth = 4; ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.stroke(); }
+      font(800, Math.round(r * .9)); ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(n), cx, cy + 2);
+    };
 
     // header
-    let y = PAD + 92;
+    let y = PAD + 96;
     say("Mark Six result", IN, y, { w: 800, px: 48 });
-    y += 52;
-    say(o ? `Draw ${o.label} · ${o.longDate}${o.snowball ? ` · ${o.snowball}` : ""}` : "Draw entered by hand", IN, y, { px: 30, color: IMG.muted });
-    if (o && o.turnover != null) { y += 42; say(`Total turnover ${money(o.turnover)}`, IN, y, { px: 28, color: IMG.muted }); }
+    y += 50;
+    say(o ? `Draw ${o.label} · ${o.longDate}` : "Draw entered by hand", IN, y, { px: 30, color: IMG.muted });
+    if (o && o.snowball) { y += 40; say(o.snowball, IN, y, { px: 28, color: IMG.muted }); }
 
-    // drawn balls: 6 mains + special
-    const R = 50, GAP = 18, PLUS = 54;
-    const rowW = 7 * 2 * R + 5 * GAP + PLUS + GAP;
+    // drawn numbers
+    const R = 48, GAP = 18, PLUS = 50;
+    const rowW = 7 * 2 * R + 7 * GAP + PLUS; // 6 mains, "+", special
+    const cy = y + 56 + R;
     let x = (W - rowW) / 2 + R;
-    const cy = PAD + 330 - 20;
-    const ball = n => {
-      ctx.beginPath(); ctx.arc(x, cy, R, 0, Math.PI * 2);
-      ctx.fillStyle = IMG[ballColor(n)]; ctx.fill();
-      font(800, 44); ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(String(n), x, cy + 2);
-    };
-    sum.mains.forEach((n, i) => { ball(n); x += 2 * R + (i < 5 ? GAP : 0); });
+    sum.mains.forEach(n => { ball(n, x, cy, R); x += 2 * R + GAP; });
     font(700, 44); ctx.fillStyle = IMG.muted; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("+", x - R + GAP / 2 + PLUS / 2, cy);
-    x += PLUS + GAP;
-    ball(sum.special);
-    ctx.textBaseline = "alphabetic";
-    y = cy + R + 50;
+    ctx.fillText("+", x - R + PLUS / 2, cy);
+    ball(sum.special, x + PLUS + GAP, cy, R);
+    y = cy + R + 48;
+
+    // draw details, as HKJC publishes them
+    if (o) {
+      const info = [["Total turnover", o.turnover != null ? money(o.turnover) : ""]].filter(r => r[1]);
+      const ROWH = 44, panelH = 64 + info.length * 42 + 24 + 44 + DIVISIONS.length * ROWH + 18;
+      rr(IN - 24, y, CW + 48, panelH, 24, IMG.bg);
+      let py = y + 50;
+      say("Draw details", IN, py, { w: 800, px: 32 });
+      info.forEach(([k, v]) => { py += 42; say(k, IN, py, { px: 27, color: IMG.muted }); say(v, IN + 290, py, { w: 700, px: 27 }); });
+      py += 24 + 34;
+      const c2 = IN + 560, c3 = IN + CW;
+      say("Prize", IN, py, { w: 600, px: 24, color: IMG.muted });
+      say("Unit prize", c2, py, { w: 600, px: 24, color: IMG.muted, align: "right" });
+      say("Winning units", c3, py, { w: 600, px: 24, color: IMG.muted, align: "right" });
+      py += 14;
+      const units = u => u == null ? "-" : u.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+      o.prizes.forEach((pr, d) => {
+        line(py); py += ROWH - 12;
+        say(DIVISIONS[d], IN, py, { w: 600, px: 27 });
+        say(pr.unitPrize == null ? "-" : money(pr.unitPrize), c2, py, { px: 27, align: "right" });
+        say(units(pr.units), c3, py, { px: 27, align: "right" });
+        py += 12;
+      });
+      y += panelH + 40;
+    }
 
     if (!sum.bets.length) {
-      say("No bets to check against this draw.", W / 2, y + 30, { px: 30, color: IMG.muted, align: "center" });
-      y += 60;
+      say("No bets to check against this draw.", W / 2, y + 20, { px: 30, color: IMG.muted, align: "center" });
+      y += 50;
     } else {
       // verdict
-      const vh = 190;
-      rr(IN, y, W - 2 * IN, vh, 24, sum.won ? IMG.hitSoft : IMG.soft);
+      const vh = 170;
+      rr(IN - 24, y, CW + 48, vh, 24, sum.won ? IMG.hitSoft : IMG.soft);
       const headline = !sum.won ? "No prize" : sum.unknownPool && !sum.fixedTotal ? `${DIVISIONS[sum.best]} Division` : money(sum.fixedTotal);
-      say(headline, W / 2, y + 92, { w: 900, px: 68, color: sum.won ? IMG.hit : IMG.text, align: "center" });
+      say(headline, W / 2, y + 86, { w: 900, px: 64, color: sum.won ? IMG.hit : IMG.text, align: "center" });
       say(sum.won
         ? `${plural(sum.winningCombos, "winning combination")}${sum.unknownPool ? ` · + ${DIVISIONS[sum.best]} division pool prize` : ""}`
-        : "No winning combinations this draw.", W / 2, y + 148, { px: 30, color: IMG.muted, align: "center" });
-      y += vh + 40;
+        : "No winning combinations this draw.", W / 2, y + 136, { px: 28, color: IMG.muted, align: "center" });
+      y += vh + 62;
 
-      // one row per bet
-      rows.forEach((b, i) => {
-        if (i) { ctx.fillStyle = IMG.line; ctx.fillRect(IN, y - 8, W - 2 * IN, 2); }
+      // my bets: numbers with hit rings, like the page
+      const combos = sum.bets.reduce((s, b) => s + b.combos, 0);
+      say("My bets", IN, y, { w: 800, px: 32 });
+      say(`${plural(sum.bets.length, "bet")} · ${plural(combos, "combo")} · ${money(combos * UNIT_STAKE)}`, IN + CW, y, { px: 24, color: IMG.muted, align: "right" });
+      y += 26;
+      const r = 26, STEP = 2 * r + 16;
+      sum.bets.slice(0, MAX_BETS_SHOWN).forEach(b => {
+        line(y); y += 50;
         const amount = b.winning ? `${money(b.total)}${b.unknownPool ? " + pool" : ""}` : "No prize";
-        font(800, 32);
+        font(800, 30);
         const amountW = ctx.measureText(amount).width;
-        say(b.name, IN, y + 38, { w: 700, px: 34, maxW: W - 2 * IN - amountW - 30 });
-        say(amount, W - IN, y + 38, { w: 800, px: 32, color: b.winning ? IMG.hit : IMG.muted, align: "right" });
+        say(b.name, IN, y, { w: 700, px: 32, maxW: CW - amountW - 30 });
+        say(amount, IN + CW, y, { w: 800, px: 30, color: b.winning ? IMG.hit : IMG.muted, align: "right" });
+        y += 36;
+        say(b.kind, IN, y, { px: 24, color: IMG.muted });
+        // ball rows, wrapping as needed
+        let bx = IN, by = y + 26 + r + 6;
+        const place = w => { if (bx + w > IN + CW) { bx = IN; by += STEP; } const at = bx; bx += w; return at; };
+        const hitRing = n => b.mainHits.includes(n) ? "#f5b301" : n === sum.special ? "#b8bec8" : null;
+        if (b.bankers.length) {
+          const lx = place(44); say("膽", lx + 4, by + 9, { w: 700, px: 26, color: IMG.muted });
+          b.bankers.forEach(n => { const at = place(STEP); ball(n, at + r + 6, by, r, hitRing(n), true); });
+          const px = place(40); say("+", px + 12, by + 10, { w: 700, px: 30, color: IMG.muted });
+        }
+        b.legs.forEach(n => { const at = place(STEP); ball(n, at + r + 6, by, r, hitRing(n), false); });
+        y = by + r + 6 + 38;
         say(`${b.matched} matched${b.specialHit ? " + special" : ""} · ${b.winning.toLocaleString("en-US")} of ${plural(b.combos, "combo")} win`,
-          IN, y + 76, { px: 26, color: IMG.muted });
-        y += ROW;
+          IN, y, { px: 24, color: IMG.muted });
+        y += 30;
       });
-      if (more) { say(`+ ${plural(more, "more bet")}`, IN, y + 30, { px: 26, color: IMG.muted }); y += 50; }
+      const more = sum.bets.length - MAX_BETS_SHOWN;
+      if (more > 0) { line(y); y += 44; say(`+ ${plural(more, "more bet")}`, IN, y, { px: 26, color: IMG.muted }); y += 16; }
     }
 
     // footer
+    y += 56;
     const where = /^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname) ? ` · ${location.host}${location.pathname}` : "";
-    say(`Checked with Mark Six Checker${where}`, W / 2, H - PAD - 56, { px: 24, color: IMG.muted, align: "center" });
-    say(o ? "Official result from HKJC · not affiliated with the HKJC" : "Not affiliated with the HKJC", W / 2, H - PAD - 22, { px: 22, color: IMG.muted, align: "center" });
+    say(`Checked with Mark Six Checker${where}`, W / 2, y, { px: 24, color: IMG.muted, align: "center" });
+    y += 34;
+    say(o ? "Official result from HKJC · not affiliated with the HKJC" : "Not affiliated with the HKJC", W / 2, y, { px: 22, color: IMG.muted, align: "center" });
+    const H = Math.min(tall.height, y + 44 + PAD);
+
+    const cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    const out = cv.getContext("2d");
+    out.fillStyle = IMG.bg; out.fillRect(0, 0, W, H);
+    out.beginPath();
+    const x0 = PAD, y0 = PAD, w0 = W - 2 * PAD, h0 = H - 2 * PAD, r0 = 36;
+    out.moveTo(x0 + r0, y0); out.arcTo(x0 + w0, y0, x0 + w0, y0 + h0, r0); out.arcTo(x0 + w0, y0 + h0, x0, y0 + h0, r0);
+    out.arcTo(x0, y0 + h0, x0, y0, r0); out.arcTo(x0, y0, x0 + w0, y0, r0); out.closePath();
+    out.fillStyle = IMG.card; out.fill();
+    out.drawImage(tall, 0, 0, W, H, 0, 0, W, H);
     return cv;
   }
 
