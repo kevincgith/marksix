@@ -496,6 +496,7 @@
       <div class="row">
         <button class="btn small" type="button" id="poolInvite">🔗 Invite friends</button>
         <button class="btn ghost small" type="button" id="poolSave">Save to my bets</button>
+        <button class="btn ghost small" type="button" id="poolPng">🖼️ Export PNG</button>
         <button class="btn ghost small" type="button" id="poolLeave" style="margin-left:auto">Leave pool</button>
       </div>
     </div>
@@ -854,11 +855,21 @@
     const bankers = [...new Set(nums(b.bankers))].sort(byNum);
     const legs = [...new Set(nums(b.legs))].filter(n => !bankers.includes(n)).sort(byNum);
     if (betError(bankers, legs)) return null;
-    return {
+    const bet = {
       id: typeof b.id === "string" && b.id ? b.id : newId(),
       name: String(b.name ?? "").replace(/\s+/g, " ").trim().slice(0, 40),
       bankers, legs,
     };
+    // Who picked each number, for bets saved from a group pool: { "23": "Amy" }.
+    if (b.who && typeof b.who === "object") {
+      const who = {};
+      [...bankers, ...legs].forEach(n => {
+        const v = b.who[n];
+        if (typeof v === "string" && v.trim()) who[n] = v.replace(/\s+/g, " ").trim().slice(0, 20);
+      });
+      if (Object.keys(who).length) bet.who = who;
+    }
+    return bet;
   }
   const cleanBets = arr => Array.isArray(arr) ? arr.map(cleanBet).filter(Boolean).slice(0, MAX_BETS) : [];
   const betKey = b => b.bankers.join(".") + "-" + b.legs.join(".");
@@ -910,7 +921,7 @@
   // A pool's bets that are ready to check: 6 or more numbers.
   const poolReadyBets = () => (pool && pool.state ? pool.state.bets : [])
     .filter(b => b.picks.length >= MAIN_COUNT)
-    .map(b => ({ id: b.id, name: b.name, bankers: [], legs: b.picks.map(p => p.n).sort(byNum) }));
+    .map(b => ({ id: b.id, name: b.name, bankers: [], legs: b.picks.map(p => p.n).sort(byNum), who: Object.fromEntries(b.picks.map(p => [p.n, p.by])) }));
   const activeBets = () => pool ? poolReadyBets() : shared ? shared.bets : myBets;
 
   // The draw being entered. Mains and special are kept apart so removing a main
@@ -951,6 +962,10 @@
   const plainBall = n => `<span class="ball ${ballColor(n)}">${n}</span>`; // a drawn number, no hit ring
   const ballHtml = (n, h, banker) =>
     `<span class="ball ${ballColor(n)}${banker ? " banker" : ""}${h.main.has(n) ? " hit" : n === special ? " hit-special" : ""}">${n}</span>`;
+  // A ball with who picked it underneath, when the bet came from a group pool.
+  const named = (bet, n, html) => bet.who
+    ? `<span class="pb">${html}<small title="${esc(bet.who[n] || "")}">${bet.who[n] ? esc(bet.who[n]) : "&nbsp;"}</small></span>`
+    : html;
   function renderBets(hits) {
     document.getElementById("betsCard").hidden = !!pool;
     if (pool) return;
@@ -979,9 +994,9 @@
         (shared ? "" : `<button class="btn ghost small" type="button" data-act="edit" data-id="${esc(bet.id)}">Edit</button>`) +
         `</div><div class="balls">` +
         (bet.bankers.length
-          ? `<span class="grp">膽</span>${bet.bankers.map(n => ballHtml(n, h, true)).join("")}<span class="grp sep">+</span>`
+          ? `<span class="grp">膽</span>${bet.bankers.map(n => named(bet, n, ballHtml(n, h, true))).join("")}<span class="grp sep">+</span>`
           : "") +
-        bet.legs.map(n => ballHtml(n, h, false)).join("") +
+        bet.legs.map(n => named(bet, n, ballHtml(n, h, false))).join("") +
         `</div></div>`;
     });
     if (bets.length) {
@@ -992,6 +1007,7 @@
         html += `<div class="row io">` +
           `<button class="btn ghost small" type="button" data-act="import" title="${CSV_HINT}">⬆ Import CSV</button>` +
           `<button class="btn ghost small" type="button" data-act="export">⬇ Export CSV</button>` +
+          `<button class="btn ghost small" type="button" data-act="export-png">🖼️ Export PNG</button>` +
           `<button class="btn danger small" type="button" data-act="clear-all">Clear all</button></div>`;
       }
     }
@@ -1007,6 +1023,7 @@
     else if (act === "leave-shared") leaveShared();
     else if (act === "import") csvInput.click();
     else if (act === "export") exportCsv();
+    else if (act === "export-png") shareMyBetsImage();
     else if (act === "clear-all") clearAllBets();
   });
   document.getElementById("addBtn").addEventListener("click", () => openEditor(null));
@@ -1274,7 +1291,8 @@
   editor.addEventListener("cancel", e => { if (edDirty() && !confirm("Discard your changes to this bet?")) e.preventDefault(); });
   edName.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); edName.blur(); } });
   document.getElementById("edSave").addEventListener("click", () => {
-    const bet = cleanBet({ id: draft.id, name: edName.value, bankers: draft.bankers, legs: draft.legs });
+    const old = myBets.find(b => b.id === draft.id);
+    const bet = cleanBet({ id: draft.id, name: edName.value, bankers: draft.bankers, legs: draft.legs, who: old && old.who });
     if (!bet) return;
     const i = myBets.findIndex(b => b.id === bet.id);
     if (i >= 0) myBets[i] = bet;
@@ -1649,10 +1667,10 @@
 
     const tallies = hits.map(h => tally(h.counts, dividends));
     const { total: fixedTotal, combos: winningCombos, best, unknownPool, won } = sumTallies(tallies);
-    const pool = best <= 2;
+    const top = best <= 2; // a 1st-3rd division win
 
     let html = `<div class="verdict${won ? " win" : ""}">` +
-      `<div class="v-emoji">${pool ? "🤯" : won ? "🎉" : "😶"}</div>` +
+      `<div class="v-emoji">${top ? "🤯" : won ? "🎉" : "😶"}</div>` +
       `<div class="v-amt" id="vAmt">${!won ? "No prize" : unknownPool && !fixedTotal ? `${DIVISIONS[best]} Division` : money(0)}</div>` +
       (unknownPool ? `<div class="v-pool">${fixedTotal ? "+ " : ""}${DIVISIONS[best]} division pool prize — ` +
         `${official ? "HKJC hasn't declared this prize yet" : "load the official result for the amount"}</div>` : "") +
@@ -1688,9 +1706,9 @@
     if (won && (fixedTotal || !unknownPool)) countUp(document.getElementById("vAmt"), fixedTotal);
     resultEl.firstChild.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "nearest" });
 
-    if (pool) showBigWin(best);
+    if (top) showBigWin(best);
     else { hideBigWin(); if (won) smallBurst(); }
-    if (won && navigator.vibrate) navigator.vibrate(pool ? [80, 60, 80, 60, 200] : [30, 40, 30]);
+    if (won && navigator.vibrate) navigator.vibrate(top ? [80, 60, 80, 60, 200] : [30, 40, 30]);
   }
 
   // ---------- share the result as a PNG ----------
@@ -1704,10 +1722,10 @@
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
 
-  function drawResultImage(sum) {
-    const W = 1080, PAD = 64, IN = PAD + 44, CW = W - 2 * IN, MAX_BETS_SHOWN = 10;
-    const o = sum.official;
-    // paint on a tall transparent canvas, then crop it onto the card at the height used
+  // What the share images are drawn with: a 1080-wide card, painted on a tall
+  // transparent canvas and cropped onto the card at the height used (finish).
+  function imagePainter() {
+    const W = 1080, PAD = 64, IN = PAD + 44, CW = W - 2 * IN;
     const tall = document.createElement("canvas");
     tall.width = W; tall.height = 8000;
     const ctx = tall.getContext("2d");
@@ -1730,6 +1748,25 @@
       font(800, Math.round(r * .9)); ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(String(n), cx, cy + 2);
     };
+    const site = () => /^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname) ? ` · ${location.host}${location.pathname}` : "";
+    const finish = y => {
+      const H = Math.min(tall.height, y + 44 + PAD);
+      const cv = document.createElement("canvas");
+      cv.width = W; cv.height = H;
+      const out = cv.getContext("2d");
+      out.fillStyle = IMG.bg; out.fillRect(0, 0, W, H);
+      roundRectPath(out, PAD, PAD, W - 2 * PAD, H - 2 * PAD, 36);
+      out.fillStyle = IMG.card; out.fill();
+      out.drawImage(tall, 0, 0, W, H, 0, 0, W, H);
+      return cv;
+    };
+    return { W, PAD, IN, CW, ctx, font, rr, fit, say, line, ball, site, finish };
+  }
+
+  function drawResultImage(sum) {
+    const { W, PAD, IN, CW, ctx, font, rr, say, line, ball, site, finish } = imagePainter();
+    const MAX_BETS_SHOWN = 10;
+    const o = sum.official;
 
     // header
     let y = PAD + 96;
@@ -1824,34 +1861,142 @@
 
     // footer
     y += 56;
-    const where = /^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname) ? ` · ${location.host}${location.pathname}` : "";
-    say(`Checked with Mark Six Checker${where}`, W / 2, y, { px: 24, color: IMG.muted, align: "center" });
+    say(`Checked with Mark Six Checker${site()}`, W / 2, y, { px: 24, color: IMG.muted, align: "center" });
     y += 34;
     say(o ? "Official result from HKJC · not affiliated with the HKJC" : "Not affiliated with the HKJC", W / 2, y, { px: 22, color: IMG.muted, align: "center" });
-    const H = Math.min(tall.height, y + 44 + PAD);
-
-    const cv = document.createElement("canvas");
-    cv.width = W; cv.height = H;
-    const out = cv.getContext("2d");
-    out.fillStyle = IMG.bg; out.fillRect(0, 0, W, H);
-    roundRectPath(out, PAD, PAD, W - 2 * PAD, H - 2 * PAD, 36);
-    out.fillStyle = IMG.card; out.fill();
-    out.drawImage(tall, 0, 0, W, H, 0, 0, W, H);
-    return cv;
+    return finish(y);
   }
 
-  async function shareResultImage() {
-    if (!resultSummary) return;
-    const cv = drawResultImage(resultSummary);
+  // A list of bets as a picture - My bets, or a group pool. Each bet:
+  // { name, right, full, sub, bankers, legs, who (number -> name, or null), empties }.
+  function drawBetsImage({ title, lines, bets, people, footer }) {
+    const { W, PAD, IN, CW, ctx, font, say, line, ball, site, finish } = imagePainter();
+    const drawn = isComplete();
+
+    let y = PAD + 96;
+    say(title, IN, y, { w: 800, px: 48 });
+    lines.forEach((t, i) => { y += i ? 40 : 50; say(t, IN, y, { px: i ? 26 : 30, color: IMG.muted }); });
+
+    if (drawn) {
+      // the draw these bets are being checked against
+      y += 50;
+      say("Checked against", IN, y, { w: 700, px: 26, color: IMG.muted });
+      const r = 26, STEP = 2 * r + 12;
+      let bx = IN + 230 + r;
+      mains.forEach(n => { ball(n, bx, y - 9, r); bx += STEP; });
+      say("+", bx - r + 8, y + 1, { w: 700, px: 30, color: IMG.muted });
+      ball(special, bx + 36, y - 9, r);
+      y += 20;
+    }
+    y += 40;
+
+    const R = 30, STEP = 2 * R + 26, LABEL = 2 * R + 20;
+    const hitRing = v => !drawn ? null : mains.includes(v) ? "#f5b301" : v === special ? "#b8bec8" : null;
+    bets.forEach(b => {
+      line(y); y += 56;
+      font(600, 26);
+      const rightW = ctx.measureText(b.right).width;
+      say(b.name, IN, y, { w: 800, px: 34, maxW: CW - rightW - 30 });
+      say(b.right, IN + CW, y, { w: 600, px: 26, color: b.full ? IMG.text : IMG.muted, align: "right" });
+      y += 34;
+      say(b.sub, IN, y, { px: 24, color: IMG.muted });
+      const labelled = !!b.who, rowH = STEP + (labelled ? 30 : 0);
+      let bx = IN, by = y + 28 + R + 6;
+      const place = w => { if (bx + w > IN + CW + 26) { bx = IN; by += rowH; } const at = bx; bx += w; return at; };
+      const put = (n, banker) => {
+        const cx = place(STEP) + R + 6;
+        ball(n, cx, by, R, hitRing(n), banker);
+        if (labelled && b.who[n]) say(b.who[n], cx, by + R + 34, { px: 20, color: IMG.muted, align: "center", maxW: LABEL });
+      };
+      if (b.bankers.length) {
+        const lx = place(48); say("膽", lx + 6, by + 10, { w: 700, px: 28, color: IMG.muted });
+        b.bankers.forEach(n => put(n, true));
+        const px = place(44); say("+", px + 12, by + 11, { w: 700, px: 32, color: IMG.muted });
+      }
+      b.legs.forEach(n => put(n, false));
+      for (let i = 0; i < (b.empties || 0); i++) {
+        const cx = place(STEP) + R + 6;
+        ctx.beginPath(); ctx.arc(cx, by, R - 1, 0, Math.PI * 2);
+        ctx.setLineDash([7, 7]); ctx.lineWidth = 3; ctx.strokeStyle = IMG.line; ctx.stroke(); ctx.setLineDash([]);
+      }
+      y = by + R + (labelled ? 34 : 0) + 36;
+    });
+
+    // who picked, from the names under the balls
+    if (people && people.size) {
+      line(y); y += 50;
+      say("Who picked", IN, y, { w: 800, px: 30 });
+      y += 44;
+      font(400, 26);
+      let row = "";
+      [...people].sort((a, b) => b[1] - a[1]).map(([who, k]) => `${who} ${k}`).forEach(part => {
+        const next = row ? row + "  ·  " + part : part;
+        if (ctx.measureText(next).width > CW && row) { say(row, IN, y, { px: 26 }); y += 38; row = part; }
+        else row = next;
+      });
+      say(row, IN, y, { px: 26 });
+      y += 10;
+    }
+
+    y += 64;
+    say(`Mark Six Checker${site()}`, W / 2, y, { px: 24, color: IMG.muted, align: "center" });
+    y += 34;
+    say(footer, W / 2, y, { px: 22, color: IMG.muted, align: "center" });
+    return finish(y);
+  }
+  const today = () => new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  function countPeople(list) {
+    const people = new Map();
+    list.forEach(who => { if (who) people.set(who, (people.get(who) || 0) + 1); });
+    return people;
+  }
+
+  function drawPoolImage(st) {
+    const combos = st.bets.reduce((s, b) => s + (b.picks.length >= MAIN_COUNT ? C(b.picks.length, MAIN_COUNT) : 0), 0);
+    return drawBetsImage({
+      title: st.title,
+      lines: [`Mark Six group pool · ${plural(st.bets.length, "bet")}` + (combos ? ` · ${money(combos * UNIT_STAKE)} per draw` : ""), today()],
+      bets: st.bets.map(b => {
+        const n = b.picks.length, full = n >= MAIN_COUNT;
+        return {
+          name: b.name, full,
+          right: full ? `${plural(C(n, MAIN_COUNT), "combo")} · ${money(C(n, MAIN_COUNT) * UNIT_STAKE)}` : `needs ${MAIN_COUNT - n} more to play`,
+          sub: `${n} of ${b.size} numbers`,
+          bankers: [], legs: b.picks.map(p => p.n).sort(byNum),
+          who: Object.fromEntries(b.picks.map(p => [p.n, p.by])),
+          empties: Math.max(0, b.size - n),
+        };
+      }),
+      people: countPeople(st.bets.flatMap(b => b.picks.map(p => p.by))),
+      footer: `Pool code ${st.code} · not affiliated with the HKJC`,
+    });
+  }
+
+  function drawMyBetsImage(bets) {
+    const combos = bets.reduce((s, b) => s + combosOf(b), 0);
+    return drawBetsImage({
+      title: "My Mark Six bets",
+      lines: [`${plural(bets.length, "bet")} · ${plural(combos, "combo")} · ${money(combos * UNIT_STAKE)} per draw`, today()],
+      bets: bets.map((b, i) => ({
+        name: betName(b, i), full: true,
+        right: `${plural(combosOf(b), "combo")} · ${money(combosOf(b) * UNIT_STAKE)}`,
+        sub: betKind(b),
+        bankers: b.bankers, legs: b.legs, who: b.who || null,
+      })),
+      people: countPeople(bets.flatMap(b => b.who ? Object.values(b.who) : [])),
+      footer: "Not affiliated with the HKJC",
+    });
+  }
+
+  // Share a canvas as a PNG (share sheet on phones), or download it.
+  async function shareCanvas(cv, name, title) {
     // build the file synchronously so the share sheet still counts as a response to the tap
     const bin = atob(cv.toDataURL("image/png").split(",")[1]);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const o = resultSummary.official;
-    const name = `marksix-${o ? o.label.replace("/", "-") : "result"}.png`;
     const file = new File([bytes], name, { type: "image/png" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: "Mark Six result" }); return; }
+      try { await navigator.share({ files: [file], title }); return; }
       catch (err) { if (err && err.name === "AbortError") return; }
     }
     const a = document.createElement("a");
@@ -1862,6 +2007,23 @@
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     toast("🖼️ Image saved.");
+  }
+  function shareResultImage() {
+    if (!resultSummary) return;
+    const o = resultSummary.official;
+    shareCanvas(drawResultImage(resultSummary), `marksix-${o ? o.label.replace("/", "-") : "result"}.png`, "Mark Six result");
+  }
+  function sharePoolImage() {
+    if (!pool || !pool.state) return;
+    const st = pool.state;
+    const slug = st.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 30) || "pool";
+    shareCanvas(drawPoolImage(st), `marksix-${slug}.png`, st.title);
+  }
+  function shareMyBetsImage() {
+    const bets = activeBets();
+    if (!bets.length) return;
+    const d = new Date(), pad = n => String(n).padStart(2, "0");
+    shareCanvas(drawMyBetsImage(bets), `marksix-bets-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.png`, "My Mark Six bets");
   }
   resultEl.addEventListener("click", e => {
     if (e.target.closest('[data-act="share-png"]')) shareResultImage();
@@ -2196,6 +2358,7 @@
     document.getElementById("poolActivity").hidden = !log.length;
     document.getElementById("poolLog").innerHTML = log.map(l => `<li><strong>${esc(l.by)}</strong> ${esc(l.text)} <small>· ${ago(l.at)}</small></li>`).join("");
     document.getElementById("poolSave").disabled = !poolReadyBets().length;
+    document.getElementById("poolPng").disabled = !st.bets.some(b => b.picks.length);
   }
 
   function poolTap(n) {
@@ -2259,10 +2422,11 @@
   });
   document.getElementById("poolSave").addEventListener("click", () => {
     const title = pool && pool.state ? pool.state.title : "";
-    const r = addBets(poolReadyBets().map(b => cleanBet({ name: `${title} · ${b.name}`.slice(0, 40), bankers: [], legs: b.legs })).filter(Boolean));
+    const r = addBets(poolReadyBets().map(b => cleanBet({ name: `${title} · ${b.name}`.slice(0, 40), bankers: [], legs: b.legs, who: b.who })).filter(Boolean));
     if (r.added && !storeBets()) return;
     toast(addSummary(r, "Saved"));
   });
+  document.getElementById("poolPng").addEventListener("click", () => sharePoolImage());
   document.getElementById("poolLeave").addEventListener("click", leavePool);
   function leavePool() {
     closePool();
