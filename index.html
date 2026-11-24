@@ -21,6 +21,18 @@
 <meta property="og:image:alt" content="Mark Six Checker: a red app icon with a gold lottery ball numbered 6">
 <meta name="twitter:card" content="summary_large_image">
 <style>
+  /* ==========================================================================
+     Design language. Everything below is built from these few rules:
+     - Surfaces: page (--bg) > card (--card, --r-lg) > panel (inset --bg, --r-md).
+     - Text: --fs-md body, --fs-sm secondary (muted), --fs-xs captions. Card
+       titles are --fs-lg, section labels --fs-sm bold.
+     - Controls: one height (--h-md, or --h-sm for .small), one radius (--r-md).
+       A card has at most one filled .btn (its main action); the rest are
+       .ghost, destructive ones .danger, quiet ones .link.
+     - Colour means one thing each: accent = selected / focused / "tap here
+       next"; hit = winning; warn = destructive or an error; ball colours are
+       the balls'; a gold ring is a drawn number, a grey ring the special.
+     ========================================================================== */
   :root {
     --bg: #f4f5f7;
     --card: #ffffff;
@@ -34,12 +46,30 @@
     --hit: #1f9d55;
     --hit-soft: #e6f6ec;
     --warn: #c2410c;
-    --special: #d98200;
+    --wait: #d98200;
     --ball-red: #d8232a;
     --ball-blue: #0067b1;
     --ball-green: #068a3c;
     --ball-ink: #ffffff;
+    --ring-hit: #f5b301;
+    --ring-special: #8f99a8;
     --shadow: 0 1px 3px rgba(20,25,35,.08), 0 1px 2px rgba(20,25,35,.05);
+    --shadow-pop: 0 20px 60px rgba(0,0,0,.35);
+
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-pill: 999px;
+
+    --fs-2xs: .68rem;
+    --fs-xs: .75rem;
+    --fs-sm: .85rem;
+    --fs-md: 1rem;
+    --fs-lg: 1.125rem;
+    --fs-xl: 1.5rem;
+
+    --h-sm: 2.25rem;
+    --h-md: 2.75rem;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -55,99 +85,166 @@
       --hit: #3ecf7a;
       --hit-soft: #183229;
       --warn: #fb923c;
-      --special: #f2a53c;
+      --wait: #f2a53c;
       --ball-red: #e23b3f;
       --ball-blue: #1f86d0;
       --ball-green: #17a24f;
+      --ring-special: #b8bec8;
       --shadow: 0 1px 3px rgba(0,0,0,.45);
     }
   }
+
+  /* ---------- base ---------- */
   * { box-sizing: border-box; }
   [hidden] { display: none !important; } /* .row, .grid and others set their own display */
   html { touch-action: manipulation; } /* no double-tap zoom when tapping fast */
   body {
     margin: 0;
-    padding: 1.75rem 1rem 4rem;
+    padding: 1rem 1rem 4rem;
     background: var(--bg);
     color: var(--text);
-    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang HK", "Microsoft JhengHei", sans-serif;
+    font: var(--fs-md)/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang HK", "Microsoft JhengHei", sans-serif;
   }
+  a { color: var(--accent); }
+  button, summary { -webkit-tap-highlight-color: transparent; }
+  :is(button, a, input, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  h2[tabindex]:focus { outline: none; }
   .wrap { max-width: 760px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 1.5rem; }
-  header .logo { display: block; width: 3.5rem; height: 3.5rem; margin: 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.18)); }
-  h1 { margin: .4rem 0 .2rem; font-size: 1.75rem; line-height: 1.2; letter-spacing: -.01em; }
-  header p { margin: 0; color: var(--muted); font-size: .95rem; }
 
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 1.2rem 1.2rem 1.3rem;
-    margin-bottom: 1.1rem;
-    box-shadow: var(--shadow);
-  }
-  .card-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin-bottom: .2rem; }
-  .card h2 { margin: 0; font-size: 1.05rem; }
-  .card-head .row { flex: 0 0 auto; }
-  .sub { color: var(--muted); font-size: .85rem; margin: 0 0 .9rem; }
-  /* icons: line glyphs in the colour of the text beside them */
+  header { display: flex; align-items: center; justify-content: center; gap: .75rem; margin-bottom: 1rem; }
+  header .logo { width: 2.75rem; height: 2.75rem; flex: 0 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.18)); }
+  h1 { margin: 0; font-size: var(--fs-xl); line-height: 1.2; letter-spacing: -.01em; }
+  header p { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
+  footer { text-align: center; color: var(--muted); font-size: var(--fs-xs); margin-top: 2rem; }
+
+  /* ---------- text ---------- */
+  h3 { margin: 1rem 0 .4rem; font-size: .95rem; }
+  h3 small { font-weight: 500; color: var(--muted); font-size: var(--fs-sm); }
+  h3.sec { margin: 1.2rem 0 .5rem; font-size: var(--fs-sm); color: var(--muted); }
+  .sub { color: var(--muted); font-size: var(--fs-sm); margin: 0 0 .9rem; }
+  .note { color: var(--muted); font-size: var(--fs-xs); margin: .5rem 0 0; }
+  .none { color: var(--muted); font-size: var(--fs-sm); margin: 0; }
+  /* a line that says where things stand: the draw hint, a dialog's status */
+  .hint, .status { font-size: .9rem; font-weight: 650; margin: 0 0 .7rem; min-height: 1.5em; }
+  .hint.warn, .status.warn { color: var(--warn); }
+
+  /* ---------- icons: line glyphs in the colour of the text beside them ---------- */
   .ico {
     width: 1.05em; height: 1.05em; flex: 0 0 auto; vertical-align: -.16em; margin-right: .4em;
     fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   }
   .ico.solo { margin-right: 0; }
-  .tag {
-    display: inline-block;
-    font-size: .72rem; font-weight: 600;
-    color: var(--accent); background: var(--accent-soft);
-    padding: .1rem .5rem; border-radius: 6px;
-  }
 
-  /* ---- collapsible reference cards ---- */
-  details.card > summary {
-    list-style: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: space-between; gap: .5rem;
-    -webkit-tap-highlight-color: transparent;
+  /* ---------- surfaces ---------- */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 1.1rem 1.1rem 1.2rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
   }
-  details.card > summary::-webkit-details-marker { display: none; }
-  details.card > summary::after {
-    content: "›"; font-size: 1.5rem; line-height: 1; color: var(--muted);
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin-bottom: .5rem; min-height: var(--h-sm); }
+  .card h2, dialog h2 { margin: 0; font-size: var(--fs-lg); line-height: 1.3; }
+  .card-head .row { flex: 0 0 auto; }
+  /* an inset block inside a card: a pool's bet, a past draw, the draw details */
+  .pbet, .past-row, .details, .verdict {
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md);
+  }
+  /* something to know before going on */
+  .banner { background: var(--accent-soft); border-radius: var(--r-md); padding: .7rem .8rem; margin: 0 0 .8rem; font-size: .9rem; }
+  .banner .row { margin-top: .6rem; }
+  /* nothing here yet */
+  .blank { text-align: center; padding: 1rem .5rem .3rem; color: var(--muted); font-size: .95rem; }
+  .blank .big { line-height: 1; margin-bottom: .5rem; }
+  .blank .big .ico { width: 2.4rem; height: 2.4rem; margin: 0; stroke-width: 1.5; }
+  .blank .row { justify-content: center; margin-top: .9rem; }
+
+  /* folded-away sections, all with the same marker */
+  summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: .5rem; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "›"; font-size: 1.4rem; line-height: 1; color: var(--muted);
     transform: rotate(90deg); transition: transform .2s ease;
   }
-  details.card[open] > summary::after { transform: rotate(-90deg); }
+  details[open] > summary::after { transform: rotate(-90deg); }
+  details.card > summary { justify-content: space-between; min-height: var(--h-sm); }
   details.card[open] > summary { margin-bottom: .6rem; }
+  details.more > summary, details.activity > summary { min-height: var(--h-sm); color: var(--muted); font-size: var(--fs-sm); font-weight: 600; }
+  details.more[open] > summary { margin-bottom: .3rem; }
 
-  /* ---- buttons ---- */
+  /* ---------- controls ---------- */
   .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
-  button.btn {
-    appearance: none; border: 1px solid transparent;
+  .btn {
+    appearance: none; display: inline-flex; align-items: center; justify-content: center;
+    min-height: var(--h-md); padding: 0 1rem;
+    border: 1px solid transparent; border-radius: var(--r-md);
     background: var(--primary); color: var(--primary-ink);
-    font: inherit; font-size: .92rem; font-weight: 650;
-    padding: .55rem 1rem; border-radius: 10px; cursor: pointer;
-    white-space: nowrap;
+    font: inherit; font-size: .95rem; font-weight: 650; line-height: 1.2; white-space: nowrap; cursor: pointer;
   }
-  button.btn.ghost { background: transparent; color: var(--text); border-color: var(--border); }
-  button.btn.danger { background: transparent; color: var(--warn); border-color: var(--border); }
-  button.btn.small { font-size: .84rem; padding: .4rem .75rem; }
-  button.btn:active { transform: translateY(1px); }
-  button.btn:disabled { opacity: .4; cursor: default; transform: none; }
-  .draw-actions button.btn { flex: 1 1 auto; padding-inline: .6rem; }
-  .draw-actions #dipBtn { flex-grow: 2; }
+  .btn.ghost { background: transparent; color: var(--text); border-color: var(--border); }
+  .btn.danger { background: transparent; color: var(--warn); border-color: var(--border); }
+  .btn.link { background: none; border-color: transparent; color: var(--muted); font-weight: 500; text-decoration: underline; padding: 0 .25rem; }
+  .btn.small { min-height: var(--h-sm); padding: 0 .75rem; font-size: var(--fs-sm); }
+  .btn.block { width: 100%; }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: .4; cursor: default; transform: none; }
+  @media (hover: hover) { .btn.ghost:hover:not(:disabled), .btn.danger:hover:not(:disabled) { border-color: var(--muted); } }
 
-  /* ---- balls ---- */
+  .input {
+    display: block; width: 100%; min-height: var(--h-md); padding: 0 .75rem;
+    font: inherit; font-size: var(--fs-md); font-weight: 400; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md);
+  }
+  .input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .input.need { border-color: var(--warn); outline: 2px solid var(--warn); }
+  .field { display: block; margin: 0 0 .8rem; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+  .field .input { margin-top: .25rem; }
+  .field.inline { display: flex; align-items: center; gap: .6rem; }
+  .field.inline .input { margin: 0; flex: 1; min-width: 0; }
+
+  /* one of a few: the page's two views, numbers or bankers */
+  .seg { display: flex; border: 1px solid var(--border); border-radius: var(--r-md); padding: 3px; background: var(--bg); }
+  .seg button {
+    flex: 1; appearance: none; border: 0; background: transparent; min-height: calc(var(--h-sm) - 2px);
+    display: inline-flex; align-items: center; justify-content: center;
+    font: inherit; font-size: .9rem; font-weight: 650; color: var(--muted);
+    padding: 0 .6rem; border-radius: calc(var(--r-md) - 3px); cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+  .modes { max-width: 24rem; margin: 0 auto 1rem; background: var(--card); }
+  .modes button { min-height: calc(var(--h-md) - 8px); }
+  .modes button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
+
+  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+  .stepper button {
+    appearance: none; border: 0; background: var(--card); color: var(--text);
+    font: inherit; font-size: 1.1rem; font-weight: 700; width: 2.5rem; height: var(--h-sm); cursor: pointer;
+  }
+  .stepper button:disabled { opacity: .35; cursor: default; }
+  .stepper span { min-width: 2.2rem; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; font-size: .9rem; }
+
+  .tag {
+    display: inline-block; font-size: var(--fs-xs); font-weight: 600;
+    color: var(--accent); background: var(--accent-soft);
+    padding: .1rem .5rem; border-radius: var(--r-sm);
+  }
+
+  /* ---------- balls ---------- */
   .balls { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .55rem; }
   .ball {
-    width: 2.2rem; height: 2.2rem; flex: 0 0 auto;
+    width: 2.25rem; height: 2.25rem; flex: 0 0 auto;
     border-radius: 50%;
     display: grid; place-items: center;
     font-weight: 700; font-size: .92rem;
     color: var(--ball-ink);
     font-variant-numeric: tabular-nums;
-    transition: outline-color .2s ease, box-shadow .2s ease;
+    transition: outline-color .2s ease;
   }
   .ball.red { background: var(--ball-red); }
   .ball.blue { background: var(--ball-blue); }
   .ball.green { background: var(--ball-green); }
+  .ball.empty { background: transparent; border: 1.5px dashed var(--border); }
   .ball.banker { position: relative; }
   .ball.banker::after {
     content: "膽"; position: absolute; top: -.3rem; right: -.3rem;
@@ -155,83 +252,38 @@
     font-size: .58rem; font-weight: 700; line-height: 1;
     background: var(--card); color: var(--text); box-shadow: 0 0 0 1px var(--border);
   }
-  .ball.hit { outline: 3px solid #f5b301; outline-offset: 1px; }
-  .ball.hit-special { outline: 3px solid #b8bec8; outline-offset: 1px; }
-  .grp { font-size: .75rem; font-weight: 700; color: var(--muted); }
+  .ball.hit { outline: 3px solid var(--ring-hit); outline-offset: 1px; }
+  .ball.hit-special { outline: 3px solid var(--ring-special); outline-offset: 1px; }
+  /* the smaller size, wherever balls are a summary rather than the subject */
+  .past-row .ball, .details .ball, .pool-tools .ball { width: 1.75rem; height: 1.75rem; font-size: .78rem; }
+  .grp { font-size: var(--fs-xs); font-weight: 700; color: var(--muted); }
   .grp.sep { margin: 0 .1rem; }
-  .legend { color: var(--muted); font-size: .75rem; margin: .9rem 0 0; }
+  .legend { color: var(--muted); font-size: var(--fs-xs); margin: .7rem 0 0; }
   .ring { display: inline-block; width: .7em; height: .7em; border-radius: 50%; vertical-align: -.05em; margin-right: .2em; }
-  .ring.gold { border: 2px solid #f5b301; }
-  .ring.silver { border: 2px solid #b8bec8; }
+  .ring.gold { border: 2px solid var(--ring-hit); }
+  .ring.silver { border: 2px solid var(--ring-special); }
+  /* a ball with a name under it */
+  .pb { display: inline-flex; flex-direction: column; align-items: center; width: 2.5rem; }
+  .pb small { font-size: var(--fs-2xs); line-height: 1.3; color: var(--muted); max-width: 2.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* ---- bet list ---- */
-  .bet { padding: .7rem 0; }
-  .bet + .bet { border-top: 1px solid var(--border); padding-top: .85rem; }
-  .bet-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-  .bet-name { font-weight: 700; margin-right: .4rem; }
-  .bet-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem .4rem; min-width: 0; }
-  .totals { color: var(--muted); font-size: .82rem; margin: .5rem 0 0; }
-  .empty { text-align: center; padding: 1.2rem .5rem .4rem; color: var(--muted); }
-  .empty .big { color: var(--muted); line-height: 1; margin-bottom: .5rem; }
-  .empty .big .ico { width: 2.4rem; height: 2.4rem; margin: 0; stroke-width: 1.5; }
-  .quick { margin-bottom: 1.1rem; }
-  .quick .btn { width: 100%; font-size: 1.05rem; padding: .75rem 1rem; }
-  .banner {
-    background: var(--accent-soft); border-radius: 10px;
-    padding: .7rem .8rem; margin: .5rem 0 .6rem; font-size: .9rem;
-  }
-  .banner .row { margin-top: .5rem; }
-
-  /* ---- draw slots ---- */
-  .hint { font-size: .9rem; font-weight: 650; margin: 0 0 .7rem; min-height: 1.5em; }
-  .hint.warn { color: var(--warn); }
-  .slots { display: flex; flex-wrap: nowrap; gap: .3rem; align-items: center; margin-bottom: 1rem; }
-  .slot {
-    appearance: none;
-    width: 100%; aspect-ratio: 1 / 1; padding: 0;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    display: grid; place-items: center;
-    font: inherit; font-size: clamp(.8rem, 3.6vw, 1.15rem); font-weight: 700;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .slot:disabled { cursor: default; opacity: 1; }
-  .slot.next { border: 2px dashed var(--accent); }
-  .slot.special.next { border-color: var(--special); }
-  .slot.filled { color: var(--ball-ink); border-color: transparent; cursor: pointer; }
-  .slot.filled:active { transform: scale(.94); }
-  .slot.filled.red { background: var(--ball-red); }
-  .slot.filled.blue { background: var(--ball-blue); }
-  .slot.filled.green { background: var(--ball-green); }
-  .slot.special.filled { background: var(--special); }
-  .slot-label { display: block; text-align: center; font-size: .68rem; color: var(--muted); margin-top: .2rem; }
-  .slots .field { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; }
-  .slots .plus { color: var(--muted); font-weight: 700; font-size: 1rem; flex: 0 0 auto; margin-bottom: .9rem; }
-  .pop { animation: pop .3s cubic-bezier(.3, 1.6, .6, 1); }
-  @keyframes pop { from { transform: scale(.55); } to { transform: scale(1); } }
-
-  /* ---- 1-49 grid (draw entry and bet editor) ---- */
+  /* ---------- the 1-49 grid (draw entry, bet editor, pool) ---------- */
   .grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: .45rem;
+    gap: .35rem;
     margin-bottom: 1rem;
   }
   .grid button {
     appearance: none; position: relative;
     aspect-ratio: 1 / 1;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--r-md);
     background: var(--card);
     color: var(--text);
-    font: inherit; font-size: 1.1rem; font-weight: 650;
+    font: inherit; font-size: 1.05rem; font-weight: 650;
     cursor: pointer;
     font-variant-numeric: tabular-nums;
     transition: transform .05s ease, background .1s ease;
-    -webkit-tap-highlight-color: transparent;
   }
   @media (hover: hover) { .grid button:hover { border-color: var(--accent); } }
   .grid button:active { transform: scale(.94); }
@@ -242,173 +294,90 @@
   .grid button.pick.c-red { background: var(--ball-red); }
   .grid button.pick.c-blue { background: var(--ball-blue); }
   .grid button.pick.c-green { background: var(--ball-green); }
-  .grid button.pick.special { background: var(--special); }
+  .grid button.pick.special { box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--ring-special); z-index: 1; }
   .grid button.banker { box-shadow: inset 0 0 0 3px rgba(255,255,255,.8); }
   .grid button.banker::after {
     content: "膽"; position: absolute; top: 1px; right: 4px;
     font-size: .58rem; font-weight: 700; color: var(--ball-ink);
   }
-  .grid.want-special button:not(.pick) { border: 1px dashed var(--special); }
-  @media (max-width: 560px) {
-    .grid { gap: .35rem; }
-    .grid button { font-size: 1rem; border-radius: 10px; }
-  }
-  /* Laptops: 10 numbers a row (1–10, 11–20 …) keeps the grid to 5 short rows
-     instead of 7 huge ones, and the draw entry stays a comfortable width. */
-  @media (min-width: 600px) {
-    .grid { grid-template-columns: repeat(10, 1fr); gap: .4rem; }
-    .grid button { font-size: 1rem; border-radius: 10px; }
-    .picker { max-width: 32rem; margin: 0 auto; }
-    .picker .hint { text-align: center; }
-    .slots { max-width: 25rem; margin-inline: auto; }
-  }
-  .io { margin-top: .9rem; padding-top: .8rem; border-top: 1px solid var(--border); }
-
-  /* ---- past results ---- */
-  .past { margin: 0 0 1.1rem; }
-  .past-actions { display: flex; gap: .5rem; }
-  .past-actions #lastBtn { flex: 1 1 auto; font-size: 1.05rem; padding: .75rem 1rem; }
-  .past-actions #pastBtn { flex: 0 0 auto; }
-  .past-list { display: grid; gap: .4rem; margin-top: .6rem; }
-  .past-row {
-    appearance: none; width: 100%; text-align: left;
-    font: inherit; color: inherit;
-    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
-    padding: .55rem .7rem; cursor: pointer;
-    display: grid; grid-template-columns: 1fr auto; gap: .35rem .5rem; align-items: center;
-    -webkit-tap-highlight-color: transparent;
-  }
-  @media (hover: hover) { .past-row:hover { border-color: var(--accent); } }
-  .past-row:active { transform: scale(.99); }
-  .past-row[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-  .past-row .meta { font-size: .85rem; font-weight: 700; min-width: 0; }
-  .past-row .meta small { color: var(--muted); font-weight: 500; }
-  .past-row .won { font-size: .8rem; font-weight: 700; color: var(--hit); white-space: nowrap; }
-  .past-row .won.nil { color: var(--muted); font-weight: 500; }
-  .past-row .balls { grid-column: 1 / -1; margin: 0; gap: .25rem; }
-  .past-row .ball { width: 1.75rem; height: 1.75rem; font-size: .78rem; }
-  .past-row .grp { margin: 0 .05rem; }
-  .past-note { color: var(--muted); font-size: .75rem; margin: .45rem 0 0; }
-  .past-err { color: var(--warn); font-size: .85rem; margin: .55rem 0 0; }
-  .io [data-act="clear-all"] { margin-left: auto; } /* keep the destructive one apart */
-
-  /* ---- bet editor ---- */
-  dialog#editor, dialog#poolNew {
-    border: none; padding: 0;
-    width: min(560px, calc(100vw - 16px));
-    max-height: calc(100dvh - 16px);
-    border-radius: 16px;
-    background: var(--card); color: var(--text);
-    box-shadow: 0 20px 60px rgba(0,0,0,.35);
-  }
-  dialog#editor::backdrop, dialog#poolNew::backdrop { background: rgba(10, 12, 16, .5); }
-  .ed { padding: 1.1rem 1.1rem 1.2rem; }
-  .ed h2 { margin: 0 0 .8rem; font-size: 1.1rem; }
-  .ed h2:focus { outline: none; }
-  .ed label.name { display: block; font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: .8rem; }
-  .ed input[type=text] {
-    display: block; width: 100%; margin-top: .25rem;
-    font: inherit; font-size: 1rem; color: var(--text);
-    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
-    padding: .5rem .7rem;
-  }
-  .ed input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .seg { display: flex; border: 1px solid var(--border); border-radius: 10px; padding: 3px; background: var(--bg); margin-bottom: .45rem; }
-  .seg button {
-    flex: 1; appearance: none; border: 0; background: transparent;
-    font: inherit; font-size: .9rem; font-weight: 650; color: var(--muted);
-    padding: .45rem .6rem; border-radius: 8px; cursor: pointer;
-  }
-  .seg button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
-  .ed .help { color: var(--muted); font-size: .8rem; margin: 0 0 .7rem; }
-  .ed .status { font-size: .9rem; font-weight: 650; margin: 0 0 .7rem; min-height: 1.5em; }
-  .ed .status.warn { color: var(--warn); }
-  .ed .foot { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
-
-  /* ---- group pool ---- */
-  .pool-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
-  .pool-title { appearance: none; border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
-  .pool-title h2 { display: inline; }
-  .pool-title .pen { color: var(--muted); font-size: .8rem; margin-left: .4rem; }
-  .pool-sub { display: flex; align-items: center; justify-content: space-between; gap: .5rem .8rem; flex-wrap: wrap; margin: .15rem 0 .8rem; }
-  .pool-meta { color: var(--muted); font-size: .82rem; margin: 0; flex: 1 1 13rem; }
-  .pool-meta .code {
-    appearance: none; background: none; border: 1px dashed var(--border); border-radius: 6px; padding: 0 .35rem;
-    font: inherit; font-weight: 700; letter-spacing: .08em; color: var(--text); cursor: pointer;
-  }
-  .linkish {
-    appearance: none; border: 0; background: none; padding: .4rem .2rem; cursor: pointer;
-    font: inherit; font-size: .84rem; color: var(--muted); text-decoration: underline;
-  }
-  .live { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; font-weight: 650; color: var(--muted); white-space: nowrap; }
-  .live::before { content: ""; width: .55rem; height: .55rem; border-radius: 50%; background: var(--muted); }
-  .live.on::before { background: var(--hit); }
-  .live.wait::before { background: var(--special); }
-  .live.off::before { background: var(--warn); }
-  .you { display: flex; align-items: center; gap: .5rem; margin-bottom: .9rem; font-size: .85rem; color: var(--muted); font-weight: 600; }
-  .you input, .pn input[type=text] {
-    flex: 1; min-width: 0; font: inherit; font-size: 1rem; color: var(--text);
-    background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: .45rem .7rem;
-  }
-  .you input:focus, .pn input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .you input.need { border-color: var(--warn); outline: 2px solid var(--warn); }
-  .pbets { display: grid; gap: .5rem; margin-bottom: .9rem; }
-  .pbet {
-    appearance: none; width: 100%; text-align: left; font: inherit; color: inherit;
-    background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
-    padding: .6rem .75rem .65rem; cursor: pointer; -webkit-tap-highlight-color: transparent;
-  }
-  .pbet[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--card); }
-  .pbet .bet-top { gap: .4rem; }
-  .pbet .count { font-size: .78rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
-  .pbet .count.full { color: var(--hit); }
-  .pbet .balls { gap: .25rem .3rem; }
-  .pb { display: inline-flex; flex-direction: column; align-items: center; width: 2.5rem; }
-  .pb small { font-size: .62rem; line-height: 1.3; color: var(--muted); max-width: 2.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pb .ball.empty { background: transparent; border: 1.5px dashed var(--border); }
-  /* The bet being filled stays pinned above the grid while you pick. */
-  .pool-tools { position: sticky; top: 0; z-index: 5; background: var(--card); margin: 0 0 .7rem; padding: .5rem 0 .55rem; border-bottom: 1px solid var(--border); }
-  .pool-tools .pt-row { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
-  .pool-tools .lbl { font-size: .85rem; font-weight: 700; margin-right: auto; }
-  .pool-tools .lbl small { color: var(--muted); font-weight: 700; margin-left: .4rem; font-variant-numeric: tabular-nums; }
-  .pool-tools .balls { margin-top: .45rem; gap: .25rem; }
-  .pool-tools .ball { width: 1.6rem; height: 1.6rem; font-size: .72rem; }
-  .pool-tools .ball.open { background: transparent; border: 1.5px dashed var(--border); }
-  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-  .stepper button { appearance: none; border: 0; background: var(--card); color: var(--text); font: inherit; font-weight: 700; width: 2.1rem; height: 2rem; cursor: pointer; }
-  .stepper button:disabled { opacity: .35; cursor: default; }
-  .stepper span { min-width: 2.2rem; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; font-size: .9rem; }
-  .grid button.other::before {
+  .grid button.other::before { /* in a pool: this number is in another bet */
     content: ""; position: absolute; left: 50%; bottom: 12%; width: 5px; height: 5px; margin-left: -2.5px;
     border-radius: 50%; background: currentColor; opacity: .6;
   }
   .grid.locked button:not(.pick) { opacity: .45; }
-  .pool-bet-actions { margin: -.3rem 0 .9rem; }
-  .pool-bet-actions [data-pool="removeBet"] { margin-left: auto; } /* keep the destructive one apart */
-  .lock-note { margin: 0 0 .9rem; }
-  .lock-note .row { margin-top: .5rem; }
-  .pbet.locked { cursor: default; }
-  .pbet.add { text-align: center; border-style: dashed; color: var(--muted); font-weight: 650; padding: .5rem; }
-  .who { display: flex; flex-wrap: wrap; gap: .35rem; margin: .2rem 0 .8rem; }
-  .who span { font-size: .78rem; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: .1rem .55rem; }
-  .who b { font-variant-numeric: tabular-nums; }
-  .activity { margin: 0 0 .9rem; font-size: .85rem; }
-  .activity summary { cursor: pointer; color: var(--muted); font-weight: 600; }
-  .activity ol { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: .2rem; }
-  .activity li small { color: var(--muted); }
-  .pool-gone { text-align: center; padding: 1rem .5rem; color: var(--muted); }
-  .pn .pn-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: 0 0 .7rem; font-size: .9rem; font-weight: 650; }
-  .pn .recent { border-top: 1px solid var(--border); margin-top: .9rem; padding-top: .8rem; }
-  .pn .recent h3 { margin: 0 0 .45rem; font-size: .85rem; color: var(--muted); }
-  .pn .recent .row { margin-bottom: .45rem; }
-  .pn .recent a { font-weight: 650; }
-
-  /* ---- result ---- */
-  .result { margin-top: 1.2rem; }
-  .verdict {
-    text-align: center; padding: 1rem .8rem 1.1rem; border-radius: 12px;
-    background: var(--bg); margin-bottom: .5rem;
+  /* Laptops: 10 numbers a row (1–10, 11–20 …) keeps the grid to 5 short rows
+     instead of 7 huge ones, and the draw entry stays a comfortable width. */
+  @media (min-width: 600px) {
+    .grid { grid-template-columns: repeat(10, 1fr); gap: .4rem; }
+    .grid button { font-size: 1rem; }
+    .picker { max-width: 32rem; margin: 0 auto; }
+    .picker .hint { text-align: center; }
+    .slots { max-width: 25rem; margin-inline: auto; }
   }
+
+  /* ---------- my bets ---------- */
+  .bet { padding: .7rem 0; }
+  .bet + .bet { border-top: 1px solid var(--border); padding-top: .85rem; }
+  .bet-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .bet-name { font-weight: 700; margin-right: .4rem; }
+  .bet-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem .4rem; min-width: 0; }
+  .totals { color: var(--muted); font-size: var(--fs-sm); margin: .5rem 0 0; }
+  details.more { margin-top: .8rem; padding-top: .5rem; border-top: 1px solid var(--border); }
+  details.more [data-act="clear-all"] { margin-left: auto; } /* keep the destructive one apart */
+  .quick { margin-bottom: 1rem; }
+
+  /* ---------- check a draw ---------- */
+  .past { margin: 0 0 1rem; }
+  .past-actions { display: flex; gap: .5rem; }
+  .past-actions #lastBtn { flex: 1 1 auto; }
+  .past-list { display: grid; gap: .4rem; margin-top: .6rem; }
+  .past-row {
+    appearance: none; width: 100%; text-align: left;
+    font: inherit; color: inherit;
+    padding: .55rem .7rem; cursor: pointer;
+    display: grid; grid-template-columns: 1fr auto; gap: .35rem .5rem; align-items: center;
+  }
+  @media (hover: hover) { .past-row:hover { border-color: var(--accent); } }
+  .past-row:active { transform: scale(.99); }
+  .past-row[aria-pressed="true"], .pbet[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .past-row .meta { font-size: var(--fs-sm); font-weight: 700; min-width: 0; }
+  .past-row .meta small { color: var(--muted); font-weight: 500; }
+  .past-row .won { font-size: var(--fs-sm); font-weight: 700; color: var(--hit); white-space: nowrap; }
+  .past-row .won.nil { color: var(--muted); font-weight: 500; }
+  .past-row .balls { grid-column: 1 / -1; margin: 0; gap: .25rem; }
+  .past-row .grp { margin: 0 .05rem; }
+  .past-err { color: var(--warn); font-size: var(--fs-sm); margin: .55rem 0 0; }
+
+  .slots { display: flex; flex-wrap: nowrap; gap: .3rem; align-items: center; margin-bottom: 1rem; }
+  .slot-wrap { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; }
+  .slot {
+    appearance: none;
+    width: 100%; aspect-ratio: 1 / 1; padding: 0;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    display: grid; place-items: center;
+    font: inherit; font-size: clamp(.8rem, 3.6vw, 1.15rem); font-weight: 700;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .slot:disabled { cursor: default; opacity: 1; }
+  .slot.next { border: 2px dashed var(--accent); }
+  .slot.filled { color: var(--ball-ink); border-color: transparent; cursor: pointer; }
+  .slot.filled:active { transform: scale(.94); }
+  .slot.filled.red { background: var(--ball-red); }
+  .slot.filled.blue { background: var(--ball-blue); }
+  .slot.filled.green { background: var(--ball-green); }
+  .slot.special.filled { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--ring-special); }
+  .slot-label { display: block; text-align: center; font-size: var(--fs-2xs); color: var(--muted); margin-top: .25rem; }
+  .slots .plus { color: var(--muted); font-weight: 700; font-size: 1rem; flex: 0 0 auto; margin-bottom: .9rem; }
+  .pop { animation: pop .3s cubic-bezier(.3, 1.6, .6, 1); }
+  @keyframes pop { from { transform: scale(.55); } to { transform: scale(1); } }
+  .draw-actions .btn { flex: 1 1 auto; }
+
+  /* ---------- result ---------- */
+  .result { margin-top: 1.2rem; }
+  .verdict { text-align: center; padding: 1rem .8rem 1.1rem; margin-bottom: .6rem; border-color: transparent; }
   .verdict.win { background: var(--hit-soft); }
   .verdict .v-icon { line-height: 1; color: var(--muted); margin-bottom: .2rem; }
   .verdict .v-icon .ico { width: 2.3rem; height: 2.3rem; margin: 0; stroke-width: 1.6; }
@@ -417,22 +386,20 @@
   .verdict.win .v-amt { color: var(--hit); }
   .verdict .v-pool { font-size: .95rem; font-weight: 700; color: var(--hit); }
   .verdict .v-line { margin-top: .2rem; color: var(--muted); font-size: .9rem; }
-  .result h3 { margin: 1rem 0 .3rem; font-size: .95rem; }
-  .result h3 small { font-weight: 500; color: var(--muted); font-size: .82rem; }
   .summary { font-size: .9rem; color: var(--muted); margin: 0 0 .6rem; }
-  .details { border: 1px solid var(--border); border-radius: 12px; background: var(--bg); padding: .8rem .9rem .7rem; margin: .7rem 0 .9rem; }
-  .result .details h3 { margin: 0 0 .5rem; }
-  .details dl { display: grid; grid-template-columns: auto 1fr; gap: .15rem .9rem; margin: 0; font-size: .88rem; }
+  .details { padding: .8rem .9rem .7rem; margin: .7rem 0 .9rem; }
+  .details h3 { margin: 0 0 .5rem; }
+  .details dl { display: grid; grid-template-columns: auto 1fr; gap: .15rem .9rem; margin: 0; font-size: var(--fs-sm); }
   .details dt { color: var(--muted); }
   .details dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
   .details .balls { margin: .6rem 0 .5rem; gap: .3rem; flex-wrap: nowrap; }
-  .details .ball { width: 1.85rem; height: 1.85rem; font-size: .82rem; }
-  .share-row { margin-top: 1rem; }
-  .share-row button { width: 100%; }
-  .share-opt { display: flex; align-items: center; justify-content: center; gap: .45rem; margin-top: .55rem; font-size: .85rem; color: var(--muted); cursor: pointer; }
-  .share-opt input { width: 1.05rem; height: 1.05rem; margin: 0; accent-color: var(--accent); }
   .details table.prizes td, .details table.prizes th { padding: .3rem .4rem; }
-  table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .share-row { margin-top: 1rem; }
+  .share-row .btn { width: 100%; }
+  .share-opt { display: flex; align-items: center; justify-content: center; gap: .45rem; margin-top: .55rem; font-size: var(--fs-sm); color: var(--muted); cursor: pointer; }
+  .share-opt input { width: 1.05rem; height: 1.05rem; margin: 0; accent-color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
   th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 600; }
   td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
@@ -441,35 +408,96 @@
   .odds th { white-space: nowrap; }
   tfoot tr.total td { border-top: 2px solid var(--border); border-bottom: none; font-weight: 800; padding-top: .5rem; }
   tfoot tr.total td.n:last-child { color: var(--hit); }
-  .none { color: var(--muted); font-size: .9rem; margin: 0; }
   @media (max-width: 420px) {
     .result table, .odds { font-size: .8rem; }
     .result th, .result td, .odds th, .odds td { padding: .35rem .3rem; }
     .odds th { white-space: normal; }
   }
 
-  #claim h3 { margin: 1.2rem 0 .4rem; font-size: .92rem; color: var(--accent); }
-  #claim h3:first-of-type { margin-top: .3rem; }
   #claim p, #claim li { font-size: .92rem; }
   #claim p { margin: .4rem 0; }
   #claim ul { margin: 0; padding-left: 1.25rem; }
   #claim li { margin: .4rem 0; }
-  a { color: var(--accent); }
-  footer { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 2rem; }
 
-  /* ---- toast ---- */
+  /* ---------- dialogs ---------- */
+  dialog.sheet {
+    border: none; padding: 0;
+    width: min(560px, calc(100vw - 16px));
+    max-height: calc(100dvh - 16px);
+    border-radius: var(--r-lg);
+    background: var(--card); color: var(--text);
+    box-shadow: var(--shadow-pop);
+  }
+  dialog.sheet.narrow { width: min(26rem, calc(100vw - 16px)); }
+  dialog.sheet::backdrop { background: rgba(10, 12, 16, .5); }
+  .ed { padding: 1.1rem 1.1rem 1.2rem; }
+  .ed h2 { margin-bottom: .8rem; }
+  .ed .seg { margin-bottom: .5rem; }
+  .ed .help { color: var(--muted); font-size: var(--fs-sm); margin: 0 0 .7rem; white-space: pre-line; }
+  .ed .foot { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+  .ed .foot .end { margin-left: auto; }
+
+  /* ---------- group pool ---------- */
+  .pool-title { appearance: none; border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+  .pool-title h2 { display: inline; }
+  .pool-title .pen { color: var(--muted); font-size: var(--fs-sm); margin-left: .4rem; }
+  .pool-sub { display: flex; align-items: center; justify-content: space-between; gap: .5rem .8rem; flex-wrap: wrap; margin: 0 0 .8rem; }
+  .pool-meta { color: var(--muted); font-size: var(--fs-sm); margin: 0; flex: 1 1 13rem; }
+  .pool-meta .code {
+    appearance: none; background: none; border: 1px dashed var(--border); border-radius: var(--r-sm); padding: .1rem .4rem;
+    font: inherit; font-weight: 700; letter-spacing: .08em; color: var(--text); cursor: pointer;
+  }
+  .live { display: inline-flex; align-items: center; gap: .3rem; font-size: var(--fs-xs); font-weight: 650; color: var(--muted); white-space: nowrap; }
+  .live::before { content: ""; width: .55rem; height: .55rem; border-radius: 50%; background: var(--muted); }
+  .live.on::before { background: var(--hit); }
+  .live.wait::before { background: var(--wait); }
+  .live.off::before { background: var(--warn); }
+  .pbets { display: grid; gap: .5rem; margin-bottom: .9rem; }
+  .pbet {
+    appearance: none; width: 100%; text-align: left; font: inherit; color: inherit;
+    padding: .6rem .75rem .65rem; cursor: pointer;
+  }
+  .pbet[aria-pressed="true"] { background: var(--card); }
+  .pbet.locked { cursor: default; }
+  .pbet.add { text-align: center; border-style: dashed; color: var(--muted); font-size: .9rem; font-weight: 650; min-height: var(--h-md); padding: 0 .75rem; }
+  .pbet .bet-top { gap: .4rem; }
+  .pbet .count { font-size: var(--fs-xs); font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .pbet .count.full { color: var(--hit); }
+  .pbet .balls { gap: .25rem .3rem; }
+  /* The bet being filled stays pinned above the grid while you pick. */
+  .pool-tools { position: sticky; top: 0; z-index: 5; background: var(--card); margin: 0 0 .7rem; padding: .5rem 0 .55rem; border-bottom: 1px solid var(--border); }
+  .pool-tools .pt-row { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+  .pool-tools .lbl { font-size: var(--fs-sm); font-weight: 700; margin-right: auto; }
+  .pool-tools .lbl small { color: var(--muted); font-weight: 700; margin-left: .4rem; font-variant-numeric: tabular-nums; }
+  .pool-tools .balls { margin-top: .45rem; gap: .25rem; }
+  .pool-bet-actions { margin: -.3rem 0 .9rem; }
+  .pool-bet-actions [data-pool="removeBet"] { margin-left: auto; } /* keep the destructive one apart */
+  .who { display: flex; flex-wrap: wrap; gap: .35rem; margin: .2rem 0 .8rem; }
+  .who span { font-size: var(--fs-xs); background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-pill); padding: .1rem .55rem; }
+  .who b { font-variant-numeric: tabular-nums; }
+  .activity { margin: 0 0 .9rem; font-size: var(--fs-sm); }
+  .activity ol { list-style: none; margin: .2rem 0 0; padding: 0; display: grid; gap: .2rem; }
+  .activity li small { color: var(--muted); }
+  .pool-actions .btn.link { margin-left: auto; }
+  .pn-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: 0 0 .7rem; font-size: .9rem; font-weight: 650; }
+  .recent-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-height: var(--h-md); padding: 0 .75rem; margin-bottom: .4rem; text-decoration: none; color: var(--text); font-weight: 650; }
+  .recent-row small { color: var(--muted); font-weight: 500; font-size: var(--fs-xs); white-space: nowrap; }
+  a.recent-row { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md); }
+  @media (hover: hover) { a.recent-row:hover { border-color: var(--accent); } }
+
+  /* ---------- toast ---------- */
   .toast {
     position: fixed; left: 50%; bottom: 1.2rem; z-index: 1000;
     transform: translate(-50%, 1rem); opacity: 0; pointer-events: none;
     background: var(--primary); color: var(--primary-ink);
-    padding: .6rem 1rem; border-radius: 999px; font-size: .9rem; font-weight: 600;
+    padding: .6rem 1rem; border-radius: var(--r-lg); font-size: .9rem; font-weight: 600;
     box-shadow: 0 6px 20px rgba(0,0,0,.25);
     transition: opacity .2s ease, transform .2s ease;
-    max-width: calc(100vw - 2rem); text-align: center;
+    width: max-content; max-width: calc(100vw - 2rem); text-align: center;
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-  /* ---- confetti and the big-win overlay ---- */
+  /* ---------- confetti and the big-win overlay ---------- */
   .burst { position: fixed; inset: 0; z-index: 998; pointer-events: none; overflow: hidden; }
   .conf {
     position: absolute; top: -10vh; font-size: 1.6rem; line-height: 1;
@@ -523,21 +551,49 @@
   <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 9V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3a3 3 0 0 0 0 6v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a3 3 0 0 0 0-6z"/><path d="M14 5v2M14 11v2M14 17v2"/></symbol>
   <symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M8.2 13.9L7 22l5-3 5 3-1.2-8.1"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></symbol>
 </svg>
 <div class="wrap">
   <header>
     <img class="logo" src="icon.svg" alt="">
-    <h1>Mark Six Checker</h1>
-    <p>Save your bets, enter the draw, see what you won.</p>
+    <div>
+      <h1>Mark Six Checker</h1>
+      <p>Save your bets, enter the draw, see what you won.</p>
+    </div>
   </header>
 
-  <div class="quick" id="quick" hidden>
-    <button class="btn" type="button" id="quickLast"><svg class="ico" aria-hidden="true"><use href="#i-calendar"/></svg>Check the last draw</button>
+  <div class="seg modes" role="group" aria-label="Whose bets to show">
+    <button type="button" id="modeMine" aria-pressed="true"><svg class="ico" aria-hidden="true"><use href="#i-ticket"/></svg>My bets</button>
+    <button type="button" id="modePool" aria-pressed="false"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Group pool</button>
   </div>
 
+  <div class="quick" id="quick" hidden>
+    <button class="btn block" type="button" id="quickLast"><svg class="ico" aria-hidden="true"><use href="#i-calendar"/></svg>Check the last draw</button>
+  </div>
+
+  <section class="card" id="poolLobby" hidden>
+    <div class="card-head"><h2>Group pool</h2></div>
+    <p class="sub">Make a pool, send the link, and everyone adds their numbers from their own phone. Anyone with the link can add or change numbers, and each number shows who picked it.</p>
+    <div id="pnRecent"></div>
+    <h3 class="sec">Start a new pool</h3>
+    <label class="field">Pool name
+      <input class="input" type="text" id="pnTitle" maxlength="40" placeholder="Mark Six pool" autocomplete="off">
+    </label>
+    <label class="field">Your name
+      <input class="input" type="text" id="pnName" maxlength="20" placeholder="e.g. Kevin" autocomplete="nickname">
+    </label>
+    <div class="pn-row"><span>Bets</span><span class="stepper"><button type="button" data-pn="bets" data-d="-1" aria-label="Fewer bets">−</button><span id="pnBets">2</span><button type="button" data-pn="bets" data-d="1" aria-label="More bets">+</button></span></div>
+    <div class="pn-row"><span>Numbers in each bet</span><span class="stepper"><button type="button" data-pn="size" data-d="-1" aria-label="Fewer numbers">−</button><span id="pnSize">7</span><button type="button" data-pn="size" data-d="1" aria-label="More numbers">+</button></span></div>
+    <p class="status" id="pnCost"></p>
+    <button class="btn block" id="pnCreate" type="button">Create pool</button>
+    <p class="note">A pool is removed 60 days after its last change, or after 2 days if nobody adds a number to it.</p>
+    <h3 class="sec">Have a link or code?</h3>
+    <div class="row"><input class="input" type="text" id="pnCode" maxlength="80" placeholder="Paste the link or code" autocomplete="off" style="flex:1;width:auto"><button class="btn ghost" id="pnJoin" type="button">Join</button></div>
+  </section>
+
   <section class="card" id="poolCard" hidden>
-    <div class="pool-head">
+    <div class="card-head">
       <button class="pool-title" type="button" id="poolTitle" title="Rename the pool"><h2 id="poolTitleText">Group pool</h2><span class="pen"><svg class="ico solo" aria-hidden="true"><use href="#i-pencil"/></svg></span></button>
       <span class="live" id="poolLive" aria-live="polite"></span>
     </div>
@@ -546,41 +602,40 @@
       <button class="btn small" type="button" id="poolInvite"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg>Invite friends</button>
     </div>
     <div id="poolBody">
-      <label class="you">You
-        <input type="text" id="poolName" maxlength="20" placeholder="Your name — shows who picked what" autocomplete="nickname">
+      <label class="field inline">You
+        <input class="input" type="text" id="poolName" maxlength="20" placeholder="Your name — shows who picked what" autocomplete="nickname">
       </label>
-      <div class="banner lock-note" id="poolLockNote" hidden></div>
+      <div class="banner" id="poolLockNote" hidden></div>
       <div class="pbets" id="poolBets"></div>
       <div class="pool-tools" id="poolTools"></div>
       <div class="grid" id="poolGrid"></div>
       <div class="row pool-bet-actions" id="poolBetActions"></div>
       <div class="who" id="poolWho"></div>
       <details class="activity" id="poolActivity"><summary>Recent changes</summary><ol id="poolLog"></ol></details>
-      <div class="row">
+      <div class="row pool-actions">
         <button class="btn ghost small" type="button" id="poolSave">Save to my bets</button>
         <button class="btn ghost small" type="button" id="poolPng"><svg class="ico" aria-hidden="true"><use href="#i-image"/></svg>Export PNG</button>
         <button class="btn ghost small" type="button" id="poolLock"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg>Lock</button>
-        <button class="linkish" type="button" id="poolLeave" style="margin-left:auto">Leave pool</button>
+        <button class="btn link small" type="button" id="poolLeave">Leave pool</button>
       </div>
     </div>
-    <div class="pool-gone" id="poolGone" hidden></div>
+    <div class="blank" id="poolGone" hidden></div>
   </section>
 
   <section class="card" id="betsCard">
     <div class="card-head">
       <h2 id="betsTitle">My bets</h2>
       <div class="row" id="betsActions">
-        <button class="btn ghost small" id="poolBtn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Group pool</button>
         <button class="btn ghost small" id="shareBtn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg>Share</button>
-        <button class="btn small" id="addBtn" type="button">+ Add bet</button>
+        <button class="btn small" id="addBtn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Add bet</button>
       </div>
     </div>
     <div id="bets"></div>
   </section>
 
-  <section class="card">
-    <h2>Check a draw</h2>
-    <p class="sub">Tap a number again to remove it. Random draw makes a what-if draw.</p>
+  <section class="card" id="checkCard">
+    <div class="card-head"><h2>Check a draw</h2></div>
+    <p class="sub">Load the official result, or tap the 6 drawn numbers and then the special. Tap a number again to remove it.</p>
 
     <div class="picker">
       <div class="past">
@@ -596,8 +651,7 @@
       <div class="grid" id="grid"></div>
 
       <div class="row draw-actions">
-        <button class="btn" id="dipBtn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-dice"/></svg>Random draw</button>
-        <button class="btn ghost" id="sortBtn" type="button">Sort ↑</button>
+        <button class="btn ghost" id="dipBtn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-dice"/></svg>Random draw</button>
         <button class="btn ghost" id="clearBtn" type="button">Clear</button>
       </div>
     </div>
@@ -660,14 +714,14 @@
     </ul>
   </details>
 
-  <footer>Not affiliated with the HKJC. Your bets are saved in this browser only; a group pool is kept on the pool server so everyone with its link can see and change it. Results are fetched from HKJC only when you tap Last draw or Past 5.<br>v2026-11-24</footer>
+  <footer>Not affiliated with the HKJC. Your bets are saved in this browser only; a group pool is kept on the pool server so everyone with its link can see and change it. Results are fetched from HKJC only when you tap Last draw or Past 5.<br>v2026-11-25</footer>
 </div>
 
-<dialog id="editor" aria-labelledby="edTitle">
+<dialog id="editor" class="sheet" aria-labelledby="edTitle">
   <div class="ed">
     <h2 id="edTitle" tabindex="-1">New bet</h2>
-    <label class="name">Name (optional)
-      <input type="text" id="edName" maxlength="40" placeholder="Bet 1" autocomplete="off">
+    <label class="field">Name (optional)
+      <input class="input" type="text" id="edName" maxlength="40" placeholder="Bet 1" autocomplete="off">
     </label>
     <div class="seg" role="group" aria-label="Tap numbers as">
       <button type="button" id="roleLegs" aria-pressed="true">Numbers</button>
@@ -682,7 +736,7 @@
     </div>
     <div class="foot">
       <button class="btn danger" id="edDelete" type="button">Delete</button>
-      <div class="row" style="margin-left:auto">
+      <div class="row end">
         <button class="btn ghost" id="edCancel" type="button">Cancel</button>
         <button class="btn" id="edSave" type="button">Save bet</button>
       </div>
@@ -690,29 +744,16 @@
   </div>
 </dialog>
 
-<dialog id="poolNew" aria-labelledby="pnHead">
-  <div class="ed pn">
-    <h2 id="pnHead" tabindex="-1"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Group pool</h2>
-    <p class="help">Make a pool, send the link, and everyone adds their numbers from their own phone. Anyone with the link can add or change numbers, and each number shows who picked it.</p>
-    <label class="name">Pool name
-      <input type="text" id="pnTitle" maxlength="40" placeholder="Mark Six pool" autocomplete="off">
-    </label>
-    <label class="name">Your name
-      <input type="text" id="pnName" maxlength="20" placeholder="e.g. Kevin" autocomplete="nickname">
-    </label>
-    <div class="pn-row"><span>Bets</span><span class="stepper"><button type="button" data-pn="bets" data-d="-1" aria-label="Fewer bets">−</button><span id="pnBets">2</span><button type="button" data-pn="bets" data-d="1" aria-label="More bets">+</button></span></div>
-    <div class="pn-row"><span>Numbers in each bet</span><span class="stepper"><button type="button" data-pn="size" data-d="-1" aria-label="Fewer numbers">−</button><span id="pnSize">7</span><button type="button" data-pn="size" data-d="1" aria-label="More numbers">+</button></span></div>
-    <p class="status" id="pnCost"></p>
+<dialog id="ask" class="sheet narrow" aria-labelledby="askTitle">
+  <form class="ed" method="dialog">
+    <h2 id="askTitle"></h2>
+    <p class="help" id="askText"></p>
+    <input class="input" type="text" id="askInput" autocomplete="off" style="margin-bottom:1rem" hidden>
     <div class="foot">
-      <button class="btn ghost" id="pnCancel" type="button">Cancel</button>
-      <button class="btn" id="pnCreate" type="button">Create pool</button>
+      <button class="btn ghost" id="askCancel" type="button">Cancel</button>
+      <button class="btn end" id="askOk" type="submit" value="ok">OK</button>
     </div>
-    <div class="recent">
-      <h3>Have a link or code?</h3>
-      <div class="row"><input type="text" id="pnCode" maxlength="80" placeholder="Paste the link or code" autocomplete="off" style="flex:1"><button class="btn ghost small" id="pnJoin" type="button">Join</button></div>
-      <div id="pnRecent"></div>
-    </div>
-  </div>
+  </form>
 </dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -965,7 +1006,7 @@
   // Link format: #b=Name:bankers-legs (repeatable), plus d=mains&s=special when a draw is entered.
   function shareUrl() {
     const p = new URLSearchParams();
-    activeBets().forEach((b, i) => p.append("b", `${betName(b, i)}:${b.bankers.join(".")}-${b.legs.join(".")}`));
+    activeBets().forEach(b => p.append("b", `${b.name}:${b.bankers.join(".")}-${b.legs.join(".")}`));
     if (isComplete()) { p.set("d", mains.join(".")); p.set("s", special); }
     return location.href.split("#")[0] + "#" + p.toString();
   }
@@ -990,6 +1031,8 @@
   let myBets = loadBets();
   let shared = null; // { bets } while looking at bets from a share link
   let pool = null; // the group pool open now (see "group pool" below)
+  let lobby = false; // the Group pool view with no pool open: make or join one
+  let lastPool = null; // the pool left by going to My bets, to come back to
   // A pool's bets that are ready to check: 6 or more numbers.
   const poolReadyBets = () => (pool && pool.state ? pool.state.bets : [])
     .filter(b => b.picks.length >= MAIN_COUNT)
@@ -1029,6 +1072,41 @@
     toastTimer = setTimeout(() => toastEl.classList.remove("show"), Math.max(2600, msg.length * 60));
   }
 
+  // ---------- asking ----------
+  // The page's own confirm and prompt, dressed like its other dialogs. Resolves
+  // true or false for a question; with `input`, the text typed, or null.
+  const askDlg = document.getElementById("ask"), askInput = document.getElementById("askInput"), askOk = document.getElementById("askOk");
+  let askDone = null;
+  function ask({ title, text = "", ok = "OK", danger = false, input = null, maxLength = 80 }) {
+    return new Promise(resolve => {
+      const note = document.getElementById("askText");
+      document.getElementById("askTitle").textContent = title;
+      note.textContent = text;
+      note.hidden = !text;
+      askInput.hidden = input == null;
+      askInput.maxLength = maxLength;
+      askInput.value = input ?? "";
+      askOk.textContent = ok;
+      askOk.className = "btn end" + (danger ? " danger" : "");
+      askDone = resolve;
+      askDlg.showModal();
+      if (input != null) askInput.select();
+    });
+  }
+  // Answer as soon as it's given: the dialog's own close event can come a frame or more later.
+  function askFinish(yes) {
+    const done = askDone;
+    askDone = null;
+    if (askDlg.open) askDlg.close();
+    if (done) done(askInput.hidden ? yes : yes ? askInput.value : null);
+  }
+  askDlg.querySelector("form").addEventListener("submit", e => { e.preventDefault(); askFinish(true); });
+  document.getElementById("askCancel").addEventListener("click", () => askFinish(false));
+  askDlg.addEventListener("click", e => { if (e.target === askDlg) askFinish(false); });
+  askDlg.addEventListener("close", () => { if (!askDlg.open) askFinish(false); }); // Escape (not the late close of an earlier question)
+  // A link the browser wouldn't copy: show it to copy by hand.
+  const showToCopy = (what, value) => ask({ title: `Copy this ${what}`, input: value, ok: "Done", maxLength: 4000 });
+
   // ---------- bet list ----------
   const betsEl = document.getElementById("bets");
   const plainBall = n => `<span class="ball ${ballColor(n)}">${n}</span>`; // a drawn number, no hit ring
@@ -1039,13 +1117,14 @@
     ? `<span class="pb">${html}<small title="${esc(bet.who[n] || "")}">${bet.who[n] ? esc(bet.who[n]) : "&nbsp;"}</small></span>`
     : html;
   function renderBets(hits) {
-    document.getElementById("betsCard").hidden = !!pool;
-    if (pool) return;
+    document.getElementById("betsCard").hidden = !!pool || lobby;
+    if (pool || lobby) return;
     const bets = activeBets();
     document.getElementById("betsTitle").textContent = shared ? "Shared bets" : "My bets";
     document.getElementById("betsActions").hidden = !!shared;
     document.getElementById("shareBtn").disabled = !bets.length;
 
+    const more = betsEl.querySelector("details.more"), moreOpen = !!more && more.open; // stays as the person left it
     let html = "";
     if (shared) {
       html += `<div class="banner">${ico("link")}You opened a shared link with ${plural(bets.length, "bet")}. They aren't saved yet.` +
@@ -1053,8 +1132,8 @@
         `<button class="btn ghost small" type="button" data-act="leave-shared">Back to my bets</button></div></div>`;
     }
     if (!bets.length) {
-      html += `<div class="empty"><div class="big">${ico("ticket")}</div>No bets yet. Add the numbers on your ticket to check them against each draw.` +
-        `<div class="row" style="justify-content:center;margin-top:.8rem"><button class="btn" type="button" data-act="add">+ Add your first bet</button>` +
+      html += `<div class="blank"><div class="big">${ico("ticket")}</div>No bets yet. Add the numbers on your ticket to check them against each draw.` +
+        `<div class="row"><button class="btn" type="button" data-act="add">${ico("plus")}Add your first bet</button>` +
         (shared ? "" : `<button class="btn ghost" type="button" data-act="import" title="${CSV_HINT}">${ico("upload")}Import CSV</button>`) +
         `</div></div>`;
     }
@@ -1076,11 +1155,11 @@
       html += `<p class="totals">${plural(bets.length, "bet")} · ${plural(combos, "combination")} · ${money(combos * UNIT_STAKE)} per draw</p>` +
         (mains.length || special != null ? `<p class="legend"><span class="ring gold"></span>drawn number &nbsp;·&nbsp; <span class="ring silver"></span>special number</p>` : "");
       if (!shared) {
-        html += `<div class="row io">` +
+        html += `<details class="more"${moreOpen ? " open" : ""}><summary>Import, export and clear</summary><div class="row">` +
           `<button class="btn ghost small" type="button" data-act="import" title="${CSV_HINT}">${ico("upload")}Import CSV</button>` +
           `<button class="btn ghost small" type="button" data-act="export">${ico("download")}Export CSV</button>` +
           `<button class="btn ghost small" type="button" data-act="export-png">${ico("image")}Export PNG</button>` +
-          `<button class="btn danger small" type="button" data-act="clear-all">Clear all</button></div>`;
+          `<button class="btn danger small" type="button" data-act="clear-all">Clear all</button></div></details>`;
       }
     }
     betsEl.innerHTML = html;
@@ -1100,9 +1179,9 @@
   });
   document.getElementById("addBtn").addEventListener("click", () => openEditor(null));
 
-  function clearAllBets() {
+  async function clearAllBets() {
     const n = myBets.length;
-    if (!n || !confirm(`Delete all ${plural(n, "bet")}? This can't be undone — export a CSV first if you want a backup.`)) return;
+    if (!n || !await ask({ title: `Delete all ${plural(n, "bet")}?`, text: "This can't be undone. Export a CSV first if you want a backup.", ok: "Delete all", danger: true })) return;
     myBets = [];
     const stored = storeBets();
     update();
@@ -1120,7 +1199,7 @@
     return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const betsToCsv = bets =>
-    [["name", "bankers", "legs"], ...bets.map((b, i) => [betName(b, i), b.bankers.join(" "), b.legs.join(" ")])]
+    [["name", "bankers", "legs"], ...bets.map(b => [b.name, b.bankers.join(" "), b.legs.join(" ")])]
       .map(r => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
 
   function parseCsv(text) {
@@ -1215,7 +1294,7 @@
       catch (err) { if (err && err.name === "AbortError") return; }
     }
     try { await navigator.clipboard.writeText(url); toast("Link copied — paste it anywhere."); }
-    catch { window.prompt("Copy this link:", url); }
+    catch { showToCopy("link", url); }
   });
   function clearHash() {
     history.replaceState(null, "", location.pathname + location.search);
@@ -1249,9 +1328,15 @@
     toast(addSummary(r, "Saved"));
   }
   function applyHash() {
-    const code = poolCodeFrom(location.hash.slice(1));
-    if (code) { shared = null; openPool(code); return; }
+    const hash = location.hash.slice(1), code = poolCodeFrom(hash);
+    if (code && !poolsUnavailable()) { shared = null; lobby = false; openPool(code); return; }
     if (pool) closePool();
+    if (code || /(^|&)pool=/i.test(hash)) { // a pool link that can't be opened
+      if (!code) toast("That pool link isn't complete — a pool code is 6 letters and numbers. Ask for the link again.");
+      shared = null;
+      clearHash();
+      return;
+    }
     const parsed = parseHash();
     shared = parsed && parsed.bets.length ? { bets: parsed.bets } : null;
     if (parsed && parsed.draw) { stopRandomDraw(); mains = parsed.draw.mains; special = parsed.draw.special; }
@@ -1342,8 +1427,8 @@
     if (edFlashTimer) return;
     edStatus.className = "status" + (err ? " warn" : "");
     if (err) { edStatus.textContent = err; return; }
-    const bet = { bankers: draft.bankers, legs: draft.legs }, combos = combosOf(bet);
-    edStatus.textContent = `${betKind(bet)} · ${plural(combos, "combo")} · ${money(combos * UNIT_STAKE)}`;
+    const bet = { bankers: draft.bankers, legs: draft.legs };
+    edStatus.textContent = betTag(bet);
   }
   document.getElementById("roleLegs").addEventListener("click", () => { role = "legs"; renderEditor(); });
   document.getElementById("roleBankers").addEventListener("click", () => { role = "bankers"; renderEditor(); });
@@ -1365,10 +1450,11 @@
   // (not a text selection dragged out of the dialog), and confirm before dropping edits.
   let edDownOnBackdrop = false;
   editor.addEventListener("pointerdown", e => { edDownOnBackdrop = e.target === editor; });
-  editor.addEventListener("click", e => {
-    if (e.target === editor && edDownOnBackdrop && (!edDirty() || confirm("Discard your changes to this bet?"))) editor.close();
-  });
-  editor.addEventListener("cancel", e => { if (edDirty() && !confirm("Discard your changes to this bet?")) e.preventDefault(); });
+  async function closeEditor() {
+    if (!edDirty() || await ask({ title: "Discard your changes to this bet?", ok: "Discard", danger: true })) editor.close();
+  }
+  editor.addEventListener("click", e => { if (e.target === editor && edDownOnBackdrop) closeEditor(); });
+  editor.addEventListener("cancel", e => { if (edDirty()) { e.preventDefault(); closeEditor(); } });
   edName.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); edName.blur(); } });
   document.getElementById("edSave").addEventListener("click", () => {
     const old = myBets.find(b => b.id === draft.id);
@@ -1383,9 +1469,11 @@
     update();
     if (stored) toast(i >= 0 ? "Bet updated." : "Bet saved.");
   });
-  document.getElementById("edDelete").addEventListener("click", () => {
-    const idx = myBets.findIndex(b => b.id === draft.id);
-    if (idx < 0 || !confirm(`Delete ${betName(myBets[idx], idx)}?`)) return;
+  document.getElementById("edDelete").addEventListener("click", async () => {
+    const id = draft.id, was = myBets.findIndex(b => b.id === id);
+    if (was < 0 || !await ask({ title: `Delete ${betName(myBets[was], was)}?`, ok: "Delete", danger: true })) return;
+    const idx = myBets.findIndex(b => b.id === id);
+    if (idx < 0) return;
     myBets.splice(idx, 1);
     const stored = storeBets();
     editor.close();
@@ -1408,7 +1496,7 @@
       }
       const val = isSpecial ? special : mains[i];
       const field = document.createElement("div");
-      field.className = "field";
+      field.className = "slot-wrap";
       const slot = document.createElement("button");
       slot.type = "button";
       slot.className = "slot" + (isSpecial ? " special" : "") +
@@ -1435,7 +1523,6 @@
   const gridEl = document.getElementById("grid");
   const cells = makeGrid(gridEl, tap);
   function refreshGrid() {
-    gridEl.classList.toggle("want-special", mains.length === MAIN_COUNT && special == null);
     for (let n = 1; n <= 49; n++) {
       const picked = isPicked(n);
       cells[n].classList.toggle("pick", picked);
@@ -1718,7 +1805,7 @@
   // list of bets, or under a pool once it's locked (the ticket's bought).
   function renderQuick() {
     const ready = activeBets().length, noDraw = !mains.length && special == null && !dipping;
-    document.getElementById("quick").hidden = !(noDraw && (pool ? ready && pool.state && pool.state.locked : ready >= 3));
+    document.getElementById("quick").hidden = !(noDraw && !lobby && (pool ? ready && pool.state && pool.state.locked : ready >= 3));
   }
   // Past 5: show or hide the list (fetching it the first time).
   pastBtn.addEventListener("click", async () => {
@@ -1735,7 +1822,8 @@
   const resultEl = document.getElementById("result");
   // Re-render (and celebrate) only when the draw or the bets change, so Sort or
   // an unrelated re-render never replays the confetti.
-  let shownKey = null, shownDraw = null;
+  let shownKey = null, shownDraw = null, shownView = null;
+  const viewName = () => pool ? "pool" : shared ? "shared" : "mine";
   let resultSummary = null; // what the result shows, for the share image
   function renderResult(hits) {
     const bets = activeBets(), official = currentOfficial(), dividends = official && official.dividends;
@@ -1743,11 +1831,14 @@
       ? [...mains].sort(byNum).join(",") + "+" + special + "|" + (official ? officialKey(official) : "")
       : null;
     const key = drawKey && drawKey + "|" + bets.map((b, i) => betName(b, i) + ":" + betKey(b)).join(";");
+    const switched = viewName() !== shownView;
+    shownView = viewName();
     if (key === shownKey) return;
     shownKey = key;
-    // A pool's bets change under you as people pick: show the new result, but
-    // don't jump to it or celebrate again for a draw that's already showing.
-    const quiet = !!pool && drawKey === shownDraw;
+    // A pool's bets change under you as people pick, and going between My
+    // bets and a pool swaps them: show the new result, but don't jump to it or
+    // celebrate again for a draw that's already showing.
+    const quiet = drawKey === shownDraw && (!!pool || switched);
     shownDraw = drawKey;
     if (!key) { resultEl.hidden = true; resultEl.innerHTML = ""; resultSummary = null; hideBigWin(); return; }
     const drawn = [...mains].sort(byNum);
@@ -1797,8 +1888,7 @@
       html += `</tbody><tfoot><tr class="total"><td colspan="3">Total${t.unknownPool ? " (fixed prizes)" : ""}</td>` +
               `<td class="n">${money(t.total)}</td></tr></tfoot></table>`;
     });
-    resultSummary = { official, mains: drawn, special, won, fixedTotal, unknownPool, best, winningCombos, bets: perBet,
-      title: pool && pool.state ? pool.state.title : "My bets" };
+    resultSummary = { official, mains: drawn, special, won, fixedTotal, unknownPool, best, winningCombos, bets: perBet };
     const hasNames = perBet.some(b => b.who);
     resultEl.innerHTML = html + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">${ico("image")}Share result as image</button></div>` +
       (hasNames ? `<label class="share-opt"><input type="checkbox" id="shareNames"${shareNamesPref() ? " checked" : ""}> Show who picked each number</label>` : "");
@@ -2159,7 +2249,8 @@
     if (!resultSummary) return;
     const o = resultSummary.official;
     const box = document.getElementById("shareNames");
-    shareCanvas(drawResultImage(resultSummary, !!box && box.checked), `marksix-${o ? o.label.replace("/", "-") : "result"}.png`, "Mark Six result");
+    const title = pool && pool.state ? pool.state.title : shared ? "Shared bets" : "My bets"; // as it is now, not when the result was drawn
+    shareCanvas(drawResultImage({ ...resultSummary, title }, !!box && box.checked), `marksix-${o ? o.label.replace("/", "-") : "result"}.png`, "Mark Six result");
   }
   function sharePoolImage() {
     if (!pool || !pool.state) return;
@@ -2223,7 +2314,6 @@
 
   // ---------- draw buttons ----------
   const dipBtn = document.getElementById("dipBtn");
-  const sortBtn = document.getElementById("sortBtn");
   const clearBtn = document.getElementById("clearBtn");
 
   // Random draw: fill the empty slots one by one (re-rolls a full draw).
@@ -2251,13 +2341,6 @@
     dipTimer = setTimeout(step, delay ? 120 : 0);
   });
 
-  // Sort the drawn main numbers ascending; the special stays in its slot.
-  sortBtn.addEventListener("click", () => {
-    mains.sort(byNum);
-    lastAdded = null;
-    update();
-  });
-
   clearBtn.addEventListener("click", () => {
     mains = [];
     special = null;
@@ -2278,6 +2361,15 @@
   const POOL_MIN_SIZE = 6, POOL_MAX_SIZE = 15, POOL_MAX_BETS = 6;
   const PING_FRAME = '{"t":"ping"}', PING_MS = 25000, QUIET_MS = 60000, CHECK_MS = 5000;
   const FULL_RETRY_MS = 15000, BUSY_RETRY_MS = 60000; // how long to wait when the pool is full, or this network over its rate
+  const LOOKUP_MS = 4000; // how long to wait to learn why a connection was turned away
+  const SITE = "app.kevinlhc.com/marksix";
+  // The pool server only answers the website: a copy of the page opened from a
+  // file can't use it, so say that instead of failing.
+  function poolsUnavailable() {
+    if (location.protocol !== "file:") return false;
+    toast(`Group pools need the website: open ${SITE} instead of the file on your computer.`);
+    return true;
+  }
 
   // A code from a hash ("pool=AC9XK3"), a pasted link, or the code itself.
   function poolCodeFrom(text) {
@@ -2409,16 +2501,19 @@
     p.status = "offline";
     p.why = "";
     if (!opened) {
+      if (pool === p) renderPool();
+      const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), LOOKUP_MS);
       try {
-        const r = await fetch(`${POOL_API}/pools/${p.code}`);
+        const r = await fetch(`${POOL_API}/pools/${p.code}`, { signal: ctl.signal });
         if (r.status === 404) {
           forgetPool(p.code);
+          if (lastPool === p.code) lastPool = null;
           if (pool === p && !p.ws) { p.status = "gone"; p.state = null; p.pending.clear(); update(); }
           return;
         }
         if (r.status === 429) p.why = "busy";
         else if (r.ok && (await r.json()).full) p.why = "full";
-      } catch {}
+      } catch {} finally { clearTimeout(timer); }
       if (p.ws) return; // connecting again already
     }
     if (pool === p) renderPool();
@@ -2450,6 +2545,8 @@
     p.checkTimer = setTimeout(() => { if (p.heard < asked) poolDrop(p, ws); }, CHECK_MS);
   }
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") poolCheck(); });
+  // "2m ago" goes stale on a pool nobody is changing: redraw it now and then.
+  setInterval(() => { if (pool && pool.state && !document.hidden) renderPool(); }, 60000);
   window.addEventListener("online", poolCheck);
 
   // Send a change. Adding or removing a number shows at once; the pool the
@@ -2512,7 +2609,7 @@
     if (gone) {
       document.getElementById("poolMeta").textContent = "";
       document.getElementById("poolGone").innerHTML = `There's no pool with code <strong>${esc(pool.code)}</strong> — it may have closed, or the link is wrong.` +
-        `<div class="row" style="justify-content:center;margin-top:.8rem"><button class="btn small" type="button" data-pool="leave">Back to my bets</button></div>`;
+        `<div class="row"><button class="btn" type="button" data-pool="leave">Back to my bets</button></div>`;
       return;
     }
     if (!st) { document.getElementById("poolMeta").textContent = `Code ${pool.code} · ${why ? why[1] : "loading…"}`; return; }
@@ -2561,7 +2658,7 @@
         `<span class="stepper" title="How many numbers ${esc(bet.name)} takes"><button type="button" data-pool="size" data-d="-1" aria-label="Fewer numbers"${bet.size <= Math.max(POOL_MIN_SIZE, bet.picks.length) ? " disabled" : ""}>−</button>` +
         `<span>${bet.size}</span><button type="button" data-pool="size" data-d="1" aria-label="More numbers"${bet.size >= POOL_MAX_SIZE ? " disabled" : ""}>+</button></span></div>` +
         `<div class="balls">${bet.picks.map(p => p.n).sort(byNum).map(plainBall).join("")}` +
-        `<span class="ball open"></span>`.repeat(Math.max(0, bet.size - bet.picks.length)) + `</div>`;
+        `<span class="ball empty"></span>`.repeat(Math.max(0, bet.size - bet.picks.length)) + `</div>`;
       document.getElementById("poolBetActions").innerHTML =
         `<button class="btn ghost small" type="button" data-pool="rename">${ico("pencil")}Rename</button>` +
         `<button class="btn ghost small" type="button" data-pool="clear"${bet.picks.length ? "" : " disabled"}>Clear numbers</button>` +
@@ -2612,38 +2709,38 @@
     pool.selected = b.dataset.bet;
     renderPool();
   });
-  poolCard.addEventListener("click", e => {
+  poolCard.addEventListener("click", async e => {
     const btn = e.target.closest("button[data-pool]");
     if (!btn || !pool) return;
-    const act = btn.dataset.pool, bet = selectedPoolBet();
+    const p = pool, act = btn.dataset.pool, bet = selectedPoolBet();
+    const still = () => pool === p; // an answer can come after the pool was left
     if (act === "leave") leavePool();
     else if (act === "copy-code") {
-      (navigator.clipboard ? navigator.clipboard.writeText(pool.code) : Promise.reject())
-        .then(() => toast("Code copied."), () => window.prompt("Copy this code:", pool.code));
-    }
-    else if (act === "unlock") {
-      if (confirm("Unlock the pool? Everyone will be able to change the numbers again, so they may no longer match the ticket.")) poolSend({ t: "unlock" });
-    }
-    else if (act === "size" && bet) {
+      (navigator.clipboard ? navigator.clipboard.writeText(p.code) : Promise.reject())
+        .then(() => toast("Code copied."), () => showToCopy("code", p.code));
+    } else if (act === "unlock") {
+      if (await ask({ title: "Unlock the pool?", text: "Everyone will be able to change the numbers again, so they may no longer match the ticket.", ok: "Unlock" }) && still()) poolSend({ t: "unlock" });
+    } else if (act === "size" && bet) {
       const size = bet.size + Number(btn.dataset.d);
       if (size < bet.picks.length) { toast(`${bet.name} already has ${bet.picks.length} numbers — remove some first.`); return; }
       if (size >= POOL_MIN_SIZE && size <= POOL_MAX_SIZE) poolSend({ t: "size", bet: bet.id, size });
     } else if (act === "rename" && bet) {
-      const name = prompt("Name this bet:", bet.name);
-      if (name && name.trim() && name.trim() !== bet.name) poolSend({ t: "rename", bet: bet.id, name });
+      const name = await ask({ title: "Rename this bet", input: bet.name, ok: "Rename", maxLength: 24 });
+      if (name && name.trim() && name.trim() !== bet.name && still()) poolSend({ t: "rename", bet: bet.id, name });
     } else if (act === "clear" && bet) {
-      if (confirm(`Remove all ${plural(bet.picks.length, "number")} from ${bet.name}? This clears everyone's picks in it.`)) poolSend({ t: "clear", bet: bet.id });
+      if (await ask({ title: `Clear ${bet.name}?`, text: `This removes all ${plural(bet.picks.length, "number")} from it, everyone's picks included.`, ok: "Clear", danger: true }) && still()) poolSend({ t: "clear", bet: bet.id });
     } else if (act === "addBet") {
       if (poolSend({ t: "addBet" })) pool.selectAfter = pool.state.bets.length; // pick the new bet when it comes
     } else if (act === "removeBet" && bet) {
-      if (confirm(`Remove ${bet.name}${bet.picks.length ? ` and its ${plural(bet.picks.length, "number")}` : ""} for everyone?`)) poolSend({ t: "removeBet", bet: bet.id });
+      const text = `It's removed for everyone${bet.picks.length ? `, with its ${plural(bet.picks.length, "number")}` : ""}.`;
+      if (await ask({ title: `Remove ${bet.name}?`, text, ok: "Remove", danger: true }) && still()) poolSend({ t: "removeBet", bet: bet.id });
     }
   });
 
-  document.getElementById("poolTitle").addEventListener("click", () => {
+  document.getElementById("poolTitle").addEventListener("click", async () => {
     if (!pool || !pool.state) return;
-    const title = prompt("Name this pool:", pool.state.title);
-    if (title && title.trim() && title.trim() !== pool.state.title) poolSend({ t: "title", title });
+    const p = pool, title = await ask({ title: "Rename the pool", input: p.state.title, ok: "Rename", maxLength: 40 });
+    if (title && title.trim() && pool === p && p.state && title.trim() !== p.state.title) poolSend({ t: "title", title });
   });
   document.getElementById("poolInvite").addEventListener("click", async () => {
     if (!pool) return;
@@ -2654,7 +2751,7 @@
       catch (err) { if (err && err.name === "AbortError") return; }
     }
     try { await navigator.clipboard.writeText(url); toast("Pool link copied — send it to your friends."); }
-    catch { window.prompt("Copy this link:", url); }
+    catch { showToCopy("link", url); }
   });
   document.getElementById("poolSave").addEventListener("click", () => {
     const title = pool && pool.state ? pool.state.title : "";
@@ -2662,60 +2759,79 @@
     if (r.added && !storeBets()) return;
     toast(addSummary(r, "Saved"));
   });
-  document.getElementById("poolLock").addEventListener("click", () => {
+  document.getElementById("poolLock").addEventListener("click", async () => {
     if (!pool || !pool.state) return;
-    const short = pool.state.bets.filter(b => b.picks.length < MAIN_COUNT).map(b => b.name);
+    const p = pool, short = p.state.bets.filter(b => b.picks.length < MAIN_COUNT).map(b => b.name);
     const warn = short.length ? `\n\n${short.join(", ")} ${short.length === 1 ? "doesn't" : "don't"} have 6 numbers yet.` : "";
-    if (confirm(`Lock the pool? Do this once the ticket is bought: nobody can change the numbers until someone unlocks it.${warn}`)) poolSend({ t: "lock" });
+    if (await ask({ title: "Lock the pool?", text: `Do this once the ticket is bought: nobody can change the numbers until someone unlocks it.${warn}`, ok: "Lock" }) && pool === p) poolSend({ t: "lock" });
   });
   document.getElementById("poolPng").addEventListener("click", () => sharePoolImage());
-  document.getElementById("poolLeave").addEventListener("click", leavePool);
-  function leavePool() {
+  // Leave pool goes to the Group pool view, to open or make another.
+  document.getElementById("poolLeave").addEventListener("click", () => leavePool({ toLobby: true }));
+  // Close the pool. `remember` keeps it to come back to from My bets;
+  // `toLobby` lands on the Group pool view instead of My bets.
+  function leavePool({ remember = false, toLobby = false } = {}) {
+    lastPool = remember && pool && pool.status !== "gone" ? pool.code : null;
+    lobby = toLobby;
     closePool();
     clearHash();
+    if (toLobby) renderPoolNew();
     update();
   }
 
+  // ---- the two views ----
+  const modeMine = document.getElementById("modeMine"), modePool = document.getElementById("modePool");
+  const poolLobby = document.getElementById("poolLobby");
+  function renderModes() {
+    const inPool = !!pool || lobby;
+    modeMine.setAttribute("aria-pressed", !inPool);
+    modePool.setAttribute("aria-pressed", inPool);
+    poolLobby.hidden = !(lobby && !pool);
+  }
+  modeMine.addEventListener("click", () => {
+    if (pool) leavePool({ remember: true });
+    else { lobby = false; update(); }
+  });
+  modePool.addEventListener("click", () => {
+    if (pool || lobby || poolsUnavailable()) return;
+    if (lastPool) { location.hash = "pool=" + lastPool; return; } // back to the pool that was open
+    lobby = true;
+    document.getElementById("pnName").value = poolMyName();
+    document.getElementById("pnCode").value = "";
+    renderPoolNew();
+    update();
+  });
+
   // ---- making or joining a pool ----
-  const poolNew = document.getElementById("poolNew");
   const pn = { bets: 2, size: 7 };
   function renderPoolNew() {
     document.getElementById("pnBets").textContent = pn.bets;
     document.getElementById("pnSize").textContent = pn.size;
-    poolNew.querySelector('[data-pn="bets"][data-d="-1"]').disabled = pn.bets <= 1;
-    poolNew.querySelector('[data-pn="bets"][data-d="1"]').disabled = pn.bets >= POOL_MAX_BETS;
-    poolNew.querySelector('[data-pn="size"][data-d="-1"]').disabled = pn.size <= POOL_MIN_SIZE;
-    poolNew.querySelector('[data-pn="size"][data-d="1"]').disabled = pn.size >= POOL_MAX_SIZE;
+    poolLobby.querySelector('[data-pn="bets"][data-d="-1"]').disabled = pn.bets <= 1;
+    poolLobby.querySelector('[data-pn="bets"][data-d="1"]').disabled = pn.bets >= POOL_MAX_BETS;
+    poolLobby.querySelector('[data-pn="size"][data-d="-1"]').disabled = pn.size <= POOL_MIN_SIZE;
+    poolLobby.querySelector('[data-pn="size"][data-d="1"]').disabled = pn.size >= POOL_MAX_SIZE;
     const combos = C(pn.size, MAIN_COUNT);
     document.getElementById("pnCost").textContent =
       `${plural(pn.bets, "bet")} of ${pn.size} numbers · ${plural(combos * pn.bets, "combo")} · ${money(combos * pn.bets * UNIT_STAKE)} per draw` +
       (pn.bets > 1 ? ` (${money(combos * UNIT_STAKE)} each)` : "");
     const recent = recentPools();
     document.getElementById("pnRecent").innerHTML = recent.length
-      ? `<h3 style="margin-top:.6rem">Pools you've opened</h3>` + recent.map(r =>
-          `<div class="row"><a href="#pool=${esc(r.code)}" data-code="${esc(r.code)}">${esc(r.title || r.code)}</a><small style="color:var(--muted)">${esc(r.code)} · ${ago(r.at)}</small></div>`).join("")
+      ? `<h3 class="sec">Pools you've opened</h3>` + recent.map(r =>
+          `<a class="recent-row" href="#pool=${esc(r.code)}"><span>${esc(r.title || r.code)}</span><small>${esc(r.code)} · ${ago(r.at)}</small></a>`).join("")
       : "";
   }
-  document.getElementById("poolBtn").addEventListener("click", () => {
-    document.getElementById("pnName").value = poolMyName();
-    document.getElementById("pnCode").value = "";
-    renderPoolNew();
-    showDialog(poolNew);
-  });
-  poolNew.addEventListener("click", e => {
+  poolLobby.addEventListener("click", e => {
     const b = e.target.closest("button[data-pn]");
-    if (b) {
-      const k = b.dataset.pn, d = Number(b.dataset.d);
-      pn[k] = k === "bets" ? Math.min(POOL_MAX_BETS, Math.max(1, pn[k] + d)) : Math.min(POOL_MAX_SIZE, Math.max(POOL_MIN_SIZE, pn[k] + d));
-      renderPoolNew();
-    } else if (e.target.closest("a[data-code]")) poolNew.close(); // the link opens it
-    else if (e.target === poolNew) poolNew.close();
+    if (!b) return;
+    const k = b.dataset.pn, d = Number(b.dataset.d);
+    pn[k] = k === "bets" ? Math.min(POOL_MAX_BETS, Math.max(1, pn[k] + d)) : Math.min(POOL_MAX_SIZE, Math.max(POOL_MIN_SIZE, pn[k] + d));
+    renderPoolNew();
   });
-  document.getElementById("pnCancel").addEventListener("click", () => poolNew.close());
+  document.getElementById("pnCode").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("pnJoin").click(); });
   document.getElementById("pnJoin").addEventListener("click", () => {
     const code = poolCodeFrom(document.getElementById("pnCode").value);
     if (!code) { toast("That isn't a pool link or code — codes are 6 letters and numbers."); return; }
-    poolNew.close();
     location.hash = "pool=" + code;
   });
   document.getElementById("pnCreate").addEventListener("click", async () => {
@@ -2731,7 +2847,6 @@
       });
       const body = await r.json().catch(() => ({}));
       if (!r.ok || !body.code) throw new Error(body.error || `HTTP ${r.status}`);
-      poolNew.close();
       location.hash = "pool=" + body.code;
       toast("Pool made. Tap Invite friends to send them the link.");
     } catch (err) {
@@ -2744,6 +2859,7 @@
 
   // ---------- render everything from state ----------
   function update() {
+    if (isComplete() && !dipping) mains.sort(byNum); // a full draw reads in order, however it was tapped in
     const hits = currentHits();
     renderBets(hits);
     renderPool();
@@ -2754,8 +2870,8 @@
     renderResult(hits);
     renderPast();
     renderQuick();
+    renderModes();
     dipBtn.disabled = dipping;
-    sortBtn.disabled = dipping || mains.length < 2;
     clearBtn.disabled = dipping || (mains.length === 0 && special == null);
     lastAdded = null;
   }

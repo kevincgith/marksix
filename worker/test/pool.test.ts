@@ -1,7 +1,8 @@
-import { SELF } from "cloudflare:test";
+import { env, runDurableObjectAlarm, runInDurableObject, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { applyOp, cleanText, newPool, parseOp, Refusal, type Pool } from "../src/model";
-import { normalizeCode } from "../src/index";
+import { isAllowedOrigin, normalizeCode } from "../src/index";
+import { IDLE_TTL_MS, UNUSED_TTL_MS } from "../src/pool";
 
 const ORIGIN = "http://localhost:8791";
 const BASE = "https://pool.test";
@@ -134,6 +135,25 @@ describe("the model", () => {
   });
 });
 
+// Make the pool look as if it was last changed `ms` ago.
+async function age(code: string, ms: number) {
+  await runInDurableObject(env.POOLS.getByName(code), (instance) => {
+    (instance as unknown as { pool: Pool }).pool.updated = Date.now() - ms;
+  });
+}
+const exists = async (code: string) => (await SELF.fetch(`${BASE}/pools/${code}`, { headers: { Origin: ORIGIN } })).status === 200;
+
+describe("who may use it", () => {
+  it("lets in the listed pages and localhost, and nothing that only looks like them", () => {
+    const allowed = "https://app.kevinlhc.com, https://other.example";
+    for (const origin of ["https://app.kevinlhc.com", "https://other.example", "http://localhost:8791", "http://127.0.0.1:5500", "http://[::1]:3000"])
+      expect(isAllowedOrigin(origin, allowed), origin).toBe(true);
+    for (const origin of [null, "", "null", "https://evil.example", "http://app.kevinlhc.com", "https://app.kevinlhc.com.evil.example",
+      "https://app.kevinlhc.com/", "http://localhost.evil.example", "https://evil.example/?http://localhost", "file://"])
+      expect(isAllowedOrigin(origin, allowed), String(origin)).toBe(false);
+  });
+});
+
 describe("the worker", () => {
   it("makes a pool only from an allowed page", async () => {
     expect((await createPool({}, "https://evil.example")).status).toBe(403);
@@ -201,6 +221,39 @@ describe("the worker", () => {
     amy.send({ t: "add", bet: "b1", n: 3, by: "Amy" });
     expect((await amy.next("error")).message).toMatch(/locked/);
     expect((await amy.pool()).bets[0].picks).toEqual([]);
+  });
+
+  it("removes a pool nobody changed after two days, and not before", async () => {
+    const { code } = (await (await createPool()).json()) as { code: string };
+    const stub = env.POOLS.getByName(code);
+    expect(await runDurableObjectAlarm(stub)).toBe(true); // just made: the alarm looks and leaves it
+    expect(await exists(code)).toBe(true);
+    await age(code, UNUSED_TTL_MS - 60_000);
+    await runDurableObjectAlarm(stub);
+    expect(await exists(code)).toBe(true);
+    await age(code, UNUSED_TTL_MS + 60_000);
+    expect(await runDurableObjectAlarm(stub)).toBe(true);
+    expect(await exists(code)).toBe(false);
+    expect(await runDurableObjectAlarm(stub)).toBe(false); // and it leaves no alarm behind
+  });
+
+  it("keeps a pool that was changed for sixty days, and while anyone has it open", async () => {
+    const { code } = (await (await createPool()).json()) as { code: string };
+    const stub = env.POOLS.getByName(code);
+    const c = await connect(code);
+    await c.pool();
+    c.send({ t: "add", bet: "b1", n: 8, by: "Kevin" });
+    await c.pool((p) => p.version === 2);
+    await age(code, UNUSED_TTL_MS + 60_000); // past the unused limit, but it has been used
+    await runDurableObjectAlarm(stub);
+    expect(await exists(code)).toBe(true);
+    await age(code, IDLE_TTL_MS + 60_000); // past its time, but still open
+    await runDurableObjectAlarm(stub);
+    expect(await exists(code)).toBe(true);
+    c.ws.close(1000, "done");
+    await new Promise((r) => setTimeout(r, 50));
+    await runDurableObjectAlarm(stub);
+    expect(await exists(code)).toBe(false);
   });
 
   it("turns down a malformed message without closing", async () => {
