@@ -63,6 +63,7 @@
     }
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; } /* .row, .grid and others set their own display */
   html { touch-action: manipulation; } /* no double-tap zoom when tapping fast */
   body {
     margin: 0;
@@ -89,6 +90,12 @@
   .card h2 { margin: 0; font-size: 1.05rem; }
   .card-head .row { flex: 0 0 auto; }
   .sub { color: var(--muted); font-size: .85rem; margin: 0 0 .9rem; }
+  /* icons: line glyphs in the colour of the text beside them */
+  .ico {
+    width: 1.05em; height: 1.05em; flex: 0 0 auto; vertical-align: -.16em; margin-right: .4em;
+    fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .ico.solo { margin-right: 0; }
   .tag {
     display: inline-block;
     font-size: .72rem; font-weight: 600;
@@ -141,7 +148,13 @@
   .ball.red { background: var(--ball-red); }
   .ball.blue { background: var(--ball-blue); }
   .ball.green { background: var(--ball-green); }
-  .ball.banker { box-shadow: inset 0 0 0 2.5px rgba(255,255,255,.85); }
+  .ball.banker { position: relative; }
+  .ball.banker::after {
+    content: "膽"; position: absolute; top: -.3rem; right: -.3rem;
+    width: 1rem; height: 1rem; border-radius: 50%; display: grid; place-items: center;
+    font-size: .58rem; font-weight: 700; line-height: 1;
+    background: var(--card); color: var(--text); box-shadow: 0 0 0 1px var(--border);
+  }
   .ball.hit { outline: 3px solid #f5b301; outline-offset: 1px; }
   .ball.hit-special { outline: 3px solid #b8bec8; outline-offset: 1px; }
   .grp { font-size: .75rem; font-weight: 700; color: var(--muted); }
@@ -159,7 +172,10 @@
   .bet-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem .4rem; min-width: 0; }
   .totals { color: var(--muted); font-size: .82rem; margin: .5rem 0 0; }
   .empty { text-align: center; padding: 1.2rem .5rem .4rem; color: var(--muted); }
-  .empty .big { font-size: 2rem; }
+  .empty .big { color: var(--muted); line-height: 1; margin-bottom: .5rem; }
+  .empty .big .ico { width: 2.4rem; height: 2.4rem; margin: 0; stroke-width: 1.5; }
+  .quick { margin-bottom: 1.1rem; }
+  .quick .btn { width: 100%; font-size: 1.05rem; padding: .75rem 1rem; }
   .banner {
     background: var(--accent-soft); border-radius: 10px;
     padding: .7rem .8rem; margin: .5rem 0 .6rem; font-size: .9rem;
@@ -288,6 +304,7 @@
   dialog#editor::backdrop, dialog#poolNew::backdrop { background: rgba(10, 12, 16, .5); }
   .ed { padding: 1.1rem 1.1rem 1.2rem; }
   .ed h2 { margin: 0 0 .8rem; font-size: 1.1rem; }
+  .ed h2:focus { outline: none; }
   .ed label.name { display: block; font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: .8rem; }
   .ed input[type=text] {
     display: block; width: 100%; margin-top: .25rem;
@@ -312,9 +329,17 @@
   .pool-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
   .pool-title { appearance: none; border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
   .pool-title h2 { display: inline; }
-  .pool-title .pen { color: var(--muted); font-size: .8rem; margin-left: .3rem; }
-  .pool-meta { color: var(--muted); font-size: .82rem; margin: .15rem 0 .8rem; }
-  .pool-meta code { font: inherit; font-weight: 700; letter-spacing: .08em; color: var(--text); }
+  .pool-title .pen { color: var(--muted); font-size: .8rem; margin-left: .4rem; }
+  .pool-sub { display: flex; align-items: center; justify-content: space-between; gap: .5rem .8rem; flex-wrap: wrap; margin: .15rem 0 .8rem; }
+  .pool-meta { color: var(--muted); font-size: .82rem; margin: 0; flex: 1 1 13rem; }
+  .pool-meta .code {
+    appearance: none; background: none; border: 1px dashed var(--border); border-radius: 6px; padding: 0 .35rem;
+    font: inherit; font-weight: 700; letter-spacing: .08em; color: var(--text); cursor: pointer;
+  }
+  .linkish {
+    appearance: none; border: 0; background: none; padding: .4rem .2rem; cursor: pointer;
+    font: inherit; font-size: .84rem; color: var(--muted); text-decoration: underline;
+  }
   .live { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; font-weight: 650; color: var(--muted); white-space: nowrap; }
   .live::before { content: ""; width: .55rem; height: .55rem; border-radius: 50%; background: var(--muted); }
   .live.on::before { background: var(--hit); }
@@ -341,8 +366,14 @@
   .pb { display: inline-flex; flex-direction: column; align-items: center; width: 2.5rem; }
   .pb small { font-size: .62rem; line-height: 1.3; color: var(--muted); max-width: 2.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pb .ball.empty { background: transparent; border: 1.5px dashed var(--border); }
-  .pool-tools { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin: 0 0 .7rem; }
+  /* The bet being filled stays pinned above the grid while you pick. */
+  .pool-tools { position: sticky; top: 0; z-index: 5; background: var(--card); margin: 0 0 .7rem; padding: .5rem 0 .55rem; border-bottom: 1px solid var(--border); }
+  .pool-tools .pt-row { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
   .pool-tools .lbl { font-size: .85rem; font-weight: 700; margin-right: auto; }
+  .pool-tools .lbl small { color: var(--muted); font-weight: 700; margin-left: .4rem; font-variant-numeric: tabular-nums; }
+  .pool-tools .balls { margin-top: .45rem; gap: .25rem; }
+  .pool-tools .ball { width: 1.6rem; height: 1.6rem; font-size: .72rem; }
+  .pool-tools .ball.open { background: transparent; border: 1.5px dashed var(--border); }
   .stepper { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
   .stepper button { appearance: none; border: 0; background: var(--card); color: var(--text); font: inherit; font-weight: 700; width: 2.1rem; height: 2rem; cursor: pointer; }
   .stepper button:disabled { opacity: .35; cursor: default; }
@@ -353,7 +384,7 @@
   }
   .grid.locked button:not(.pick) { opacity: .45; }
   .pool-bet-actions { margin: -.3rem 0 .9rem; }
-  #poolCard [hidden] { display: none !important; } /* .grid and .row set their own display */
+  .pool-bet-actions [data-pool="removeBet"] { margin-left: auto; } /* keep the destructive one apart */
   .lock-note { margin: 0 0 .9rem; }
   .lock-note .row { margin-top: .5rem; }
   .pbet.locked { cursor: default; }
@@ -379,7 +410,9 @@
     background: var(--bg); margin-bottom: .5rem;
   }
   .verdict.win { background: var(--hit-soft); }
-  .verdict .v-emoji { font-size: 2.1rem; line-height: 1.1; }
+  .verdict .v-icon { line-height: 1; color: var(--muted); margin-bottom: .2rem; }
+  .verdict .v-icon .ico { width: 2.3rem; height: 2.3rem; margin: 0; stroke-width: 1.6; }
+  .verdict.win .v-icon { color: var(--hit); }
   .verdict .v-amt { font-size: 1.9rem; font-weight: 900; line-height: 1.2; font-variant-numeric: tabular-nums; }
   .verdict.win .v-amt { color: var(--hit); }
   .verdict .v-pool { font-size: .95rem; font-weight: 700; color: var(--hit); }
@@ -410,6 +443,7 @@
   @media (max-width: 420px) {
     .result table, .odds { font-size: .8rem; }
     .result th, .result td, .odds th, .odds td { padding: .35rem .3rem; }
+    .odds th { white-space: normal; }
   }
 
   #claim h3 { margin: 1.2rem 0 .4rem; font-size: .92rem; color: var(--accent); }
@@ -436,7 +470,7 @@
   /* ---- confetti and the big-win overlay ---- */
   .burst { position: fixed; inset: 0; z-index: 998; pointer-events: none; overflow: hidden; }
   .conf {
-    position: absolute; top: -10vh; font-size: 1.8rem;
+    position: absolute; top: -10vh; font-size: 1.6rem; line-height: 1;
     animation: fall linear forwards;
     z-index: 1; user-select: none;
   }
@@ -450,7 +484,6 @@
     cursor: pointer; overflow: hidden;
     animation: fadeIn .4s ease-out;
   }
-  .bigwin[hidden] { display: none; }
   .bigwin .inner { position: relative; z-index: 2; max-width: 520px; }
   .bigwin .title {
     font-size: clamp(2.4rem, 12vw, 4.6rem); font-weight: 900; line-height: 1.05;
@@ -474,6 +507,22 @@
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-dice" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><g fill="currentColor" stroke="none"><circle cx="8" cy="8" r="1.4"/><circle cx="16" cy="8" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="8" cy="16" r="1.4"/><circle cx="16" cy="16" r="1.4"/></g></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></symbol>
+  <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 9V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3a3 3 0 0 0 0 6v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a3 3 0 0 0 0-6z"/><path d="M14 5v2M14 11v2M14 17v2"/></symbol>
+  <symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M8.2 13.9L7 22l5-3 5 3-1.2-8.1"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></symbol>
+  <symbol id="i-none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></symbol>
+</svg>
 <div class="wrap">
   <header>
     <img class="logo" src="icon.svg" alt="">
@@ -481,12 +530,19 @@
     <p>Save your bets, enter the draw, see what you won.</p>
   </header>
 
+  <div class="quick" id="quick" hidden>
+    <button class="btn" type="button" id="quickLast"><svg class="ico" aria-hidden="true"><use href="#i-calendar"/></svg>Check the last draw</button>
+  </div>
+
   <section class="card" id="poolCard" hidden>
     <div class="pool-head">
-      <button class="pool-title" type="button" id="poolTitle" title="Rename the pool"><h2 id="poolTitleText">Group pool</h2><span class="pen">✎</span></button>
+      <button class="pool-title" type="button" id="poolTitle" title="Rename the pool"><h2 id="poolTitleText">Group pool</h2><span class="pen"><svg class="ico solo" aria-hidden="true"><use href="#i-pencil"/></svg></span></button>
       <span class="live" id="poolLive" aria-live="polite"></span>
     </div>
-    <p class="pool-meta" id="poolMeta"></p>
+    <div class="pool-sub">
+      <p class="pool-meta" id="poolMeta"></p>
+      <button class="btn small" type="button" id="poolInvite"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg>Invite friends</button>
+    </div>
     <div id="poolBody">
       <label class="you">You
         <input type="text" id="poolName" maxlength="20" placeholder="Your name — shows who picked what" autocomplete="nickname">
@@ -499,11 +555,10 @@
       <div class="who" id="poolWho"></div>
       <details class="activity" id="poolActivity"><summary>Recent changes</summary><ol id="poolLog"></ol></details>
       <div class="row">
-        <button class="btn small" type="button" id="poolInvite">🔗 Invite friends</button>
         <button class="btn ghost small" type="button" id="poolSave">Save to my bets</button>
-        <button class="btn ghost small" type="button" id="poolPng">🖼️ Export PNG</button>
-        <button class="btn ghost small" type="button" id="poolLock">🔒 Lock</button>
-        <button class="btn ghost small" type="button" id="poolLeave" style="margin-left:auto">Leave pool</button>
+        <button class="btn ghost small" type="button" id="poolPng"><svg class="ico" aria-hidden="true"><use href="#i-image"/></svg>Export PNG</button>
+        <button class="btn ghost small" type="button" id="poolLock"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg>Lock</button>
+        <button class="linkish" type="button" id="poolLeave" style="margin-left:auto">Leave pool</button>
       </div>
     </div>
     <div class="pool-gone" id="poolGone" hidden></div>
@@ -513,8 +568,8 @@
     <div class="card-head">
       <h2 id="betsTitle">My bets</h2>
       <div class="row" id="betsActions">
-        <button class="btn ghost small" id="poolBtn" type="button">👥 Group pool</button>
-        <button class="btn ghost small" id="shareBtn" type="button">🔗 Share</button>
+        <button class="btn ghost small" id="poolBtn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Group pool</button>
+        <button class="btn ghost small" id="shareBtn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg>Share</button>
         <button class="btn small" id="addBtn" type="button">+ Add bet</button>
       </div>
     </div>
@@ -523,12 +578,12 @@
 
   <section class="card">
     <h2>Check a draw</h2>
-    <p class="sub">Tap a number again to remove it. 🎲 Random draw makes a what-if draw.</p>
+    <p class="sub">Tap a number again to remove it. Random draw makes a what-if draw.</p>
 
     <div class="picker">
       <div class="past">
         <div class="past-actions">
-          <button class="btn" id="lastBtn" type="button">📅 Last draw</button>
+          <button class="btn" id="lastBtn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-calendar"/></svg>Last draw</button>
           <button class="btn ghost" id="pastBtn" type="button" aria-expanded="false" aria-controls="pastList">Past 5</button>
         </div>
         <div id="pastList" aria-live="polite"></div>
@@ -539,7 +594,7 @@
       <div class="grid" id="grid"></div>
 
       <div class="row draw-actions">
-        <button class="btn" id="dipBtn" type="button">🎲 Random draw</button>
+        <button class="btn" id="dipBtn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-dice"/></svg>Random draw</button>
         <button class="btn ghost" id="sortBtn" type="button">Sort ↑</button>
         <button class="btn ghost" id="clearBtn" type="button">Clear</button>
       </div>
@@ -608,7 +663,7 @@
 
 <dialog id="editor" aria-labelledby="edTitle">
   <div class="ed">
-    <h2 id="edTitle">New bet</h2>
+    <h2 id="edTitle" tabindex="-1">New bet</h2>
     <label class="name">Name (optional)
       <input type="text" id="edName" maxlength="40" placeholder="Bet 1" autocomplete="off">
     </label>
@@ -620,7 +675,7 @@
     <p class="status" id="edStatus" aria-live="polite"></p>
     <div class="grid" id="edGrid"></div>
     <div class="row" style="margin-bottom:1rem">
-      <button class="btn ghost small" id="edQuick" type="button">🎲 Quick pick</button>
+      <button class="btn ghost small" id="edQuick" type="button"><svg class="ico" aria-hidden="true"><use href="#i-dice"/></svg>Quick pick</button>
       <button class="btn ghost small" id="edClear" type="button">Clear</button>
     </div>
     <div class="foot">
@@ -635,7 +690,7 @@
 
 <dialog id="poolNew" aria-labelledby="pnHead">
   <div class="ed pn">
-    <h2 id="pnHead">👥 Group pool</h2>
+    <h2 id="pnHead" tabindex="-1"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg>Group pool</h2>
     <p class="help">Make a pool, send the link, and everyone adds their numbers from their own phone. Anyone with the link can add or change numbers, and each number shows who picked it.</p>
     <label class="name">Pool name
       <input type="text" id="pnTitle" maxlength="40" placeholder="Mark Six pool" autocomplete="off">
@@ -680,6 +735,8 @@
   const money = v => "HK$" + v.toLocaleString("en-US");
   const plural = (n, word) => `${n.toLocaleString("en-US")} ${word}${n === 1 ? "" : "s"}`;
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // An icon from the sheet at the top of the page, drawn in the colour of the text around it.
+  const ico = (name, cls = "") => `<svg class="ico${cls && " " + cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
   const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   const byNum = (a, b) => a - b;
@@ -880,6 +937,13 @@
   const cleanBets = arr => Array.isArray(arr) ? arr.map(cleanBet).filter(Boolean).slice(0, MAX_BETS) : [];
   const betKey = b => b.bankers.join(".") + "-" + b.legs.join(".");
   const betName = (b, idx) => b.name || `Bet ${idx + 1}`;
+  // The short label beside a bet's name in the list: what it is and what it costs.
+  function betTag(b) {
+    const combos = combosOf(b), cost = money(combos * UNIT_STAKE);
+    if (combos === 1) return `Single · ${cost}`;
+    const what = b.bankers.length ? `${b.bankers.length} 膽 + ${plural(b.legs.length, "leg")}` : `${b.legs.length} numbers`;
+    return `${what} · ${plural(combos, "combo")} · ${cost}`;
+  }
   function betKind(b) {
     const combos = combosOf(b);
     if (combos === 1) return "Single";
@@ -982,21 +1046,21 @@
 
     let html = "";
     if (shared) {
-      html += `<div class="banner">📎 You opened a shared link with ${plural(bets.length, "bet")}. They aren't saved yet.` +
+      html += `<div class="banner">${ico("link")}You opened a shared link with ${plural(bets.length, "bet")}. They aren't saved yet.` +
         `<div class="row"><button class="btn small" type="button" data-act="save-shared">Save to my bets</button>` +
         `<button class="btn ghost small" type="button" data-act="leave-shared">Back to my bets</button></div></div>`;
     }
     if (!bets.length) {
-      html += `<div class="empty"><div class="big">🎟️</div>No bets yet. Add the numbers on your ticket to check them against each draw.` +
+      html += `<div class="empty"><div class="big">${ico("ticket")}</div>No bets yet. Add the numbers on your ticket to check them against each draw.` +
         `<div class="row" style="justify-content:center;margin-top:.8rem"><button class="btn" type="button" data-act="add">+ Add your first bet</button>` +
-        (shared ? "" : `<button class="btn ghost" type="button" data-act="import" title="${CSV_HINT}">⬆ Import CSV</button>`) +
+        (shared ? "" : `<button class="btn ghost" type="button" data-act="import" title="${CSV_HINT}">${ico("upload")}Import CSV</button>`) +
         `</div></div>`;
     }
     bets.forEach((bet, idx) => {
-      const h = hits[idx], combos = combosOf(bet);
+      const h = hits[idx];
       html += `<div class="bet"><div class="bet-top"><div class="bet-meta">` +
         `<span class="bet-name">${esc(betName(bet, idx))}</span>` +
-        `<span class="tag">${betKind(bet)} · ${plural(combos, "combo")} · ${money(combos * UNIT_STAKE)}</span></div>` +
+        `<span class="tag">${betTag(bet)}</span></div>` +
         (shared ? "" : `<button class="btn ghost small" type="button" data-act="edit" data-id="${esc(bet.id)}">Edit</button>`) +
         `</div><div class="balls">` +
         (bet.bankers.length
@@ -1008,12 +1072,12 @@
     if (bets.length) {
       const combos = bets.reduce((s, b) => s + combosOf(b), 0);
       html += `<p class="totals">${plural(bets.length, "bet")} · ${plural(combos, "combination")} · ${money(combos * UNIT_STAKE)} per draw</p>` +
-        `<p class="legend"><span class="ring gold"></span>drawn number &nbsp;·&nbsp; <span class="ring silver"></span>special number</p>`;
+        (mains.length || special != null ? `<p class="legend"><span class="ring gold"></span>drawn number &nbsp;·&nbsp; <span class="ring silver"></span>special number</p>` : "");
       if (!shared) {
         html += `<div class="row io">` +
-          `<button class="btn ghost small" type="button" data-act="import" title="${CSV_HINT}">⬆ Import CSV</button>` +
-          `<button class="btn ghost small" type="button" data-act="export">⬇ Export CSV</button>` +
-          `<button class="btn ghost small" type="button" data-act="export-png">🖼️ Export PNG</button>` +
+          `<button class="btn ghost small" type="button" data-act="import" title="${CSV_HINT}">${ico("upload")}Import CSV</button>` +
+          `<button class="btn ghost small" type="button" data-act="export">${ico("download")}Export CSV</button>` +
+          `<button class="btn ghost small" type="button" data-act="export-png">${ico("image")}Export PNG</button>` +
           `<button class="btn danger small" type="button" data-act="clear-all">Clear all</button></div>`;
       }
     }
@@ -1148,7 +1212,7 @@
       try { await navigator.share({ title: "Mark Six bets", url }); return; }
       catch (err) { if (err && err.name === "AbortError") return; }
     }
-    try { await navigator.clipboard.writeText(url); toast("🔗 Link copied — paste it anywhere."); }
+    try { await navigator.clipboard.writeText(url); toast("Link copied — paste it anywhere."); }
     catch { window.prompt("Copy this link:", url); }
   });
   function clearHash() {
@@ -1218,6 +1282,14 @@
   const edSnapshot = () => JSON.stringify([edName.value.trim(), [...draft.bankers].sort(byNum), [...draft.legs].sort(byNum)]);
   const edDirty = () => draft && edSnapshot() !== edOriginal;
 
+  // Opening a dialog focuses its first field, which on a phone brings the
+  // keyboard up over the numbers: there, focus the heading instead.
+  function showDialog(dlg) {
+    const touch = matchMedia("(pointer: coarse)").matches, head = dlg.querySelector("h2");
+    head.toggleAttribute("autofocus", touch);
+    dlg.showModal();
+    if (touch) head.focus();
+  }
   function openEditor(bet) {
     draft = bet
       ? { id: bet.id, bankers: [...bet.bankers], legs: [...bet.legs] }
@@ -1229,7 +1301,7 @@
     document.getElementById("edDelete").hidden = !bet;
     renderEditor();
     edOriginal = edSnapshot();
-    editor.showModal();
+    showDialog(editor);
   }
   function edFlash(msg) {
     clearTimeout(edFlashTimer);
@@ -1380,9 +1452,9 @@
     const left = MAIN_COUNT - mains.length;
     hintEl.textContent =
       isComplete() ? "All in! Tap any number to swap it out." :
-      left === MAIN_COUNT && special == null ? "👇 Tap the 6 drawn numbers" :
+      left === MAIN_COUNT && special == null ? "Tap the 6 drawn numbers" :
       left > 0 ? `${left} more to go…` :
-      "✨ Now tap the special number";
+      "Now tap the special number";
   }
   function flash(msg) {
     clearTimeout(flashTimer);
@@ -1405,11 +1477,12 @@
 
   // ---------- celebrations ----------
   const BIG_WIN = {
-    0: { title: "JACKPOT!", div: "1st Division · 頭獎 💰" },
-    1: { title: "WOW!", div: "2nd Division · 二獎 🎊" },
-    2: { title: "BIG WIN!", div: "3rd Division · 三獎 🎉" },
+    0: { title: "JACKPOT!", div: "1st Division · 頭獎" },
+    1: { title: "WOW!", div: "2nd Division · 二獎" },
+    2: { title: "BIG WIN!", div: "3rd Division · 三獎" },
   };
-  const CONFETTI = ["🎉", "🎊", "💰", "✨", "🍀", "💸"];
+  const CONFETTI = ["★", "●", "◆", "✦", "▲", "■"];
+  const CONFETTI_COLORS = ["#f5b301", "#e23b3f", "#1f86d0", "#17a24f"];
   const bigEl = document.getElementById("bigwin");
   const burstEl = document.getElementById("burst");
   let bigTimer, burstTimer;
@@ -1419,6 +1492,7 @@
       const s = document.createElement("span");
       s.className = "conf";
       s.textContent = CONFETTI[i % CONFETTI.length];
+      s.style.color = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
       s.style.left = Math.random() * 100 + "vw";
       s.style.animationDuration = (2.5 + Math.random() * 2.5) + "s";
       s.style.animationDelay = (Math.random() * 1.5) + "s";
@@ -1596,12 +1670,14 @@
   const winningsFor = (bets, draw) => sumTallies(bets.map(b => tally(countsFor(b, draw.mains, draw.special), draw.dividends)));
 
   const lastBtn = document.getElementById("lastBtn");
+  const quickLast = document.getElementById("quickLast"); // the same, as a shortcut above a long list of bets
   const pastBtn = document.getElementById("pastBtn");
   const pastListEl = document.getElementById("pastList");
   function renderPast() {
     const loading = pastState === "loading";
-    lastBtn.disabled = pastBtn.disabled = loading;
-    lastBtn.textContent = loadingBy === "last" ? "Loading from HKJC…" : "📅 Last draw";
+    lastBtn.disabled = pastBtn.disabled = quickLast.disabled = loading;
+    lastBtn.innerHTML = loadingBy === "last" ? "Loading from HKJC…" : `${ico("calendar")}Last draw`;
+    quickLast.innerHTML = loadingBy === "last" ? "Loading from HKJC…" : `${ico("calendar")}Check the last draw`;
     pastBtn.textContent = loadingBy === "past" ? "Loading…" : pastOpen ? "Hide ▴" : `Past ${PAST_COUNT} ▾`;
     pastBtn.setAttribute("aria-expanded", pastOpen);
     pastListEl.innerHTML = pastState === "error"
@@ -1613,7 +1689,7 @@
       let badge = "";
       if (bets.length) {
         const w = winningsFor(bets, r);
-        badge = w.won ? `<span class="won">🎉 ${money(w.total)}${w.unknownPool ? " + pool" : ""}</span>` : `<span class="won nil">No prize</span>`;
+        badge = w.won ? `<span class="won">${money(w.total)}${w.unknownPool ? " + pool" : ""}</span>` : `<span class="won nil">No prize</span>`;
       }
       return `<button class="past-row" type="button" data-i="${i}" aria-pressed="${official === r}" aria-label="Load draw ${esc(r.label)}">` +
         `<span class="meta">${esc(r.label)} <small>· ${esc(r.date)}${r.snowball ? ` · ${esc(r.snowball)}` : ""}</small></span>${badge}` +
@@ -1630,9 +1706,18 @@
     update();
   }
   // Last draw: always fetch fresh, then put the newest result straight into the checker.
-  lastBtn.addEventListener("click", async () => {
+  async function checkLastDraw() {
     if (await loadPastDraws("last")) loadDraw(pastDraws[0]);
-  });
+    else if (pastState === "error") pastListEl.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "center" }); // where the reason shows
+  }
+  lastBtn.addEventListener("click", checkLastDraw);
+  quickLast.addEventListener("click", checkLastDraw);
+  // Shown while no draw is entered and the checker is a long way down: under a
+  // list of bets, or under a pool once it's locked (the ticket's bought).
+  function renderQuick() {
+    const ready = activeBets().length, noDraw = !mains.length && special == null && !dipping;
+    document.getElementById("quick").hidden = !(noDraw && (pool ? ready && pool.state && pool.state.locked : ready >= 3));
+  }
   // Past 5: show or hide the list (fetching it the first time).
   pastBtn.addEventListener("click", async () => {
     if (pastOpen) { pastOpen = false; renderPast(); return; }
@@ -1648,16 +1733,20 @@
   const resultEl = document.getElementById("result");
   // Re-render (and celebrate) only when the draw or the bets change, so Sort or
   // an unrelated re-render never replays the confetti.
-  let shownKey = null;
+  let shownKey = null, shownDraw = null;
   let resultSummary = null; // what the result shows, for the share image
   function renderResult(hits) {
     const bets = activeBets(), official = currentOfficial(), dividends = official && official.dividends;
-    const key = isComplete()
-      ? [...mains].sort(byNum).join(",") + "+" + special + "|" + (official ? officialKey(official) : "") + "|" +
-        bets.map((b, i) => betName(b, i) + ":" + betKey(b)).join(";")
+    const drawKey = isComplete()
+      ? [...mains].sort(byNum).join(",") + "+" + special + "|" + (official ? officialKey(official) : "")
       : null;
+    const key = drawKey && drawKey + "|" + bets.map((b, i) => betName(b, i) + ":" + betKey(b)).join(";");
     if (key === shownKey) return;
     shownKey = key;
+    // A pool's bets change under you as people pick: show the new result, but
+    // don't jump to it or celebrate again for a draw that's already showing.
+    const quiet = !!pool && drawKey === shownDraw;
+    shownDraw = drawKey;
     if (!key) { resultEl.hidden = true; resultEl.innerHTML = ""; resultSummary = null; hideBigWin(); return; }
     const drawn = [...mains].sort(byNum);
 
@@ -1665,7 +1754,7 @@
       : `<p class="summary">Draw: <strong>${drawn.join(", ")}</strong> + special <strong>${special}</strong></p>`;
     if (!bets.length) {
       resultSummary = { official, mains: drawn, special, bets: [] };
-      resultEl.innerHTML = drawLine + `<p class="none">Add a bet above to check it against this draw.</p>` + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">🖼️ Share result as image</button></div>`;
+      resultEl.innerHTML = drawLine + `<p class="none">Add a bet above to check it against this draw.</p>` + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">${ico("image")}Share result as image</button></div>`;
       resultEl.hidden = false;
       hideBigWin();
       return;
@@ -1676,7 +1765,7 @@
     const top = best <= 2; // a 1st-3rd division win
 
     let html = `<div class="verdict${won ? " win" : ""}">` +
-      `<div class="v-emoji">${top ? "🤯" : won ? "🎉" : "😶"}</div>` +
+      `<div class="v-icon">${ico(top ? "award" : won ? "star" : "none")}</div>` +
       `<div class="v-amt" id="vAmt">${!won ? "No prize" : unknownPool && !fixedTotal ? `${DIVISIONS[best]} Division` : money(0)}</div>` +
       (unknownPool ? `<div class="v-pool">${fixedTotal ? "+ " : ""}${DIVISIONS[best]} division pool prize — ` +
         `${official ? "HKJC hasn't declared this prize yet" : "load the official result for the amount"}</div>` : "") +
@@ -1707,13 +1796,18 @@
               `<td class="n">${money(t.total)}</td></tr></tfoot></table>`;
     });
     resultSummary = { official, mains: drawn, special, won, fixedTotal, unknownPool, best, winningCombos, bets: perBet };
-    resultEl.innerHTML = html + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">🖼️ Share result as image</button></div>`;
+    resultEl.innerHTML = html + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">${ico("image")}Share result as image</button></div>`;
     resultEl.hidden = false;
+    if (!top) hideBigWin();
+    if (quiet) {
+      if (won && (fixedTotal || !unknownPool)) document.getElementById("vAmt").textContent = money(fixedTotal);
+      return;
+    }
     if (won && (fixedTotal || !unknownPool)) countUp(document.getElementById("vAmt"), fixedTotal);
     resultEl.firstChild.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "nearest" });
 
     if (top) showBigWin(best);
-    else { hideBigWin(); if (won) smallBurst(); }
+    else if (won) smallBurst();
     if (won && navigator.vibrate) navigator.vibrate(top ? [80, 60, 80, 60, 200] : [30, 40, 30]);
   }
 
@@ -1728,12 +1822,13 @@
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
 
-  // What the share images are drawn with: a 1080-wide card, painted on a tall
-  // transparent canvas and cropped onto the card at the height used (finish).
-  function imagePainter() {
-    const W = 1080, PAD = 64, IN = PAD + 44, CW = W - 2 * IN;
+  // What the share images are drawn with: a 1080-wide card, painted on a
+  // transparent canvas that ends 44px below `bottom`, then laid onto the card
+  // (finish). With no `bottom` nothing shows: that pass only measures.
+  function imagePainter(bottom = 0) {
+    const W = 1080, PAD = 64, IN = PAD + 44, CW = W - 2 * IN, H = bottom ? bottom + 44 + PAD : 1;
     const tall = document.createElement("canvas");
-    tall.width = W; tall.height = 8000;
+    tall.width = W; tall.height = H;
     const ctx = tall.getContext("2d");
     const font = (w, px) => { ctx.font = `${w} ${px}px ${IMG_FONT}`; };
     const rr = (x, y, w, h, r, fill) => { roundRectPath(ctx, x, y, w, h, r); ctx.fillStyle = fill; ctx.fill(); };
@@ -1755,22 +1850,32 @@
       ctx.fillText(String(n), cx, cy + 2);
     };
     const site = () => /^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname) ? ` · ${location.host}${location.pathname}` : "";
-    const finish = y => {
-      const H = Math.min(tall.height, y + 44 + PAD);
+    const finish = () => {
       const cv = document.createElement("canvas");
       cv.width = W; cv.height = H;
       const out = cv.getContext("2d");
       out.fillStyle = IMG.bg; out.fillRect(0, 0, W, H);
       roundRectPath(out, PAD, PAD, W - 2 * PAD, H - 2 * PAD, 36);
       out.fillStyle = IMG.card; out.fill();
-      out.drawImage(tall, 0, 0, W, H, 0, 0, W, H);
+      out.drawImage(tall, 0, 0);
       return cv;
     };
     return { W, PAD, IN, CW, ctx, font, rr, fit, say, line, ball, site, finish };
   }
+  // A picture however tall it turns out: `paint` draws with a painter and
+  // returns where it ended; it runs once to measure, then again on a canvas
+  // that fits.
+  function makeImage(paint) {
+    const painter = imagePainter(paint(imagePainter()));
+    paint(painter);
+    return painter.finish();
+  }
+  // Browsers limit how big a canvas may be (about 15,500px tall at this width
+  // on iPhones), so a list of bets stops here and says how many were left out.
+  const IMG_MAX_BETS_BOTTOM = 13000;
 
-  function drawResultImage(sum) {
-    const { W, PAD, IN, CW, ctx, font, rr, say, line, ball, site, finish } = imagePainter();
+  const drawResultImage = sum => makeImage(painter => paintResult(sum, painter));
+  function paintResult(sum, { W, PAD, IN, CW, ctx, font, rr, say, line, ball, site }) {
     const MAX_BETS_SHOWN = 10;
     const o = sum.official;
 
@@ -1870,13 +1975,13 @@
     say(`Checked with Mark Six Checker${site()}`, W / 2, y, { px: 24, color: IMG.muted, align: "center" });
     y += 34;
     say(o ? "Official result from HKJC · not affiliated with the HKJC" : "Not affiliated with the HKJC", W / 2, y, { px: 22, color: IMG.muted, align: "center" });
-    return finish(y);
+    return y;
   }
 
   // A list of bets as a picture - My bets, or a group pool. Each bet:
   // { name, right, full, sub, bankers, legs, who (number -> name, or null), empties }.
-  function drawBetsImage({ title, lines, bets, people, footer }) {
-    const { W, PAD, IN, CW, ctx, font, say, line, ball, site, finish } = imagePainter();
+  const drawBetsImage = spec => makeImage(painter => paintBets(spec, painter));
+  function paintBets({ title, lines, bets, people, footer }, { W, PAD, IN, CW, ctx, font, say, line, ball, site }) {
     const drawn = isComplete();
 
     let y = PAD + 96;
@@ -1898,7 +2003,10 @@
 
     const R = 30, STEP = 2 * R + 26, LABEL = 2 * R + 20;
     const hitRing = v => !drawn ? null : mains.includes(v) ? "#f5b301" : v === special ? "#b8bec8" : null;
-    bets.forEach(b => {
+    let shown = 0;
+    for (const b of bets) {
+      if (y > IMG_MAX_BETS_BOTTOM) break;
+      shown++;
       line(y); y += 56;
       font(600, 26);
       const rightW = ctx.measureText(b.right).width;
@@ -1926,7 +2034,8 @@
         ctx.setLineDash([7, 7]); ctx.lineWidth = 3; ctx.strokeStyle = IMG.line; ctx.stroke(); ctx.setLineDash([]);
       }
       y = by + R + (labelled ? 34 : 0) + 36;
-    });
+    }
+    if (shown < bets.length) { line(y); y += 50; say(`+ ${plural(bets.length - shown, "more bet")} not shown`, IN, y, { px: 26, color: IMG.muted }); y += 26; }
 
     // who picked, from the names under the balls
     if (people && people.size) {
@@ -1948,7 +2057,7 @@
     say(`Mark Six Checker${site()}`, W / 2, y, { px: 24, color: IMG.muted, align: "center" });
     y += 34;
     say(footer, W / 2, y, { px: 22, color: IMG.muted, align: "center" });
-    return finish(y);
+    return y;
   }
   const today = () => new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   function countPeople(list) {
@@ -1962,7 +2071,7 @@
     return drawBetsImage({
       title: st.title,
       lines: [`Mark Six group pool · ${plural(st.bets.length, "bet")}` + (combos ? ` · ${money(combos * UNIT_STAKE)} per draw` : ""),
-        today() + (st.locked ? ` · 🔒 Locked by ${st.locked.by}` : "")],
+        today() + (st.locked ? ` · Locked by ${st.locked.by}` : "")],
       bets: st.bets.map(b => {
         const n = b.picks.length, full = n >= MAIN_COUNT;
         return {
@@ -2013,7 +2122,7 @@
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    toast("🖼️ Image saved.");
+    toast("Image saved.");
   }
   function shareResultImage() {
     if (!resultSummary) return;
@@ -2040,8 +2149,9 @@
   let oddsKey = null; // the table depends only on the bets and the numbers entered
   function renderOdds() {
     const bets = activeBets();
-    document.getElementById("oddsCard").hidden = !bets.length;
-    if (!bets.length) return;
+    const show = bets.length && !isComplete(); // a full draw is the outcome: the result says it all
+    document.getElementById("oddsCard").hidden = !show;
+    if (!show) return;
     const key = bets.map(betKey).join(";") + "|" + [...mains].sort(byNum).join(",") + "|" + special;
     if (key === oddsKey) return;
     oddsKey = key;
@@ -2134,7 +2244,8 @@
   const POOL_CODE_RE = /^[34679ACDEFGHJKMNPQRTUVWXY]{6}$/;
   const POOL_NAME_KEY = "marksix.poolName", POOL_RECENT_KEY = "marksix.pools";
   const POOL_MIN_SIZE = 6, POOL_MAX_SIZE = 15, POOL_MAX_BETS = 6;
-  const PING_MS = 25000, QUIET_MS = 60000;
+  const PING_FRAME = '{"t":"ping"}', PING_MS = 25000, QUIET_MS = 60000, CHECK_MS = 5000;
+  const FULL_RETRY_MS = 15000, BUSY_RETRY_MS = 60000; // how long to wait when the pool is full, or this network over its rate
 
   // A code from a hash ("pool=AC9XK3"), a pasted link, or the code itself.
   function poolCodeFrom(text) {
@@ -2170,13 +2281,16 @@
   }
 
   // ---- the connection ----
-  // pool: { code, state (the pool as the server last sent it, plus any change
-  // shown before the server confirms it), ws, status, selected (a bet id),
-  // retry, timers }
+  // pool: { code, state (the pool as the server last sent it, plus any pick
+  // shown before the server confirms it), server (that last message, as sent),
+  // pending (those picks: "bet:n" -> whether the number should be in the bet),
+  // ws, status, why (what turned the last connection away: "full", "busy" or
+  // ""), selected (a bet id), retry, timers }
   function openPool(code) {
     if (pool && pool.code === code) return;
     if (pool) closePool();
-    pool = { code, state: null, ws: null, status: "connecting", selected: null, retry: 0, retryTimer: null, pingTimer: null, heard: 0 };
+    pool = { code, state: null, server: "", pending: new Map(), ws: null, status: "connecting", why: "", selected: null,
+      retry: 0, retryTimer: null, pingTimer: null, checkTimer: null, heard: 0 };
     poolConnect();
   }
   function closePool() {
@@ -2184,6 +2298,7 @@
     const p = pool;
     pool = null;
     clearTimeout(p.retryTimer);
+    clearTimeout(p.checkTimer);
     clearInterval(p.pingTimer);
     if (p.ws) { const ws = p.ws; p.ws = null; try { ws.close(1000, "leaving"); } catch {} }
   }
@@ -2196,18 +2311,21 @@
     catch { p.status = "offline"; return poolRetry(p); }
     p.ws = ws;
     p.status = p.state ? "reconnecting" : "connecting";
-    let opened = false;
+    let opened = false, first = true;
     ws.onopen = () => {
       if (p.ws !== ws) return;
       opened = true;
       p.retry = 0;
+      p.why = "";
       p.heard = Date.now();
       p.status = "live";
       clearInterval(p.pingTimer);
       p.pingTimer = setInterval(() => {
         if (p.ws !== ws) return;
-        if (Date.now() - p.heard > QUIET_MS) { try { ws.close(); } catch {} return; } // a dead line: start again
-        try { ws.send('{"t":"ping"}'); } catch {}
+        // A dead line: start again. (Not while hidden: a hidden page's timers
+        // run late, and the line is checked the moment the page shows again.)
+        if (!document.hidden && Date.now() - p.heard > QUIET_MS) return poolDrop(p, ws);
+        try { ws.send(PING_FRAME); } catch {}
       }, PING_MS);
       renderPool();
     };
@@ -2218,37 +2336,89 @@
       try { msg = JSON.parse(e.data); } catch { return; }
       if (msg.t === "pool" && msg.pool) {
         p.state = msg.pool;
+        p.server = e.data;
+        poolSettle(p, ws, first);
+        first = false;
         if (p.selectAfter != null && msg.pool.bets.length > p.selectAfter) { p.selected = msg.pool.bets.at(-1).id; p.selectAfter = null; }
         rememberPool(p.code, msg.pool.title);
         if (pool === p) update();
-      } else if (msg.t === "error" && msg.message) toast(msg.message);
-    };
-    ws.onclose = async () => {
-      if (p.ws !== ws) return;
-      p.ws = null;
-      clearInterval(p.pingTimer);
-      p.status = "offline";
-      if (!opened && !p.state) {
-        // Never got in: is there such a pool at all?
-        try {
-          const r = await fetch(`${POOL_API}/pools/${p.code}`);
-          if (r.status === 404) { p.status = "gone"; forgetPool(p.code); if (pool === p) update(); return; }
-        } catch {}
+      } else if (msg.t === "error" && msg.message) {
+        // Turned down: go back to the pool as the server last sent it (the
+        // one that follows this message is how it stands now).
+        p.pending.clear();
+        p.selectAfter = null;
+        if (p.server) { p.state = JSON.parse(p.server).pool; if (pool === p) update(); }
+        toast(msg.message);
       }
-      if (pool === p) renderPool();
-      poolRetry(p);
     };
+    ws.onclose = () => poolLost(p, ws, opened);
+  }
+  // After a pool arrives: forget the picks it now shows, and keep showing the
+  // ones still on their way. On a new connection (`again`) those were lost
+  // with the old one, so they're sent again.
+  function poolSettle(p, ws, again) {
+    const by = poolMyName();
+    for (const [key, want] of p.pending) {
+      const [id, num] = key.split(":"), n = Number(num), bet = p.state.bets.find(b => b.id === id);
+      const has = !!bet && bet.picks.some(x => x.n === n);
+      if (!bet || has === want || p.state.locked || !by) { p.pending.delete(key); continue; }
+      if (again) { try { ws.send(JSON.stringify({ t: want ? "add" : "remove", bet: id, n, by })); } catch { continue; } }
+      if (want) bet.picks.push({ n, by, at: Date.now() });
+      else bet.picks = bet.picks.filter(x => x.n !== n);
+    }
+  }
+  // The connection is over, or was never let in: find out why if it was
+  // turned away, and try again.
+  async function poolLost(p, ws, opened) {
+    if (p.ws !== ws) return;
+    p.ws = null;
+    clearInterval(p.pingTimer);
+    clearTimeout(p.checkTimer);
+    p.status = "offline";
+    p.why = "";
+    if (!opened) {
+      try {
+        const r = await fetch(`${POOL_API}/pools/${p.code}`);
+        if (r.status === 404) {
+          forgetPool(p.code);
+          if (pool === p && !p.ws) { p.status = "gone"; p.state = null; p.pending.clear(); update(); }
+          return;
+        }
+        if (r.status === 429) p.why = "busy";
+        else if (r.ok && (await r.json()).full) p.why = "full";
+      } catch {}
+      if (p.ws) return; // connecting again already
+    }
+    if (pool === p) renderPool();
+    poolRetry(p);
+  }
+  // Give up on a line that has stopped answering without waiting for it to
+  // close, which a dead one can take a long time to do.
+  function poolDrop(p, ws) {
+    if (p.ws !== ws) return;
+    try { ws.close(); } catch {}
+    poolLost(p, ws, true);
   }
   function poolRetry(p) {
     if (pool !== p || p.status === "gone") return;
     clearTimeout(p.retryTimer);
-    const wait = Math.min(8000, 500 * 2 ** p.retry++);
+    const wait = p.why === "busy" ? BUSY_RETRY_MS : p.why === "full" ? FULL_RETRY_MS : Math.min(8000, 500 * 2 ** p.retry++);
     p.retryTimer = setTimeout(poolConnect, wait);
   }
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && pool && !pool.ws) { pool.retry = 0; poolConnect(); }
-  });
-  window.addEventListener("online", () => { if (pool && !pool.ws) { pool.retry = 0; poolConnect(); } });
+  // Back in view or back online: a line that looks open may have died while
+  // the page slept, so ask it to answer, and start again if it doesn't.
+  function poolCheck() {
+    const p = pool;
+    if (!p) return;
+    if (!p.ws) { p.retry = 0; poolConnect(); return; }
+    if (p.status !== "live") return; // still connecting
+    const ws = p.ws, asked = Date.now();
+    try { ws.send(PING_FRAME); } catch { return poolDrop(p, ws); }
+    clearTimeout(p.checkTimer);
+    p.checkTimer = setTimeout(() => { if (p.heard < asked) poolDrop(p, ws); }, CHECK_MS);
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") poolCheck(); });
+  window.addEventListener("online", poolCheck);
 
   // Send a change. Adding or removing a number shows at once; the pool the
   // server sends back (to everyone) replaces it - or, if the change was
@@ -2286,32 +2456,39 @@
   const poolGridEl = document.getElementById("poolGrid");
   const poolCells = makeGrid(poolGridEl, poolTap);
   const LIVE_TEXT = { live: ["on", "Live"], connecting: ["wait", "Connecting…"], reconnecting: ["wait", "Reconnecting…"], offline: ["off", "Offline — retrying"], gone: ["off", "Closed"] };
+  // Turned away, with the reason: [the status line, what to say while there's no pool to show].
+  const WHY_TEXT = {
+    full: ["Pool full — retrying", "this pool is full right now (too many people have it open) — trying again shortly"],
+    busy: ["Too many tries — waiting", "too many tries from this network — trying again in a minute"],
+  };
 
   function renderPool() {
     poolCard.hidden = !pool;
     if (!pool) return;
     const st = pool.state;
-    const [cls, txt] = LIVE_TEXT[pool.status] || LIVE_TEXT.offline;
+    const gone = pool.status === "gone";
+    const why = pool.status !== "live" && !gone ? WHY_TEXT[pool.why] : null;
+    const [cls, txt] = why ? ["off", why[0]] : LIVE_TEXT[pool.status] || LIVE_TEXT.offline;
     const liveEl = document.getElementById("poolLive");
     liveEl.className = "live " + cls;
     liveEl.textContent = txt;
-    const gone = pool.status === "gone";
+    document.getElementById("poolInvite").hidden = gone;
     document.getElementById("poolGone").hidden = !gone;
     document.getElementById("poolBody").hidden = gone || !st;
     document.getElementById("poolTitle").disabled = !st;
     document.getElementById("poolTitleText").textContent = st ? st.title : "Group pool";
     if (gone) {
       document.getElementById("poolMeta").textContent = "";
-      document.getElementById("poolGone").innerHTML = `🫥 There's no pool with code <strong>${esc(pool.code)}</strong> — it may have closed, or the link is wrong.` +
+      document.getElementById("poolGone").innerHTML = `There's no pool with code <strong>${esc(pool.code)}</strong> — it may have closed, or the link is wrong.` +
         `<div class="row" style="justify-content:center;margin-top:.8rem"><button class="btn small" type="button" data-pool="leave">Back to my bets</button></div>`;
       return;
     }
-    if (!st) { document.getElementById("poolMeta").textContent = `Code ${pool.code} · loading…`; return; }
+    if (!st) { document.getElementById("poolMeta").textContent = `Code ${pool.code} · ${why ? why[1] : "loading…"}`; return; }
 
     const people = new Map();
     st.bets.forEach(b => b.picks.forEach(p => people.set(p.by, (people.get(p.by) || 0) + 1)));
     const totalCombos = st.bets.reduce((s, b) => s + (b.picks.length >= MAIN_COUNT ? C(b.picks.length, MAIN_COUNT) : 0), 0);
-    document.getElementById("poolMeta").innerHTML = `Code <code>${esc(st.code)}</code> · ${plural(st.bets.length, "bet")}` +
+    document.getElementById("poolMeta").innerHTML = `Code <button type="button" class="code" data-pool="copy-code" title="Copy the code">${esc(st.code)}</button> · ${plural(st.bets.length, "bet")}` +
       (totalCombos ? ` · ${money(totalCombos * UNIT_STAKE)} per draw` : "") + ` · anyone with the link can edit`;
     if (document.activeElement !== poolNameInput) poolNameInput.value = poolMyName();
 
@@ -2321,8 +2498,8 @@
     const note = document.getElementById("poolLockNote");
     note.hidden = !locked;
     note.innerHTML = locked
-      ? `🔒 <strong>Locked</strong> by ${esc(st.locked.by)} · ${ago(st.locked.at)}. The numbers match the ticket, so nobody can change them.` +
-        `<div class="row"><button class="btn ghost small" type="button" data-pool="unlock">🔓 Unlock</button></div>`
+      ? `${ico("lock")}<strong>Locked</strong> by ${esc(st.locked.by)} · ${ago(st.locked.at)}. The numbers match the ticket, so nobody can change them.` +
+        `<div class="row"><button class="btn ghost small" type="button" data-pool="unlock">${ico("unlock")}Unlock</button></div>`
       : "";
     document.getElementById("poolLock").hidden = locked;
     document.getElementById("poolTitle").disabled = locked;
@@ -2348,11 +2525,13 @@
     // Tools for the selected bet, and the grid that picks for it.
     const tools = document.getElementById("poolTools");
     if (bet) {
-      tools.innerHTML = `<span class="lbl">Tap numbers for ${esc(bet.name)}</span>` +
+      tools.innerHTML = `<div class="pt-row"><span class="lbl">Tap numbers for ${esc(bet.name)}<small>${bet.picks.length} / ${bet.size}</small></span>` +
         `<span class="stepper" title="How many numbers ${esc(bet.name)} takes"><button type="button" data-pool="size" data-d="-1" aria-label="Fewer numbers"${bet.size <= Math.max(POOL_MIN_SIZE, bet.picks.length) ? " disabled" : ""}>−</button>` +
-        `<span>${bet.size}</span><button type="button" data-pool="size" data-d="1" aria-label="More numbers"${bet.size >= POOL_MAX_SIZE ? " disabled" : ""}>+</button></span>`;
+        `<span>${bet.size}</span><button type="button" data-pool="size" data-d="1" aria-label="More numbers"${bet.size >= POOL_MAX_SIZE ? " disabled" : ""}>+</button></span></div>` +
+        `<div class="balls">${bet.picks.map(p => p.n).sort(byNum).map(plainBall).join("")}` +
+        `<span class="ball open"></span>`.repeat(Math.max(0, bet.size - bet.picks.length)) + `</div>`;
       document.getElementById("poolBetActions").innerHTML =
-        `<button class="btn ghost small" type="button" data-pool="rename">✎ Rename</button>` +
+        `<button class="btn ghost small" type="button" data-pool="rename">${ico("pencil")}Rename</button>` +
         `<button class="btn ghost small" type="button" data-pool="clear"${bet.picks.length ? "" : " disabled"}>Clear numbers</button>` +
         (st.bets.length > 1 ? `<button class="btn danger small" type="button" data-pool="removeBet">Remove bet</button>` : "");
       const mine = new Set(bet.picks.map(p => p.n));
@@ -2388,6 +2567,7 @@
     }
     if (!poolSend({ t: have ? "remove" : "add", bet: bet.id, n })) return;
     // Show it now; the server's copy follows.
+    pool.pending.set(`${bet.id}:${n}`, !have);
     if (have) bet.picks = bet.picks.filter(p => p.n !== n);
     else bet.picks.push({ n, by: poolMyName(), at: Date.now() });
     update();
@@ -2405,6 +2585,10 @@
     if (!btn || !pool) return;
     const act = btn.dataset.pool, bet = selectedPoolBet();
     if (act === "leave") leavePool();
+    else if (act === "copy-code") {
+      (navigator.clipboard ? navigator.clipboard.writeText(pool.code) : Promise.reject())
+        .then(() => toast("Code copied."), () => window.prompt("Copy this code:", pool.code));
+    }
     else if (act === "unlock") {
       if (confirm("Unlock the pool? Everyone will be able to change the numbers again, so they may no longer match the ticket.")) poolSend({ t: "unlock" });
     }
@@ -2437,7 +2621,7 @@
       try { await navigator.share({ title, text: `Add your numbers to ${title}`, url }); return; }
       catch (err) { if (err && err.name === "AbortError") return; }
     }
-    try { await navigator.clipboard.writeText(url); toast("🔗 Pool link copied — send it to your friends."); }
+    try { await navigator.clipboard.writeText(url); toast("Pool link copied — send it to your friends."); }
     catch { window.prompt("Copy this link:", url); }
   });
   document.getElementById("poolSave").addEventListener("click", () => {
@@ -2484,7 +2668,7 @@
     document.getElementById("pnName").value = poolMyName();
     document.getElementById("pnCode").value = "";
     renderPoolNew();
-    poolNew.showModal();
+    showDialog(poolNew);
   });
   poolNew.addEventListener("click", e => {
     const b = e.target.closest("button[data-pn]");
@@ -2517,7 +2701,7 @@
       if (!r.ok || !body.code) throw new Error(body.error || `HTTP ${r.status}`);
       poolNew.close();
       location.hash = "pool=" + body.code;
-      toast("Pool made. Tap 🔗 Invite friends to send them the link.");
+      toast("Pool made. Tap Invite friends to send them the link.");
     } catch (err) {
       toast(`Couldn't make the pool: ${err.message || err}`);
     } finally {
@@ -2537,6 +2721,7 @@
     renderOdds();
     renderResult(hits);
     renderPast();
+    renderQuick();
     dipBtn.disabled = dipping;
     sortBtn.disabled = dipping || mains.length < 2;
     clearBtn.disabled = dipping || (mains.length === 0 && special == null);

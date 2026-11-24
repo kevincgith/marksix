@@ -60,9 +60,10 @@ export class Pool extends DurableObject<Env> {
     return true;
   }
 
-  // The pool as it is, or null when there's no such pool.
-  async info(): Promise<PoolState | null> {
-    return this.pool;
+  // The pool as it is, or null when there's no such pool. `full` says no more
+  // connections fit, so a page that was turned away can say why.
+  async info(): Promise<(PoolState & { full: boolean }) | null> {
+    return this.pool && { ...this.pool, full: this.ctx.getWebSockets().length >= MAX_CONNECTIONS };
   }
 
   async fetch(_request: Request): Promise<Response> {
@@ -81,17 +82,14 @@ export class Pool extends DurableObject<Env> {
     if (!this.pool) return ws.close(1011, "no such pool");
     if (!this.admit(ws)) return;
     const op = typeof frame === "string" ? parseOp(frame) : null;
-    if (!op) return this.send(ws, { t: "error", message: "That message wasn't understood. Reload the page." });
+    if (!op) return this.refuse(ws, "That message wasn't understood. Reload the page.");
     if (op.t === "ping") return this.send(ws, { t: "pong" });
     let changed: boolean;
     try {
       changed = applyOp(this.pool, op, Date.now());
     } catch (e) {
       if (!(e instanceof Refusal)) throw e;
-      // Turned down: say why, and send the pool as it is so the page can
-      // drop the change it showed straight away.
-      this.send(ws, { t: "error", message: e.message });
-      return this.send(ws, { t: "pool", pool: this.pool });
+      return this.refuse(ws, e.message);
     }
     if (!changed) return this.send(ws, { t: "pool", pool: this.pool });
     await this.ctx.storage.put("pool", this.pool);
@@ -149,6 +147,13 @@ export class Pool extends DurableObject<Env> {
     }
   }
 
+  // Turned down: say why, and send the pool as it is so the page can drop the
+  // change it showed straight away.
+  private refuse(ws: WebSocket, message: string) {
+    this.send(ws, { t: "error", message });
+    this.send(ws, { t: "pool", pool: this.pool });
+  }
+
   // Token bucket: true if this message may go through.
   private admit(ws: WebSocket): boolean {
     const c = ws.deserializeAttachment() as Conn;
@@ -163,7 +168,7 @@ export class Pool extends DurableObject<Env> {
     ws.serializeAttachment(c);
     if (ok) return true;
     if (c.strikes >= RATE_STRIKES) ws.close(1008, "too many messages");
-    else this.send(ws, { t: "error", message: "Slow down a little." });
+    else this.refuse(ws, "Slow down a little.");
     return false;
   }
 }

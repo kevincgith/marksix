@@ -118,6 +118,15 @@ describe("the model", () => {
     expect(cleanText("a\u0000b​c   d", 20)).toBe("a b c d");
   });
 
+  it("keeps a joined emoji whole, but not a name of nothing but joiners", () => {
+    const family = "\u{1F468}‍\u{1F469}‍\u{1F467}";
+    const england = "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}";
+    expect(cleanText(`${family} family`, 40)).toBe(`${family} family`);
+    expect(cleanText(england, 40)).toBe(england);
+    expect(cleanText("‍ ‌", 20)).toBe("");
+    expect(cleanText("a‮b﻿c", 20)).toBe("a b c"); // other invisible characters still go
+  });
+
   it("normalizes codes", () => {
     expect(normalizeCode("ac9-xk3")).toBe("AC9XK3");
     expect(normalizeCode("AC9XK")).toBeNull();
@@ -135,7 +144,11 @@ describe("the worker", () => {
     expect(normalizeCode(code)).toBe(code);
     const info = await SELF.fetch(`${BASE}/pools/${code.toLowerCase()}`, { headers: { Origin: ORIGIN } });
     expect(info.status).toBe(200);
-    expect(((await info.json()) as Pool).title).toBe("Friday");
+    expect((await info.json()) as Pool & { full: boolean }).toMatchObject({ title: "Friday", full: false });
+  });
+
+  it("turns down a body that's too big", async () => {
+    expect((await createPool({ title: "x".repeat(2000) })).status).toBe(413);
   });
 
   it("answers 404 for a pool that doesn't exist", async () => {
@@ -196,7 +209,17 @@ describe("the worker", () => {
     await c.pool();
     c.send({ t: "add", bet: "b1", n: 99, by: "Kevin" });
     expect((await c.next("error")).message).toMatch(/understood/);
+    await c.pool(); // and the pool as it is, so the page can undo what it showed
     c.send({ t: "ping" });
     await c.next("pong");
+  });
+
+  it("answers a message over the rate with the pool too", async () => {
+    const { code } = (await (await createPool()).json()) as { code: string };
+    const c = await connect(code);
+    await c.pool();
+    for (let i = 0; i < 40; i++) c.send({ t: "title", title: `Pool ${i}`, by: "Kevin" });
+    expect((await c.next("error")).message).toMatch(/Slow down/);
+    for (let i = 0; i < 40; i++) await c.pool(); // one for every message, turned down or not
   });
 });

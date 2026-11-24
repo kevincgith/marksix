@@ -70,6 +70,28 @@ async function within(limiter: RateLimit | undefined, request: Request): Promise
   }
 }
 
+// The body as text, or null if it's over `max` bytes - found out without
+// reading any more of it than that.
+const MAX_BODY = 1024;
+async function readBody(request: Request, max: number): Promise<string | null> {
+  if (Number(request.headers.get("Content-Length")) > max) return null;
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const bytes = new Uint8Array(max);
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (size + value.byteLength > max) {
+      await reader.cancel();
+      return null;
+    }
+    bytes.set(value, size);
+    size += value.byteLength;
+  }
+  return new TextDecoder().decode(bytes.subarray(0, size));
+}
+
 const cors = (origin: string) => ({ "Access-Control-Allow-Origin": origin, Vary: "Origin" });
 const json = (body: unknown, status: number, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", ...headers } });
@@ -90,8 +112,8 @@ export default {
       if (!(await within(env.CREATE_LIMIT, request))) return json({ error: "Too many pools made - try again in a minute." }, 429, { "Retry-After": "60", ...h });
       let body: unknown = null;
       try {
-        const text = await request.text();
-        if (text.length > 1024) return json({ error: "too large" }, 413, h);
+        const text = await readBody(request, MAX_BODY);
+        if (text === null) return json({ error: "too large" }, 413, h);
         body = text ? JSON.parse(text) : null;
       } catch {
         return json({ error: "bad JSON" }, 400, h);

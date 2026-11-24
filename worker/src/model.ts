@@ -78,10 +78,16 @@ export class Refusal extends Error {}
 // ---- Cleaning text -----------------------------------------------------------
 
 // One line of plain text: no control or invisible characters, no markup
-// brackets, whitespace collapsed, at most `max` characters.
+// brackets, whitespace collapsed, at most `max` characters. The joiners and
+// tag characters that hold an emoji together (a family, a flag) are kept, as
+// long as there is something to see besides them.
+const EMOJI_GLUE = "\\u200C\\u200D\\u{E0020}-\\u{E007F}";
+const UNWANTED = new RegExp(`[\\p{Cc}\\p{Cs}\\p{Co}\\p{Cn}<>]|(?![${EMOJI_GLUE}])\\p{Cf}`, "gu");
+const ONLY_GLUE = new RegExp(`^[${EMOJI_GLUE}\\s]*$`, "u");
 export function cleanText(s: unknown, max: number): string {
   if (typeof s !== "string") return "";
-  return [...s.normalize("NFC").replace(/[\p{C}<>]/gu, " ").replace(/\s+/g, " ").trim()].slice(0, max).join("").trim();
+  const text = [...s.normalize("NFC").replace(UNWANTED, " ").replace(/\s+/g, " ").trim()].slice(0, max).join("").trim();
+  return ONLY_GLUE.test(text) ? "" : text;
 }
 
 const isInt = (v: unknown, lo: number, hi: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi;
