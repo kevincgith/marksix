@@ -395,7 +395,7 @@
   .details .balls { margin: .6rem 0 .5rem; gap: .3rem; flex-wrap: nowrap; }
   .details table.prizes td, .details table.prizes th { padding: .3rem .4rem; }
   .share-row { margin-top: 1rem; }
-  .share-row .btn { width: 100%; }
+  .share-row .btn { flex: 1 1 auto; }
   .share-opt { display: flex; align-items: center; justify-content: center; gap: .45rem; margin-top: .55rem; font-size: var(--fs-sm); color: var(--muted); cursor: pointer; }
   .share-opt input { width: 1.05rem; height: 1.05rem; margin: 0; accent-color: var(--accent); }
 
@@ -1825,6 +1825,10 @@
   let shownKey = null, shownDraw = null, shownView = null;
   const viewName = () => pool ? "pool" : shared ? "shared" : "mine";
   let resultSummary = null; // what the result shows, for the share image
+  // Share opens the share sheet where there is one; Download always saves the
+  // PNG, which a laptop's share sheet has no way to do.
+  const SHARE_ROW = `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">${ico("image")}Share as image</button>` +
+    `<button class="btn ghost" type="button" data-act="download-png" aria-label="Download the result as an image">${ico("download")}Download</button></div>`;
   function renderResult(hits) {
     const bets = activeBets(), official = currentOfficial(), dividends = official && official.dividends;
     const drawKey = isComplete()
@@ -1847,7 +1851,7 @@
       : `<p class="summary">Draw: <strong>${drawn.join(", ")}</strong> + special <strong>${special}</strong></p>`;
     if (!bets.length) {
       resultSummary = { official, mains: drawn, special, bets: [] };
-      resultEl.innerHTML = drawLine + `<p class="none">Add a bet above to check it against this draw.</p>` + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">${ico("image")}Share result as image</button></div>`;
+      resultEl.innerHTML = drawLine + `<p class="none">Add a bet above to check it against this draw.</p>` + SHARE_ROW;
       resultEl.hidden = false;
       hideBigWin();
       return;
@@ -1890,7 +1894,7 @@
     });
     resultSummary = { official, mains: drawn, special, won, fixedTotal, unknownPool, best, winningCombos, bets: perBet };
     const hasNames = perBet.some(b => b.who);
-    resultEl.innerHTML = html + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">${ico("image")}Share result as image</button></div>` +
+    resultEl.innerHTML = html + SHARE_ROW +
       (hasNames ? `<label class="share-opt"><input type="checkbox" id="shareNames"${shareNamesPref() ? " checked" : ""}> Show who picked each number</label>` : "");
     resultEl.hidden = false;
     if (!top) hideBigWin();
@@ -2087,6 +2091,10 @@
 
     // footer
     y += 56;
+    if (sum.code) { // a pool's result: its code, so whoever gets the picture can open the pool
+      say(`Pool code ${sum.code}`, W / 2, y, { w: 700, px: 28, align: "center" });
+      y += 40;
+    }
     say(`Checked with Mark Six Checker${site()}`, W / 2, y, { px: 24, color: IMG.muted, align: "center" });
     y += 34;
     say(o ? "Official result from HKJC · not affiliated with the HKJC" : "Not affiliated with the HKJC", W / 2, y, { px: 22, color: IMG.muted, align: "center" });
@@ -2220,13 +2228,14 @@
   }
 
   // Share a canvas as a PNG (share sheet on phones), or download it.
-  async function shareCanvas(cv, name, title) {
+  // `download` skips the share sheet and saves the file.
+  async function shareCanvas(cv, name, title, download = false) {
     // build the file synchronously so the share sheet still counts as a response to the tap
     const bin = atob(cv.toDataURL("image/png").split(",")[1]);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     const file = new File([bytes], name, { type: "image/png" });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    if (!download && navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file], title }); return; }
       catch (err) { if (err && err.name === "AbortError") return; }
     }
@@ -2245,27 +2254,33 @@
   resultEl.addEventListener("change", e => {
     if (e.target.id === "shareNames") try { localStorage.setItem(SHARE_NAMES_KEY, e.target.checked ? "1" : "0"); } catch {}
   });
-  function shareResultImage() {
+  // An Export button saves the file on a laptop, where a share sheet can't;
+  // on a phone it opens the share sheet, which is where Save Image is.
+  const exportsByDownload = () => !matchMedia("(pointer: coarse)").matches;
+  function shareResultImage(download = false) {
     if (!resultSummary) return;
     const o = resultSummary.official;
     const box = document.getElementById("shareNames");
-    const title = pool && pool.state ? pool.state.title : shared ? "Shared bets" : "My bets"; // as it is now, not when the result was drawn
-    shareCanvas(drawResultImage({ ...resultSummary, title }, !!box && box.checked), `marksix-${o ? o.label.replace("/", "-") : "result"}.png`, "Mark Six result");
+    // the pool's name and code as they are now, not when the result was drawn
+    const title = pool && pool.state ? pool.state.title : shared ? "Shared bets" : "My bets";
+    const code = pool && pool.state ? pool.state.code : null;
+    shareCanvas(drawResultImage({ ...resultSummary, title, code }, !!box && box.checked), `marksix-${o ? o.label.replace("/", "-") : "result"}.png`, "Mark Six result", download);
   }
   function sharePoolImage() {
     if (!pool || !pool.state) return;
     const st = pool.state;
     const slug = st.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 30) || "pool";
-    shareCanvas(drawPoolImage(st), `marksix-${slug}.png`, st.title);
+    shareCanvas(drawPoolImage(st), `marksix-${slug}.png`, st.title, exportsByDownload());
   }
   function shareMyBetsImage() {
     const bets = activeBets();
     if (!bets.length) return;
     const d = new Date(), pad = n => String(n).padStart(2, "0");
-    shareCanvas(drawMyBetsImage(bets), `marksix-bets-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.png`, "My Mark Six bets");
+    shareCanvas(drawMyBetsImage(bets), `marksix-bets-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.png`, "My Mark Six bets", exportsByDownload());
   }
   resultEl.addEventListener("click", e => {
     if (e.target.closest('[data-act="share-png"]')) shareResultImage();
+    else if (e.target.closest('[data-act="download-png"]')) shareResultImage(true);
   });
 
   // ---------- odds table ----------
