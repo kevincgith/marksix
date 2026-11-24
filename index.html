@@ -328,8 +328,10 @@
 
   /* ---------- check a draw ---------- */
   .past { margin: 0 0 1rem; }
-  .past-actions { display: flex; gap: .5rem; }
-  .past-actions #lastBtn { flex: 1 1 auto; }
+  .past-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .past-actions .btn { flex: 1 1 auto; }
+  .past-actions #lastBtn { flex: 1 1 100%; }
+  @media (min-width: 600px) { .past-actions #lastBtn { flex: 2 1 auto; } }
   .past-list { display: grid; gap: .4rem; margin-top: .6rem; }
   .past-row {
     appearance: none; width: 100%; text-align: left;
@@ -642,7 +644,9 @@
         <div class="past-actions">
           <button class="btn" id="lastBtn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-calendar"/></svg>Last draw</button>
           <button class="btn ghost" id="pastBtn" type="button" aria-expanded="false" aria-controls="pastList">Past 5</button>
+          <button class="btn ghost" id="nextBtn" type="button" aria-expanded="false" aria-controls="nextInfo">Next draw</button>
         </div>
+        <div id="nextInfo" aria-live="polite"></div>
         <div id="pastList" aria-live="polite"></div>
       </div>
       <p class="hint" id="hint" aria-live="polite"></p>
@@ -714,7 +718,7 @@
     </ul>
   </details>
 
-  <footer>Not affiliated with the HKJC. Your bets are saved in this browser only; a group pool is kept on the pool server so everyone with its link can see and change it. Results are fetched from HKJC only when you tap Last draw or Past 5.<br>v2026-11-25</footer>
+  <footer>Not affiliated with the HKJC. Your bets are saved in this browser only; a group pool is kept on the pool server so everyone with its link can see and change it. Draws are fetched from HKJC only when you tap Last draw, Past 5 or Next draw.<br>v2026-11-25</footer>
 </div>
 
 <dialog id="editor" class="sheet" aria-labelledby="edTitle">
@@ -1623,7 +1627,9 @@
   // HKJC's results service only answers the exact queries its own results page sends
   // (and allows any site to read the reply), so this text must match it character for character.
   const HKJC_RESULTS_URL = "https://info.cld.hkjc.com/graphql/base-get/";
-  const HKJC_QUERY = "fragment lotteryDrawsFragment on LotteryDraw{id year no openDate closeDate drawDate status snowballCode snowballName_en snowballName_ch lotteryPool{sell status totalInvestment jackpot unitBet estimatedPrize derivedFirstPrizeDiv lotteryPrizes{type winningUnit dividend}}drawResult{drawnNo xDrawnNo}}query marksixResult($lastNDraw:Int$startDate:String$endDate:String$drawType:LotteryDrawType){lotteryDraws(lastNDraw:$lastNDraw startDate:$startDate endDate:$endDate drawType:$drawType){...lotteryDrawsFragment}}";
+  const HKJC_FRAGMENT = "fragment lotteryDrawsFragment on LotteryDraw{id year no openDate closeDate drawDate status snowballCode snowballName_en snowballName_ch lotteryPool{sell status totalInvestment jackpot unitBet estimatedPrize derivedFirstPrizeDiv lotteryPrizes{type winningUnit dividend}}drawResult{drawnNo xDrawnNo}}";
+  const HKJC_QUERY = HKJC_FRAGMENT + "query marksixResult($lastNDraw:Int$startDate:String$endDate:String$drawType:LotteryDrawType){lotteryDraws(lastNDraw:$lastNDraw startDate:$startDate endDate:$endDate drawType:$drawType){...lotteryDrawsFragment}}";
+  const HKJC_NEXT_QUERY = HKJC_FRAGMENT + "query marksixDraw{timeOffset{m6 ts}lotteryDraws{...lotteryDrawsFragment}}"; // the last result and the draws to come
   const PAST_COUNT = 5;
   let pastDraws = null;      // parsed results once fetched
   let pastState = "idle";    // idle | loading | ok | error
@@ -1632,6 +1638,18 @@
   let loadingBy = null;      // which button started the current fetch
 
   // Turn one HKJC draw into { id, label, date, snowball, mains, special, dividends }, or null if malformed.
+  // A draw's number and date as HKJC writes them: label "26/125", date
+  // "Sat, 28 Nov 2026", longDate "28/11/2026 (Saturday)".
+  function drawLabels(d) {
+    const [y, m, day] = String(d.drawDate || "").slice(0, 10).split("-").map(Number);
+    const utc = y ? new Date(Date.UTC(y, m - 1, day)) : null;
+    const fmt = opts => utc ? utc.toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" }) : "";
+    return {
+      label: `${String(d.year || y || "").slice(-2)}/${String(d.no ?? "").padStart(3, "0")}`,
+      date: fmt({ weekday: "short", day: "numeric", month: "short", year: "numeric" }),
+      longDate: utc ? `${fmt({ day: "2-digit", month: "2-digit", year: "numeric" })} (${fmt({ weekday: "long" })})` : "",
+    };
+  }
   function parseDraw(d) {
     const r = d && d.drawResult, nums = r && r.drawnNo, sp = r && r.xDrawnNo;
     const ok = n => Number.isInteger(n) && n >= 1 && n <= 49;
@@ -1652,14 +1670,9 @@
       if (u > 0) prizes[p.type - 1].units = u / 10;
     });
     const turnover = Number(pool.totalInvestment);
-    const [y, m, day] = String(d.drawDate || "").slice(0, 10).split("-").map(Number);
-    const utc = y ? new Date(Date.UTC(y, m - 1, day)) : null;
-    const fmt = opts => utc ? utc.toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" }) : "";
     return {
       id: String(d.id || `${d.year}-${d.no}`),
-      label: `${String(d.year || y || "").slice(-2)}/${String(d.no ?? "").padStart(3, "0")}`,
-      date: fmt({ weekday: "short", day: "numeric", month: "short", year: "numeric" }),
-      longDate: utc ? `${fmt({ day: "2-digit", month: "2-digit", year: "numeric" })} (${fmt({ weekday: "long" })})` : "",
+      ...drawLabels(d),
       snowball: d.snowballName_en ? String(d.snowballName_en) : "",
       mains: [...nums].sort(byNum),
       special: sp,
@@ -1670,24 +1683,33 @@
     };
   }
 
-  async function fetchPastDraws(n) {
-    const vars = { lastNDraw: n, drawType: "All", startDate: null, endDate: null };
-    const url = `${HKJC_RESULTS_URL}?query=${encodeURIComponent(HKJC_QUERY)}&operationName=marksixResult&variables=${encodeURIComponent(JSON.stringify(vars))}`;
+  // One request to HKJC's results service; resolves with the reply's data.
+  async function hkjc(query, operationName, vars) {
+    const url = `${HKJC_RESULTS_URL}?query=${encodeURIComponent(query)}&operationName=${operationName}&variables=${encodeURIComponent(JSON.stringify(vars))}`;
     const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 15000);
     try {
-      // HKJC rejects "last N draws" requests without the JSON content-type its own page sends
+      // HKJC rejects requests without the JSON content-type its own page sends
       const res = await fetch(url, { signal: ctl.signal, cache: "no-store", headers: { accept: "*/*", "content-type": "application/json" } });
       if (!res.ok) throw new Error(`HKJC replied ${res.status}`);
       const json = await res.json();
       if (json.errors && json.errors.length) throw new Error(String(json.errors[0].message || "HKJC returned an error"));
-      const draws = ((json.data && json.data.lotteryDraws) || []).map(parseDraw).filter(Boolean);
-      if (!draws.length) throw new Error("HKJC returned no results");
-      return draws.slice(0, n);
+      return json.data || {};
     } catch (err) {
       throw err.name === "AbortError" ? new Error("HKJC took too long to reply") : err;
     } finally {
       clearTimeout(timer);
     }
+  }
+  // HKJC occasionally rejects a request it accepts a moment later, so try twice.
+  const twice = async fn => {
+    try { return await fn(); }
+    catch { await new Promise(r => setTimeout(r, 800)); return fn(); }
+  };
+  async function fetchPastDraws(n) {
+    const data = await hkjc(HKJC_QUERY, "marksixResult", { lastNDraw: n, drawType: "All", startDate: null, endDate: null });
+    const draws = (data.lotteryDraws || []).map(parseDraw).filter(Boolean);
+    if (!draws.length) throw new Error("HKJC returned no results");
+    return draws.slice(0, n);
   }
 
   // Fetch the latest draws; resolves true when they loaded.
@@ -1697,9 +1719,7 @@
     loadingBy = by;
     renderPast();
     try {
-      // HKJC occasionally rejects a request it accepts a moment later, so try twice
-      try { pastDraws = await fetchPastDraws(PAST_COUNT); }
-      catch { await new Promise(r => setTimeout(r, 800)); pastDraws = await fetchPastDraws(PAST_COUNT); }
+      pastDraws = await twice(() => fetchPastDraws(PAST_COUNT));
       pastState = "ok";
     } catch (err) {
       pastState = "error";
@@ -1767,7 +1787,7 @@
     lastBtn.disabled = pastBtn.disabled = quickLast.disabled = loading;
     lastBtn.innerHTML = loadingBy === "last" ? "Loading from HKJC…" : `${ico("calendar")}Last draw`;
     quickLast.innerHTML = loadingBy === "last" ? "Loading from HKJC…" : `${ico("calendar")}Check the last draw`;
-    pastBtn.textContent = loadingBy === "past" ? "Loading…" : pastOpen ? "Hide ▴" : `Past ${PAST_COUNT} ▾`;
+    pastBtn.textContent = loadingBy === "past" ? "Loading…" : `Past ${PAST_COUNT} ${pastOpen ? "▴" : "▾"}`;
     pastBtn.setAttribute("aria-expanded", pastOpen);
     pastListEl.innerHTML = pastState === "error"
       ? `<p class="past-err">Couldn't load results (${esc(pastError)}). Check your connection and try again, or tap the numbers in below.</p>`
@@ -1816,6 +1836,75 @@
   pastListEl.addEventListener("click", e => {
     const row = e.target.closest(".past-row");
     if (row) loadDraw(pastDraws[Number(row.dataset.i)]);
+  });
+
+  // ---------- the next draw (also from HKJC) ----------
+  let nextDraw = null;    // the draw to come, as parseNextDraw gives it; false when HKJC lists none
+  let nextState = "idle"; // idle | loading | ok | error
+  let nextError = "";
+  let nextOpen = false;   // whether its details are showing
+  function parseNextDraw(d) {
+    const pool = d.lotteryPool || {}, amount = v => Number(v) > 0 ? Number(v) : null;
+    const closes = Date.parse(d.closeDate);
+    return {
+      ...drawLabels(d),
+      closes: Number.isFinite(closes) ? closes : null, // when sales stop
+      jackpot: amount(pool.jackpot),
+      firstPrize: amount(pool.estimatedPrize) ?? amount(pool.derivedFirstPrizeDiv),
+      turnover: amount(pool.totalInvestment),
+      snowball: d.snowballName_en ? String(d.snowballName_en) : "",
+    };
+  }
+  async function fetchNextDraw() {
+    const data = await hkjc(HKJC_NEXT_QUERY, "marksixDraw", {});
+    // the draws HKJC lists that haven't been drawn, soonest first
+    const coming = (data.lotteryDraws || [])
+      .filter(d => d && d.status !== "Result" && !(d.drawResult && (d.drawResult.drawnNo || []).length))
+      .sort((a, b) => String(a.drawDate).localeCompare(String(b.drawDate)));
+    return coming.length ? parseNextDraw(coming[0]) : false;
+  }
+  // How long until a time, in words ("in 3 days"); empty once it has passed.
+  function until(t) {
+    const m = Math.round((t - Date.now()) / 60000);
+    if (m <= 0) return "";
+    if (m < 90) return `in ${plural(m, "minute")}`;
+    if (m < 48 * 60) return `in ${plural(Math.round(m / 60), "hour")}`;
+    return `in ${plural(Math.round(m / 1440), "day")}`;
+  }
+  const nextBtn = document.getElementById("nextBtn"), nextInfoEl = document.getElementById("nextInfo");
+  function renderNext() {
+    const loading = nextState === "loading";
+    nextBtn.disabled = loading;
+    nextBtn.textContent = loading ? "Loading…" : `Next draw ${nextOpen ? "▴" : "▾"}`;
+    nextBtn.setAttribute("aria-expanded", nextOpen);
+    if (!nextOpen || loading) { nextInfoEl.innerHTML = ""; return; }
+    if (nextState === "error") {
+      nextInfoEl.innerHTML = `<p class="past-err">Couldn't load the next draw (${esc(nextError)}). Check your connection and try again.</p>`;
+      return;
+    }
+    if (!nextDraw) { nextInfoEl.innerHTML = `<p class="none" style="margin-top:.6rem">HKJC hasn't announced the next draw yet.</p>`; return; }
+    const d = nextDraw, row = (label, value) => value ? `<dt>${label}</dt><dd>${value}</dd>` : "";
+    const closeAt = d.closes == null ? "" : new Date(d.closes).toLocaleString("en-GB",
+      { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Hong_Kong" });
+    nextInfoEl.innerHTML = `<div class="details"><h3>Next draw</h3><dl>` +
+      row("Draw number", esc(d.label)) +
+      row("Draw date", esc(d.longDate)) +
+      row("Sales close", closeAt && `${esc(closeAt)} HKT · ${until(d.closes) || "closed"}`) +
+      row("Snowball", esc(d.snowball)) +
+      row("Jackpot", d.jackpot != null ? money(d.jackpot) : "") +
+      row("Est. 1st division prize", d.firstPrize != null ? money(d.firstPrize) : "") +
+      row("Turnover so far", d.turnover != null ? money(d.turnover) : "") +
+      `</dl><p class="note">From HKJC. The amounts change until sales close.</p></div>`;
+  }
+  // Next draw: show or hide its details, fetched fresh each time they're opened.
+  nextBtn.addEventListener("click", async () => {
+    if (nextOpen) { nextOpen = false; renderNext(); return; }
+    nextOpen = true;
+    nextState = "loading";
+    renderNext();
+    try { nextDraw = await twice(fetchNextDraw); nextState = "ok"; }
+    catch (err) { nextState = "error"; nextError = err && err.message ? err.message : "network error"; }
+    renderNext();
   });
 
   // ---------- result ----------
@@ -2884,6 +2973,7 @@
     renderOdds();
     renderResult(hits);
     renderPast();
+    renderNext();
     renderQuick();
     renderModes();
     dipBtn.disabled = dipping;
