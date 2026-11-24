@@ -429,6 +429,8 @@
   .details .ball { width: 1.85rem; height: 1.85rem; font-size: .82rem; }
   .share-row { margin-top: 1rem; }
   .share-row button { width: 100%; }
+  .share-opt { display: flex; align-items: center; justify-content: center; gap: .45rem; margin-top: .55rem; font-size: .85rem; color: var(--muted); cursor: pointer; }
+  .share-opt input { width: 1.05rem; height: 1.05rem; margin: 0; accent-color: var(--accent); }
   .details table.prizes td, .details table.prizes th { padding: .3rem .4rem; }
   table { width: 100%; border-collapse: collapse; font-size: .88rem; }
   th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--border); }
@@ -1778,7 +1780,7 @@
       perBet.push({
         name: betName(bet, idx), matched: h.main.size, specialHit: h.specialHit, winning, combos: combosOf(bet),
         total: t.total, unknownPool: t.unknownPool,
-        bankers: bet.bankers, legs: bet.legs, mainHits: [...h.main],
+        bankers: bet.bankers, legs: bet.legs, mainHits: [...h.main], who: bet.who || null,
         kind: `${betKind(bet)} · ${plural(combosOf(bet), "combo")} · ${money(combosOf(bet) * UNIT_STAKE)}`,
       });
       html += `<h3>${esc(betName(bet, idx))} <small>· ${h.main.size} matched${h.specialHit ? " + special" : ""} · ` +
@@ -1795,8 +1797,11 @@
       html += `</tbody><tfoot><tr class="total"><td colspan="3">Total${t.unknownPool ? " (fixed prizes)" : ""}</td>` +
               `<td class="n">${money(t.total)}</td></tr></tfoot></table>`;
     });
-    resultSummary = { official, mains: drawn, special, won, fixedTotal, unknownPool, best, winningCombos, bets: perBet };
-    resultEl.innerHTML = html + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">${ico("image")}Share result as image</button></div>`;
+    resultSummary = { official, mains: drawn, special, won, fixedTotal, unknownPool, best, winningCombos, bets: perBet,
+      title: pool && pool.state ? pool.state.title : "My bets" };
+    const hasNames = perBet.some(b => b.who);
+    resultEl.innerHTML = html + `<div class="row share-row"><button class="btn ghost" type="button" data-act="share-png">${ico("image")}Share result as image</button></div>` +
+      (hasNames ? `<label class="share-opt"><input type="checkbox" id="shareNames"${shareNamesPref() ? " checked" : ""}> Show who picked each number</label>` : "");
     resultEl.hidden = false;
     if (!top) hideBigWin();
     if (quiet) {
@@ -1874,8 +1879,8 @@
   // on iPhones), so a list of bets stops here and says how many were left out.
   const IMG_MAX_BETS_BOTTOM = 13000;
 
-  const drawResultImage = sum => makeImage(painter => paintResult(sum, painter));
-  function paintResult(sum, { W, PAD, IN, CW, ctx, font, rr, say, line, ball, site }) {
+  const drawResultImage = (sum, showNames = false) => makeImage(painter => paintResult(sum, painter, showNames));
+  function paintResult(sum, { W, PAD, IN, CW, ctx, font, rr, say, line, ball, site }, showNames = false) {
     const MAX_BETS_SHOWN = 10;
     const o = sum.official;
 
@@ -1938,11 +1943,13 @@
 
       // my bets: numbers with hit rings, like the page
       const combos = sum.bets.reduce((s, b) => s + b.combos, 0);
-      say("My bets", IN, y, { w: 800, px: 32 });
+      say(sum.title || "My bets", IN, y, { w: 800, px: 32, maxW: CW - 420 });
       say(`${plural(sum.bets.length, "bet")} · ${plural(combos, "combo")} · ${money(combos * UNIT_STAKE)}`, IN + CW, y, { px: 24, color: IMG.muted, align: "right" });
       y += 26;
-      const r = 26, STEP = 2 * r + 16;
+      const r = 26, STEP = 2 * r + 16, NSTEP = 2 * r + 30;
       sum.bets.slice(0, MAX_BETS_SHOWN).forEach(b => {
+        const who = showNames && b.who ? b.who : null; // number -> who picked it
+        const step = who ? NSTEP : STEP, rowH = step + (who ? 30 : 0);
         line(y); y += 50;
         const amount = b.winning ? `${money(b.total)}${b.unknownPool ? " + pool" : ""}` : "No prize";
         font(800, 30);
@@ -1953,18 +1960,36 @@
         say(b.kind, IN, y, { px: 24, color: IMG.muted });
         // ball rows, wrapping as needed
         let bx = IN, by = y + 26 + r + 6;
-        const place = w => { if (bx + w > IN + CW) { bx = IN; by += STEP; } const at = bx; bx += w; return at; };
+        const place = w => { if (bx + w > IN + CW) { bx = IN; by += rowH; } const at = bx; bx += w; return at; };
         const hitRing = n => b.mainHits.includes(n) ? "#f5b301" : n === sum.special ? "#b8bec8" : null;
+        const put = (n, banker) => {
+          const cx = place(step) + r + 6 + (step - STEP) / 2;
+          ball(n, cx, by, r, hitRing(n), banker);
+          if (who && who[n]) say(who[n], cx, by + r + 30, { px: 19, color: IMG.muted, align: "center", maxW: step - 4 });
+        };
         if (b.bankers.length) {
           const lx = place(44); say("膽", lx + 4, by + 9, { w: 700, px: 26, color: IMG.muted });
-          b.bankers.forEach(n => { const at = place(STEP); ball(n, at + r + 6, by, r, hitRing(n), true); });
+          b.bankers.forEach(n => put(n, true));
           const px = place(40); say("+", px + 12, by + 10, { w: 700, px: 30, color: IMG.muted });
         }
-        b.legs.forEach(n => { const at = place(STEP); ball(n, at + r + 6, by, r, hitRing(n), false); });
-        y = by + r + 6 + 38;
+        b.legs.forEach(n => put(n, false));
+        y = by + r + 6 + (who ? 30 : 0) + 38;
         say(`${b.matched} matched${b.specialHit ? " + special" : ""} · ${b.winning.toLocaleString("en-US")} of ${plural(b.combos, "combo")} win`,
           IN, y, { px: 24, color: IMG.muted });
         y += 30;
+        if (who) {
+          // who picked the numbers that came up, e.g. "Drawn numbers from Amy 8, 23 · Kevin 12"
+          const byWho = new Map();
+          [...b.bankers, ...b.legs].filter(n => b.mainHits.includes(n) || n === sum.special).forEach(n => {
+            const k = who[n] || "?";
+            byWho.set(k, [...(byWho.get(k) || []), n === sum.special ? `${n} (special)` : String(n)]);
+          });
+          if (byWho.size) {
+            y += 6;
+            say("Drawn numbers from " + [...byWho].map(([k, ns]) => `${k} ${ns.join(", ")}`).join(" · "), IN, y, { w: 600, px: 24, color: IMG.text });
+            y += 30;
+          }
+        }
       });
       const more = sum.bets.length - MAX_BETS_SHOWN;
       if (more > 0) { line(y); y += 44; say(`+ ${plural(more, "more bet")}`, IN, y, { px: 26, color: IMG.muted }); y += 16; }
@@ -2124,10 +2149,17 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     toast("Image saved.");
   }
+  // Whether the result image shows who picked each number (remembered; on by default).
+  const SHARE_NAMES_KEY = "marksix.shareNames";
+  function shareNamesPref() { try { return localStorage.getItem(SHARE_NAMES_KEY) !== "0"; } catch { return true; } }
+  resultEl.addEventListener("change", e => {
+    if (e.target.id === "shareNames") try { localStorage.setItem(SHARE_NAMES_KEY, e.target.checked ? "1" : "0"); } catch {}
+  });
   function shareResultImage() {
     if (!resultSummary) return;
     const o = resultSummary.official;
-    shareCanvas(drawResultImage(resultSummary), `marksix-${o ? o.label.replace("/", "-") : "result"}.png`, "Mark Six result");
+    const box = document.getElementById("shareNames");
+    shareCanvas(drawResultImage(resultSummary, !!box && box.checked), `marksix-${o ? o.label.replace("/", "-") : "result"}.png`, "Mark Six result");
   }
   function sharePoolImage() {
     if (!pool || !pool.state) return;
