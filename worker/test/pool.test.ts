@@ -1,0 +1,166 @@
+import { SELF } from "cloudflare:test";
+import { describe, expect, it } from "vitest";
+import { applyOp, cleanText, newPool, parseOp, Refusal, type Pool } from "../src/model";
+import { normalizeCode } from "../src/index";
+
+const ORIGIN = "http://localhost:8791";
+const BASE = "https://pool.test";
+
+async function createPool(body: object = { title: "Friday", bets: 2, size: 7 }, origin = ORIGIN) {
+  const res = await SELF.fetch(`${BASE}/pools`, { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  return res;
+}
+
+class Client {
+  inbox: { t: string; pool?: Pool; message?: string }[] = [];
+  private wake: (() => void) | null = null;
+  constructor(readonly ws: WebSocket) {
+    ws.addEventListener("message", (e) => {
+      this.inbox.push(JSON.parse(e.data as string));
+      this.wake?.();
+    });
+    ws.accept();
+  }
+  send(m: object) {
+    this.ws.send(JSON.stringify(m));
+  }
+  async next(t: string) {
+    const deadline = Date.now() + 2000;
+    for (;;) {
+      const i = this.inbox.findIndex((m) => m.t === t);
+      if (i >= 0) return this.inbox.splice(i, 1)[0];
+      const left = deadline - Date.now();
+      if (left <= 0) throw new Error(`no ${t}: ${JSON.stringify(this.inbox)}`);
+      await new Promise<void>((r) => {
+        this.wake = r;
+        setTimeout(r, left);
+      });
+    }
+  }
+  async pool(until: (p: Pool) => boolean = () => true) {
+    for (;;) {
+      const { pool } = await this.next("pool");
+      if (until(pool!)) return pool!;
+    }
+  }
+}
+
+async function connect(code: string) {
+  const res = await SELF.fetch(`${BASE}/pools/${code}/ws`, { headers: { Upgrade: "websocket", Origin: ORIGIN } });
+  expect(res.status).toBe(101);
+  return new Client(res.webSocket!);
+}
+
+describe("the model", () => {
+  it("makes a pool with the bets asked for", () => {
+    const p = newPool("ABC", { title: "  Office <b>pool</b> ", bets: 3, size: 8 }, 1);
+    expect(p.title).toBe("Office b pool /b");
+    expect(p.bets.map((b) => [b.id, b.name, b.size])).toEqual([["b1", "Bet A", 8], ["b2", "Bet B", 8], ["b3", "Bet C", 8]]);
+    expect(newPool("ABC", { bets: 99, size: 3 }, 1).bets.map((b) => b.size)).toEqual([7, 7]);
+  });
+
+  it("adds, refuses a full bet, removes, resizes", () => {
+    const p = newPool("ABC", { bets: 1, size: 6 }, 1);
+    for (const n of [1, 2, 3, 4, 5, 6]) expect(applyOp(p, { t: "add", bet: "b1", n, by: "Kev" }, 2)).toBe(true);
+    expect(applyOp(p, { t: "add", bet: "b1", n: 3, by: "Amy" }, 3)).toBe(false); // already there
+    expect(() => applyOp(p, { t: "add", bet: "b1", n: 7, by: "Amy" }, 3)).toThrow(Refusal);
+    expect(applyOp(p, { t: "size", bet: "b1", size: 7, by: "Amy" }, 4)).toBe(true);
+    expect(applyOp(p, { t: "add", bet: "b1", n: 7, by: "Amy" }, 5)).toBe(true);
+    expect(() => applyOp(p, { t: "size", bet: "b1", size: 6, by: "Amy" }, 6)).toThrow(/already has 7/);
+    expect(applyOp(p, { t: "remove", bet: "b1", n: 1, by: "Amy" }, 7)).toBe(true);
+    expect(p.log.at(-1)!.text).toBe("removed 1 from Bet A (Kev's)");
+    expect(p.bets[0].picks.map((x) => [x.n, x.by])).toEqual([[2, "Kev"], [3, "Kev"], [4, "Kev"], [5, "Kev"], [6, "Kev"], [7, "Amy"]]);
+  });
+
+  it("adds and removes bets, keeps at least one", () => {
+    const p = newPool("ABC", { bets: 1 }, 1);
+    applyOp(p, { t: "addBet", by: "K" }, 2);
+    expect(p.bets.map((b) => b.name)).toEqual(["Bet A", "Bet B"]);
+    applyOp(p, { t: "removeBet", bet: "b1", by: "K" }, 3);
+    expect(() => applyOp(p, { t: "removeBet", bet: "b2", by: "K" }, 4)).toThrow(/at least one/);
+    applyOp(p, { t: "addBet", by: "K" }, 5);
+    expect(p.bets.map((b) => [b.id, b.name])).toEqual([["b2", "Bet B"], ["b1", "Bet A"]]);
+    expect(() => applyOp(p, { t: "add", bet: "b9", n: 1, by: "K" }, 6)).toThrow(/removed/);
+  });
+
+  it("reads only well-formed messages", () => {
+    expect(parseOp('{"t":"add","bet":"b1","n":12,"by":" Amy "}')).toEqual({ t: "add", bet: "b1", n: 12, by: "Amy" });
+    expect(parseOp('{"t":"add","bet":"b1","n":50,"by":"Amy"}')).toBeNull();
+    expect(parseOp('{"t":"add","bet":"b1","n":1.5,"by":"Amy"}')).toBeNull();
+    expect(parseOp('{"t":"add","bet":"b1","n":12,"by":"  "}')).toBeNull();
+    expect(parseOp('{"t":"size","bet":"b1","size":16,"by":"Amy"}')).toBeNull();
+    expect(parseOp('{"t":"nope","by":"Amy"}')).toBeNull();
+    expect(parseOp("not json")).toBeNull();
+    expect(parseOp('{"t":"ping"}')).toEqual({ t: "ping" });
+    expect(cleanText("a\u0000b​c   d", 20)).toBe("a b c d");
+  });
+
+  it("normalizes codes", () => {
+    expect(normalizeCode("ac9-xk3")).toBe("AC9XK3");
+    expect(normalizeCode("AC9XK")).toBeNull();
+    expect(normalizeCode("AC9XK1")).toBeNull(); // 1 isn't in the alphabet
+  });
+});
+
+describe("the worker", () => {
+  it("makes a pool only from an allowed page", async () => {
+    expect((await createPool({}, "https://evil.example")).status).toBe(403);
+    const res = await createPool();
+    expect(res.status).toBe(201);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
+    const { code } = (await res.json()) as { code: string };
+    expect(normalizeCode(code)).toBe(code);
+    const info = await SELF.fetch(`${BASE}/pools/${code.toLowerCase()}`, { headers: { Origin: ORIGIN } });
+    expect(info.status).toBe(200);
+    expect(((await info.json()) as Pool).title).toBe("Friday");
+  });
+
+  it("answers 404 for a pool that doesn't exist", async () => {
+    expect((await SELF.fetch(`${BASE}/pools/AAAAAA`, { headers: { Origin: ORIGIN } })).status).toBe(404);
+    expect((await SELF.fetch(`${BASE}/pools/AAAAAA/ws`, { headers: { Origin: ORIGIN, Upgrade: "websocket" } })).status).toBe(404);
+  });
+
+  it("shares every change with everyone who has it open", async () => {
+    const { code } = (await (await createPool()).json()) as { code: string };
+    const kev = await connect(code);
+    const amy = await connect(code);
+    expect((await kev.pool()).bets).toHaveLength(2);
+    await amy.pool();
+
+    kev.send({ t: "add", bet: "b1", n: 8, by: "Kevin" });
+    amy.send({ t: "add", bet: "b1", n: 23, by: "Amy" });
+    amy.send({ t: "add", bet: "b2", n: 8, by: "Amy" }); // the same number may go in another bet
+    const seen = await kev.pool((p) => p.version === 4);
+    expect(seen.bets[0].picks.map((x) => [x.n, x.by]).sort()).toEqual([[23, "Amy"], [8, "Kevin"]].sort());
+    expect(seen.bets[1].picks.map((x) => x.n)).toEqual([8]);
+    expect((await amy.pool((p) => p.version === 4)).bets).toEqual(seen.bets);
+
+    // Amy removes Kevin's number: anyone may change anything.
+    amy.send({ t: "remove", bet: "b1", n: 8, by: "Amy" });
+    expect((await kev.pool((p) => p.version === 5)).log.at(-1)).toMatchObject({ by: "Amy", text: "removed 8 from Bet A (Kevin's)" });
+
+    // A refusal comes back to the sender alone, with the pool as it is.
+    kev.send({ t: "size", bet: "b1", size: 15, by: "Kevin" });
+    await kev.pool((p) => p.version === 6);
+    kev.send({ t: "removeBet", bet: "b2", by: "Kevin" });
+    await kev.pool((p) => p.version === 7);
+    kev.send({ t: "removeBet", bet: "b1", by: "Kevin" });
+    expect((await kev.next("error")).message).toMatch(/at least one/);
+
+    // It's kept: a new page gets the pool as it now stands.
+    const ben = await connect(code);
+    const now = await ben.pool();
+    expect(now.version).toBe(7);
+    expect(now.bets.map((b) => [b.name, b.size, b.picks.map((x) => x.n)])).toEqual([["Bet A", 15, [23]]]);
+  });
+
+  it("turns down a malformed message without closing", async () => {
+    const { code } = (await (await createPool()).json()) as { code: string };
+    const c = await connect(code);
+    await c.pool();
+    c.send({ t: "add", bet: "b1", n: 99, by: "Kevin" });
+    expect((await c.next("error")).message).toMatch(/understood/);
+    c.send({ t: "ping" });
+    await c.next("pong");
+  });
+});

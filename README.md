@@ -9,6 +9,9 @@ A single-page Mark Six checker for the Hong Kong lottery. Open `index.html` (or 
   This uses the same results service as HKJC's own results page (`info.cld.hkjc.com/graphql`). It isn't a documented public API, so it can stop working if HKJC changes its site. If it does, the page says so and you can still type the numbers in.
 - **Odds.** The chance of each division for your bets, recalculated as you enter the draw. It is exact unless there are too many overlapping bets, in which case it is estimated by simulating draws.
 - **Share.** 🔗 Share copies a link with your bets (and the draw, once it's fully entered). The link opens in a read-only "Shared bets" view, which the person can save to their own bets.
+- **Group pool.** 👥 Group pool makes a shared pool: pick how many bets and how many numbers each (say 2 bets of 7), then 🔗 Invite friends sends the link. Everyone who opens it adds their numbers from their own phone and sees everyone else's the moment they're picked. Anyone with the link can add, remove or change anything (no accounts); each number shows who picked it, and Recent changes lists who did what. A bet plays once it has 6 numbers, and while the pool is open the draw checker, odds and share image use the pool's bets. Save to my bets copies them into your own list. Pools you've opened are listed in the Group pool dialog, and a pool is removed 60 days after its last change.
+
+  The pool lives on a small Cloudflare Worker in [`worker/`](worker/README.md) (one Durable Object per pool, kept in step over a WebSocket).
 - **CSV import / export.** Export saves your bets as a `.csv` file (also a handy backup); Import adds bets from one and skips any you already have. **Clear all** deletes every saved bet.
 
   ```csv

@@ -277,7 +277,7 @@
   .io [data-act="clear-all"] { margin-left: auto; } /* keep the destructive one apart */
 
   /* ---- bet editor ---- */
-  dialog#editor {
+  dialog#editor, dialog#poolNew {
     border: none; padding: 0;
     width: min(560px, calc(100vw - 16px));
     max-height: calc(100dvh - 16px);
@@ -285,7 +285,7 @@
     background: var(--card); color: var(--text);
     box-shadow: 0 20px 60px rgba(0,0,0,.35);
   }
-  dialog#editor::backdrop { background: rgba(10, 12, 16, .5); }
+  dialog#editor::backdrop, dialog#poolNew::backdrop { background: rgba(10, 12, 16, .5); }
   .ed { padding: 1.1rem 1.1rem 1.2rem; }
   .ed h2 { margin: 0 0 .8rem; font-size: 1.1rem; }
   .ed label.name { display: block; font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: .8rem; }
@@ -307,6 +307,66 @@
   .ed .status { font-size: .9rem; font-weight: 650; margin: 0 0 .7rem; min-height: 1.5em; }
   .ed .status.warn { color: var(--warn); }
   .ed .foot { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+
+  /* ---- group pool ---- */
+  .pool-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+  .pool-title { appearance: none; border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+  .pool-title h2 { display: inline; }
+  .pool-title .pen { color: var(--muted); font-size: .8rem; margin-left: .3rem; }
+  .pool-meta { color: var(--muted); font-size: .82rem; margin: .15rem 0 .8rem; }
+  .pool-meta code { font: inherit; font-weight: 700; letter-spacing: .08em; color: var(--text); }
+  .live { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; font-weight: 650; color: var(--muted); white-space: nowrap; }
+  .live::before { content: ""; width: .55rem; height: .55rem; border-radius: 50%; background: var(--muted); }
+  .live.on::before { background: var(--hit); }
+  .live.wait::before { background: var(--special); }
+  .live.off::before { background: var(--warn); }
+  .you { display: flex; align-items: center; gap: .5rem; margin-bottom: .9rem; font-size: .85rem; color: var(--muted); font-weight: 600; }
+  .you input, .pn input[type=text] {
+    flex: 1; min-width: 0; font: inherit; font-size: 1rem; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: .45rem .7rem;
+  }
+  .you input:focus, .pn input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .you input.need { border-color: var(--warn); outline: 2px solid var(--warn); }
+  .pbets { display: grid; gap: .5rem; margin-bottom: .9rem; }
+  .pbet {
+    appearance: none; width: 100%; text-align: left; font: inherit; color: inherit;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: .6rem .75rem .65rem; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .pbet[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--card); }
+  .pbet .bet-top { gap: .4rem; }
+  .pbet .count { font-size: .78rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .pbet .count.full { color: var(--hit); }
+  .pbet .balls { gap: .25rem .3rem; }
+  .pb { display: inline-flex; flex-direction: column; align-items: center; width: 2.5rem; }
+  .pb small { font-size: .62rem; line-height: 1.3; color: var(--muted); max-width: 2.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pb .ball.empty { background: transparent; border: 1.5px dashed var(--border); }
+  .pool-tools { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin: 0 0 .7rem; }
+  .pool-tools .lbl { font-size: .85rem; font-weight: 700; margin-right: auto; }
+  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .stepper button { appearance: none; border: 0; background: var(--card); color: var(--text); font: inherit; font-weight: 700; width: 2.1rem; height: 2rem; cursor: pointer; }
+  .stepper button:disabled { opacity: .35; cursor: default; }
+  .stepper span { min-width: 2.2rem; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; font-size: .9rem; }
+  .grid button.other::before {
+    content: ""; position: absolute; left: 50%; bottom: 12%; width: 5px; height: 5px; margin-left: -2.5px;
+    border-radius: 50%; background: currentColor; opacity: .6;
+  }
+  .grid.locked button:not(.pick) { opacity: .45; }
+  .pool-bet-actions { margin: -.3rem 0 .9rem; }
+  .pbet.add { text-align: center; border-style: dashed; color: var(--muted); font-weight: 650; padding: .5rem; }
+  .who { display: flex; flex-wrap: wrap; gap: .35rem; margin: .2rem 0 .8rem; }
+  .who span { font-size: .78rem; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: .1rem .55rem; }
+  .who b { font-variant-numeric: tabular-nums; }
+  .activity { margin: 0 0 .9rem; font-size: .85rem; }
+  .activity summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+  .activity ol { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: .2rem; }
+  .activity li small { color: var(--muted); }
+  .pool-gone { text-align: center; padding: 1rem .5rem; color: var(--muted); }
+  .pn .pn-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: 0 0 .7rem; font-size: .9rem; font-weight: 650; }
+  .pn .recent { border-top: 1px solid var(--border); margin-top: .9rem; padding-top: .8rem; }
+  .pn .recent h3 { margin: 0 0 .45rem; font-size: .85rem; color: var(--muted); }
+  .pn .recent .row { margin-bottom: .45rem; }
+  .pn .recent a { font-weight: 650; }
 
   /* ---- result ---- */
   .result { margin-top: 1.2rem; }
@@ -417,10 +477,36 @@
     <p>Save your bets, enter the draw, see what you won.</p>
   </header>
 
+  <section class="card" id="poolCard" hidden>
+    <div class="pool-head">
+      <button class="pool-title" type="button" id="poolTitle" title="Rename the pool"><h2 id="poolTitleText">Group pool</h2><span class="pen">✎</span></button>
+      <span class="live" id="poolLive" aria-live="polite"></span>
+    </div>
+    <p class="pool-meta" id="poolMeta"></p>
+    <div id="poolBody">
+      <label class="you">You
+        <input type="text" id="poolName" maxlength="20" placeholder="Your name — shows who picked what" autocomplete="nickname">
+      </label>
+      <div class="pbets" id="poolBets"></div>
+      <div class="pool-tools" id="poolTools"></div>
+      <div class="grid" id="poolGrid"></div>
+      <div class="row pool-bet-actions" id="poolBetActions"></div>
+      <div class="who" id="poolWho"></div>
+      <details class="activity" id="poolActivity"><summary>Recent changes</summary><ol id="poolLog"></ol></details>
+      <div class="row">
+        <button class="btn small" type="button" id="poolInvite">🔗 Invite friends</button>
+        <button class="btn ghost small" type="button" id="poolSave">Save to my bets</button>
+        <button class="btn ghost small" type="button" id="poolLeave" style="margin-left:auto">Leave pool</button>
+      </div>
+    </div>
+    <div class="pool-gone" id="poolGone" hidden></div>
+  </section>
+
   <section class="card" id="betsCard">
     <div class="card-head">
       <h2 id="betsTitle">My bets</h2>
       <div class="row" id="betsActions">
+        <button class="btn ghost small" id="poolBtn" type="button">👥 Group pool</button>
         <button class="btn ghost small" id="shareBtn" type="button">🔗 Share</button>
         <button class="btn small" id="addBtn" type="button">+ Add bet</button>
       </div>
@@ -510,7 +596,7 @@
     </ul>
   </details>
 
-  <footer>Not affiliated with the HKJC. Bets are saved in this browser only; results are fetched from HKJC only when you tap Last draw or Past 5.<br>v2026-11-04</footer>
+  <footer>Not affiliated with the HKJC. Your bets are saved in this browser only; a group pool is kept on the pool server so everyone with its link can see and change it. Results are fetched from HKJC only when you tap Last draw or Past 5.<br>v2026-11-24</footer>
 </div>
 
 <dialog id="editor" aria-labelledby="edTitle">
@@ -536,6 +622,31 @@
         <button class="btn ghost" id="edCancel" type="button">Cancel</button>
         <button class="btn" id="edSave" type="button">Save bet</button>
       </div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="poolNew" aria-labelledby="pnHead">
+  <div class="ed pn">
+    <h2 id="pnHead">👥 Group pool</h2>
+    <p class="help">Make a pool, send the link, and everyone adds their numbers from their own phone. Anyone with the link can add or change numbers, and each number shows who picked it.</p>
+    <label class="name">Pool name
+      <input type="text" id="pnTitle" maxlength="40" placeholder="Mark Six pool" autocomplete="off">
+    </label>
+    <label class="name">Your name
+      <input type="text" id="pnName" maxlength="20" placeholder="e.g. Kevin" autocomplete="nickname">
+    </label>
+    <div class="pn-row"><span>Bets</span><span class="stepper"><button type="button" data-pn="bets" data-d="-1" aria-label="Fewer bets">−</button><span id="pnBets">2</span><button type="button" data-pn="bets" data-d="1" aria-label="More bets">+</button></span></div>
+    <div class="pn-row"><span>Numbers in each bet</span><span class="stepper"><button type="button" data-pn="size" data-d="-1" aria-label="Fewer numbers">−</button><span id="pnSize">7</span><button type="button" data-pn="size" data-d="1" aria-label="More numbers">+</button></span></div>
+    <p class="status" id="pnCost"></p>
+    <div class="foot">
+      <button class="btn ghost" id="pnCancel" type="button">Cancel</button>
+      <button class="btn" id="pnCreate" type="button">Create pool</button>
+    </div>
+    <div class="recent">
+      <h3>Have a link or code?</h3>
+      <div class="row"><input type="text" id="pnCode" maxlength="80" placeholder="Paste the link or code" autocomplete="off" style="flex:1"><button class="btn ghost small" id="pnJoin" type="button">Join</button></div>
+      <div id="pnRecent"></div>
     </div>
   </div>
 </dialog>
@@ -795,7 +906,12 @@
   // ---------- state ----------
   let myBets = loadBets();
   let shared = null; // { bets } while looking at bets from a share link
-  const activeBets = () => shared ? shared.bets : myBets;
+  let pool = null; // the group pool open now (see "group pool" below)
+  // A pool's bets that are ready to check: 6 or more numbers.
+  const poolReadyBets = () => (pool && pool.state ? pool.state.bets : [])
+    .filter(b => b.picks.length >= MAIN_COUNT)
+    .map(b => ({ id: b.id, name: b.name, bankers: [], legs: b.picks.map(p => p.n).sort(byNum) }));
+  const activeBets = () => pool ? poolReadyBets() : shared ? shared.bets : myBets;
 
   // The draw being entered. Mains and special are kept apart so removing a main
   // never shifts the special into the mains.
@@ -836,6 +952,8 @@
   const ballHtml = (n, h, banker) =>
     `<span class="ball ${ballColor(n)}${banker ? " banker" : ""}${h.main.has(n) ? " hit" : n === special ? " hit-special" : ""}">${n}</span>`;
   function renderBets(hits) {
+    document.getElementById("betsCard").hidden = !!pool;
+    if (pool) return;
     const bets = activeBets();
     document.getElementById("betsTitle").textContent = shared ? "Shared bets" : "My bets";
     document.getElementById("betsActions").hidden = !!shared;
@@ -1042,6 +1160,9 @@
     toast(addSummary(r, "Saved"));
   }
   function applyHash() {
+    const code = poolCodeFrom(location.hash.slice(1));
+    if (code) { shared = null; openPool(code); return; }
+    if (pool) closePool();
     const parsed = parseHash();
     shared = parsed && parsed.bets.length ? { bets: parsed.bets } : null;
     if (parsed && parsed.draw) { stopRandomDraw(); mains = parsed.draw.mains; special = parsed.draw.special; }
@@ -1833,10 +1954,393 @@
     update();
   });
 
+  // ---------- group pool ----------
+  // A pool is a few bets that friends fill in together from their own phones:
+  // one Durable Object per pool on the marksix-pool Worker (worker/), kept in
+  // step over a WebSocket. Anyone with the link can change anything; each
+  // number remembers who picked it. The link is #pool=CODE.
+  const POOL_API = ["localhost", "127.0.0.1"].includes(location.hostname)
+    ? `http://${location.hostname}:8788`
+    : "https://marksix-api.kevinlhc.com";
+  const POOL_CODE_RE = /^[34679ACDEFGHJKMNPQRTUVWXY]{6}$/;
+  const POOL_NAME_KEY = "marksix.poolName", POOL_RECENT_KEY = "marksix.pools";
+  const POOL_MIN_SIZE = 6, POOL_MAX_SIZE = 15, POOL_MAX_BETS = 6;
+  const PING_MS = 25000, QUIET_MS = 60000;
+
+  // A code from a hash ("pool=AC9XK3"), a pasted link, or the code itself.
+  function poolCodeFrom(text) {
+    text = String(text || "").trim();
+    const m = text.match(/[#&?]?pool=([^&\s]+)/i);
+    const code = (m ? m[1] : text).toUpperCase().replace(/[\s-]/g, "");
+    return POOL_CODE_RE.test(code) ? code : null;
+  }
+  const poolUrl = code => location.href.split("#")[0] + "#pool=" + code;
+  const poolMyName = () => { try { return localStorage.getItem(POOL_NAME_KEY) || ""; } catch { return ""; } };
+  function setPoolMyName(v) {
+    v = v.replace(/\s+/g, " ").trim().slice(0, 20);
+    try { localStorage.setItem(POOL_NAME_KEY, v); } catch {}
+    return v;
+  }
+  function recentPools() {
+    try { const a = JSON.parse(localStorage.getItem(POOL_RECENT_KEY) || "[]"); return Array.isArray(a) ? a.filter(r => r && POOL_CODE_RE.test(r.code)) : []; }
+    catch { return []; }
+  }
+  function rememberPool(code, title) {
+    const list = [{ code, title: String(title || "").slice(0, 40), at: Date.now() }, ...recentPools().filter(r => r.code !== code)].slice(0, 6);
+    try { localStorage.setItem(POOL_RECENT_KEY, JSON.stringify(list)); } catch {}
+  }
+  function forgetPool(code) {
+    try { localStorage.setItem(POOL_RECENT_KEY, JSON.stringify(recentPools().filter(r => r.code !== code))); } catch {}
+  }
+  function ago(t) {
+    const s = Math.max(0, (Date.now() - t) / 1000);
+    if (s < 60) return "just now";
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    return `${Math.floor(s / 86400)}d ago`;
+  }
+
+  // ---- the connection ----
+  // pool: { code, state (the pool as the server last sent it, plus any change
+  // shown before the server confirms it), ws, status, selected (a bet id),
+  // retry, timers }
+  function openPool(code) {
+    if (pool && pool.code === code) return;
+    if (pool) closePool();
+    pool = { code, state: null, ws: null, status: "connecting", selected: null, retry: 0, retryTimer: null, pingTimer: null, heard: 0 };
+    poolConnect();
+  }
+  function closePool() {
+    if (!pool) return;
+    const p = pool;
+    pool = null;
+    clearTimeout(p.retryTimer);
+    clearInterval(p.pingTimer);
+    if (p.ws) { const ws = p.ws; p.ws = null; try { ws.close(1000, "leaving"); } catch {} }
+  }
+  function poolConnect() {
+    const p = pool;
+    if (!p || p.ws || p.status === "gone") return;
+    clearTimeout(p.retryTimer);
+    let ws;
+    try { ws = new WebSocket(POOL_API.replace(/^http/, "ws") + `/pools/${p.code}/ws`); }
+    catch { p.status = "offline"; return poolRetry(p); }
+    p.ws = ws;
+    p.status = p.state ? "reconnecting" : "connecting";
+    let opened = false;
+    ws.onopen = () => {
+      if (p.ws !== ws) return;
+      opened = true;
+      p.retry = 0;
+      p.heard = Date.now();
+      p.status = "live";
+      clearInterval(p.pingTimer);
+      p.pingTimer = setInterval(() => {
+        if (p.ws !== ws) return;
+        if (Date.now() - p.heard > QUIET_MS) { try { ws.close(); } catch {} return; } // a dead line: start again
+        try { ws.send('{"t":"ping"}'); } catch {}
+      }, PING_MS);
+      renderPool();
+    };
+    ws.onmessage = e => {
+      if (p.ws !== ws) return;
+      p.heard = Date.now();
+      let msg;
+      try { msg = JSON.parse(e.data); } catch { return; }
+      if (msg.t === "pool" && msg.pool) {
+        p.state = msg.pool;
+        if (p.selectAfter != null && msg.pool.bets.length > p.selectAfter) { p.selected = msg.pool.bets.at(-1).id; p.selectAfter = null; }
+        rememberPool(p.code, msg.pool.title);
+        if (pool === p) update();
+      } else if (msg.t === "error" && msg.message) toast(msg.message);
+    };
+    ws.onclose = async () => {
+      if (p.ws !== ws) return;
+      p.ws = null;
+      clearInterval(p.pingTimer);
+      p.status = "offline";
+      if (!opened && !p.state) {
+        // Never got in: is there such a pool at all?
+        try {
+          const r = await fetch(`${POOL_API}/pools/${p.code}`);
+          if (r.status === 404) { p.status = "gone"; forgetPool(p.code); if (pool === p) update(); return; }
+        } catch {}
+      }
+      if (pool === p) renderPool();
+      poolRetry(p);
+    };
+  }
+  function poolRetry(p) {
+    if (pool !== p || p.status === "gone") return;
+    clearTimeout(p.retryTimer);
+    const wait = Math.min(8000, 500 * 2 ** p.retry++);
+    p.retryTimer = setTimeout(poolConnect, wait);
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && pool && !pool.ws) { pool.retry = 0; poolConnect(); }
+  });
+  window.addEventListener("online", () => { if (pool && !pool.ws) { pool.retry = 0; poolConnect(); } });
+
+  // Send a change. Adding or removing a number shows at once; the pool the
+  // server sends back (to everyone) replaces it - or, if the change was
+  // turned down, puts it back as it was.
+  function poolSend(op) {
+    if (!pool || !pool.ws || pool.status !== "live") { toast("Not connected — reconnecting…"); return false; }
+    const by = poolNeedName();
+    if (!by) return false;
+    try { pool.ws.send(JSON.stringify({ ...op, by })); } catch { toast("Not connected — reconnecting…"); return false; }
+    return true;
+  }
+  const poolNameInput = document.getElementById("poolName");
+  function poolNeedName() {
+    const name = setPoolMyName(poolNameInput.value);
+    if (name) return name;
+    poolNameInput.classList.add("need");
+    poolNameInput.focus();
+    toast("Type your name first, so everyone can see who picked what.");
+    return "";
+  }
+  poolNameInput.addEventListener("input", () => poolNameInput.classList.remove("need"));
+  poolNameInput.addEventListener("change", () => { poolNameInput.value = setPoolMyName(poolNameInput.value); renderPool(); });
+  poolNameInput.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); poolNameInput.blur(); } });
+
+  const poolBet = id => pool && pool.state ? pool.state.bets.find(b => b.id === id) : null;
+  function selectedPoolBet() {
+    const bets = pool && pool.state ? pool.state.bets : [];
+    let bet = bets.find(b => b.id === pool.selected);
+    if (!bet) { bet = bets.find(b => b.picks.length < b.size) || bets[0] || null; pool.selected = bet && bet.id; }
+    return bet;
+  }
+
+  // ---- the pool card ----
+  const poolCard = document.getElementById("poolCard");
+  const poolGridEl = document.getElementById("poolGrid");
+  const poolCells = makeGrid(poolGridEl, poolTap);
+  const LIVE_TEXT = { live: ["on", "Live"], connecting: ["wait", "Connecting…"], reconnecting: ["wait", "Reconnecting…"], offline: ["off", "Offline — retrying"], gone: ["off", "Closed"] };
+
+  function renderPool() {
+    poolCard.hidden = !pool;
+    if (!pool) return;
+    const st = pool.state;
+    const [cls, txt] = LIVE_TEXT[pool.status] || LIVE_TEXT.offline;
+    const liveEl = document.getElementById("poolLive");
+    liveEl.className = "live " + cls;
+    liveEl.textContent = txt;
+    const gone = pool.status === "gone";
+    document.getElementById("poolGone").hidden = !gone;
+    document.getElementById("poolBody").hidden = gone || !st;
+    document.getElementById("poolTitle").disabled = !st;
+    document.getElementById("poolTitleText").textContent = st ? st.title : "Group pool";
+    if (gone) {
+      document.getElementById("poolMeta").textContent = "";
+      document.getElementById("poolGone").innerHTML = `🫥 There's no pool with code <strong>${esc(pool.code)}</strong> — it may have closed, or the link is wrong.` +
+        `<div class="row" style="justify-content:center;margin-top:.8rem"><button class="btn small" type="button" data-pool="leave">Back to my bets</button></div>`;
+      return;
+    }
+    if (!st) { document.getElementById("poolMeta").textContent = `Code ${pool.code} · loading…`; return; }
+
+    const people = new Map();
+    st.bets.forEach(b => b.picks.forEach(p => people.set(p.by, (people.get(p.by) || 0) + 1)));
+    const totalCombos = st.bets.reduce((s, b) => s + (b.picks.length >= MAIN_COUNT ? C(b.picks.length, MAIN_COUNT) : 0), 0);
+    document.getElementById("poolMeta").innerHTML = `Code <code>${esc(st.code)}</code> · ${plural(st.bets.length, "bet")}` +
+      (totalCombos ? ` · ${money(totalCombos * UNIT_STAKE)} per draw` : "") + ` · anyone with the link can edit`;
+    if (document.activeElement !== poolNameInput) poolNameInput.value = poolMyName();
+
+    const bet = selectedPoolBet();
+    const hasDraw = mains.length || special != null;
+    document.getElementById("poolBets").innerHTML = st.bets.map(b => {
+      const nums = b.picks.map(p => p.n);
+      const h = { main: new Set(nums.filter(n => mains.includes(n))) };
+      const sorted = [...b.picks].sort((x, y) => x.n - y.n);
+      const full = b.picks.length >= b.size;
+      const kind = b.picks.length >= MAIN_COUNT
+        ? `${plural(C(b.picks.length, MAIN_COUNT), "combo")} · ${money(C(b.picks.length, MAIN_COUNT) * UNIT_STAKE)}`
+        : `needs ${MAIN_COUNT - b.picks.length} more to play`;
+      return `<button type="button" class="pbet" data-bet="${esc(b.id)}" aria-pressed="${b === bet}">` +
+        `<span class="bet-top"><span class="bet-meta"><span class="bet-name">${esc(b.name)}</span><span class="tag">${kind}</span></span>` +
+        `<span class="count${full ? " full" : ""}">${b.picks.length} / ${b.size}${full ? " ✓" : ""}</span></span>` +
+        `<span class="balls">` +
+        sorted.map(p => `<span class="pb">${hasDraw ? ballHtml(p.n, h, false) : plainBall(p.n)}<small title="${esc(p.by)}">${esc(p.by)}</small></span>`).join("") +
+        Array.from({ length: Math.max(0, b.size - b.picks.length) }, () => `<span class="pb"><span class="ball empty"></span><small>&nbsp;</small></span>`).join("") +
+        `</span></button>`;
+    }).join("") +
+      (st.bets.length < POOL_MAX_BETS ? `<button type="button" class="pbet add" data-pool="addBet">+ Add another bet</button>` : "");
+
+    // Tools for the selected bet, and the grid that picks for it.
+    const tools = document.getElementById("poolTools");
+    if (bet) {
+      tools.innerHTML = `<span class="lbl">Tap numbers for ${esc(bet.name)}</span>` +
+        `<span class="stepper" title="How many numbers ${esc(bet.name)} takes"><button type="button" data-pool="size" data-d="-1" aria-label="Fewer numbers"${bet.size <= Math.max(POOL_MIN_SIZE, bet.picks.length) ? " disabled" : ""}>−</button>` +
+        `<span>${bet.size}</span><button type="button" data-pool="size" data-d="1" aria-label="More numbers"${bet.size >= POOL_MAX_SIZE ? " disabled" : ""}>+</button></span>`;
+      document.getElementById("poolBetActions").innerHTML =
+        `<button class="btn ghost small" type="button" data-pool="rename">✎ Rename</button>` +
+        `<button class="btn ghost small" type="button" data-pool="clear"${bet.picks.length ? "" : " disabled"}>Clear numbers</button>` +
+        (st.bets.length > 1 ? `<button class="btn danger small" type="button" data-pool="removeBet">Remove bet</button>` : "");
+      const mine = new Set(bet.picks.map(p => p.n));
+      const elsewhere = new Set(st.bets.filter(b => b !== bet).flatMap(b => b.picks.map(p => p.n)));
+      const full = bet.picks.length >= bet.size;
+      poolGridEl.classList.toggle("locked", full);
+      for (let n = 1; n <= 49; n++) {
+        const c = poolCells[n], pick = bet.picks.find(p => p.n === n);
+        c.classList.toggle("pick", mine.has(n));
+        c.classList.toggle("other", !mine.has(n) && elsewhere.has(n));
+        c.setAttribute("aria-pressed", mine.has(n));
+        c.title = pick ? `${n} — picked by ${pick.by}` : elsewhere.has(n) ? `${n} — in another bet` : "";
+      }
+    } else tools.innerHTML = document.getElementById("poolBetActions").innerHTML = "";
+
+    document.getElementById("poolWho").innerHTML = [...people].sort((a, b) => b[1] - a[1])
+      .map(([who, n]) => `<span>${esc(who)} <b>${n}</b></span>`).join("") ||
+      `<span>No numbers yet — send the link and start picking.</span>`;
+    const log = st.log.slice(-12).reverse();
+    document.getElementById("poolActivity").hidden = !log.length;
+    document.getElementById("poolLog").innerHTML = log.map(l => `<li><strong>${esc(l.by)}</strong> ${esc(l.text)} <small>· ${ago(l.at)}</small></li>`).join("");
+    document.getElementById("poolSave").disabled = !poolReadyBets().length;
+  }
+
+  function poolTap(n) {
+    const bet = pool && selectedPoolBet();
+    if (!bet) return;
+    const have = bet.picks.some(p => p.n === n);
+    if (!have && bet.picks.length >= bet.size) {
+      toast(`${bet.name} is full (${bet.size} numbers). Tap one to remove it, or + to make the bet bigger.`);
+      return;
+    }
+    if (!poolSend({ t: have ? "remove" : "add", bet: bet.id, n })) return;
+    // Show it now; the server's copy follows.
+    if (have) bet.picks = bet.picks.filter(p => p.n !== n);
+    else bet.picks.push({ n, by: poolMyName(), at: Date.now() });
+    update();
+  }
+
+  document.getElementById("poolBets").addEventListener("click", e => {
+    const b = e.target.closest("[data-bet]");
+    if (!b || !pool) return;
+    if (pool.selected === b.dataset.bet) return;
+    pool.selected = b.dataset.bet;
+    renderPool();
+  });
+  poolCard.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-pool]");
+    if (!btn || !pool) return;
+    const act = btn.dataset.pool, bet = selectedPoolBet();
+    if (act === "leave") leavePool();
+    else if (act === "size" && bet) {
+      const size = bet.size + Number(btn.dataset.d);
+      if (size < bet.picks.length) { toast(`${bet.name} already has ${bet.picks.length} numbers — remove some first.`); return; }
+      if (size >= POOL_MIN_SIZE && size <= POOL_MAX_SIZE) poolSend({ t: "size", bet: bet.id, size });
+    } else if (act === "rename" && bet) {
+      const name = prompt("Name this bet:", bet.name);
+      if (name && name.trim() && name.trim() !== bet.name) poolSend({ t: "rename", bet: bet.id, name });
+    } else if (act === "clear" && bet) {
+      if (confirm(`Remove all ${plural(bet.picks.length, "number")} from ${bet.name}? This clears everyone's picks in it.`)) poolSend({ t: "clear", bet: bet.id });
+    } else if (act === "addBet") {
+      if (poolSend({ t: "addBet" })) pool.selectAfter = pool.state.bets.length; // pick the new bet when it comes
+    } else if (act === "removeBet" && bet) {
+      if (confirm(`Remove ${bet.name}${bet.picks.length ? ` and its ${plural(bet.picks.length, "number")}` : ""} for everyone?`)) poolSend({ t: "removeBet", bet: bet.id });
+    }
+  });
+
+  document.getElementById("poolTitle").addEventListener("click", () => {
+    if (!pool || !pool.state) return;
+    const title = prompt("Name this pool:", pool.state.title);
+    if (title && title.trim() && title.trim() !== pool.state.title) poolSend({ t: "title", title });
+  });
+  document.getElementById("poolInvite").addEventListener("click", async () => {
+    if (!pool) return;
+    const url = poolUrl(pool.code);
+    const title = pool.state ? pool.state.title : "Mark Six pool";
+    if (navigator.share) {
+      try { await navigator.share({ title, text: `Add your numbers to ${title}`, url }); return; }
+      catch (err) { if (err && err.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(url); toast("🔗 Pool link copied — send it to your friends."); }
+    catch { window.prompt("Copy this link:", url); }
+  });
+  document.getElementById("poolSave").addEventListener("click", () => {
+    const title = pool && pool.state ? pool.state.title : "";
+    const r = addBets(poolReadyBets().map(b => cleanBet({ name: `${title} · ${b.name}`.slice(0, 40), bankers: [], legs: b.legs })).filter(Boolean));
+    if (r.added && !storeBets()) return;
+    toast(addSummary(r, "Saved"));
+  });
+  document.getElementById("poolLeave").addEventListener("click", leavePool);
+  function leavePool() {
+    closePool();
+    clearHash();
+    update();
+  }
+
+  // ---- making or joining a pool ----
+  const poolNew = document.getElementById("poolNew");
+  const pn = { bets: 2, size: 7 };
+  function renderPoolNew() {
+    document.getElementById("pnBets").textContent = pn.bets;
+    document.getElementById("pnSize").textContent = pn.size;
+    poolNew.querySelector('[data-pn="bets"][data-d="-1"]').disabled = pn.bets <= 1;
+    poolNew.querySelector('[data-pn="bets"][data-d="1"]').disabled = pn.bets >= POOL_MAX_BETS;
+    poolNew.querySelector('[data-pn="size"][data-d="-1"]').disabled = pn.size <= POOL_MIN_SIZE;
+    poolNew.querySelector('[data-pn="size"][data-d="1"]').disabled = pn.size >= POOL_MAX_SIZE;
+    const combos = C(pn.size, MAIN_COUNT);
+    document.getElementById("pnCost").textContent =
+      `${plural(pn.bets, "bet")} of ${pn.size} numbers · ${plural(combos * pn.bets, "combo")} · ${money(combos * pn.bets * UNIT_STAKE)} per draw` +
+      (pn.bets > 1 ? ` (${money(combos * UNIT_STAKE)} each)` : "");
+    const recent = recentPools();
+    document.getElementById("pnRecent").innerHTML = recent.length
+      ? `<h3 style="margin-top:.6rem">Pools you've opened</h3>` + recent.map(r =>
+          `<div class="row"><a href="#pool=${esc(r.code)}" data-code="${esc(r.code)}">${esc(r.title || r.code)}</a><small style="color:var(--muted)">${esc(r.code)} · ${ago(r.at)}</small></div>`).join("")
+      : "";
+  }
+  document.getElementById("poolBtn").addEventListener("click", () => {
+    document.getElementById("pnName").value = poolMyName();
+    document.getElementById("pnCode").value = "";
+    renderPoolNew();
+    poolNew.showModal();
+  });
+  poolNew.addEventListener("click", e => {
+    const b = e.target.closest("button[data-pn]");
+    if (b) {
+      const k = b.dataset.pn, d = Number(b.dataset.d);
+      pn[k] = k === "bets" ? Math.min(POOL_MAX_BETS, Math.max(1, pn[k] + d)) : Math.min(POOL_MAX_SIZE, Math.max(POOL_MIN_SIZE, pn[k] + d));
+      renderPoolNew();
+    } else if (e.target.closest("a[data-code]")) poolNew.close(); // the link opens it
+    else if (e.target === poolNew) poolNew.close();
+  });
+  document.getElementById("pnCancel").addEventListener("click", () => poolNew.close());
+  document.getElementById("pnJoin").addEventListener("click", () => {
+    const code = poolCodeFrom(document.getElementById("pnCode").value);
+    if (!code) { toast("That isn't a pool link or code — codes are 6 letters and numbers."); return; }
+    poolNew.close();
+    location.hash = "pool=" + code;
+  });
+  document.getElementById("pnCreate").addEventListener("click", async () => {
+    const btn = document.getElementById("pnCreate");
+    const name = setPoolMyName(document.getElementById("pnName").value);
+    if (!name) { document.getElementById("pnName").focus(); toast("Type your name, so everyone can see who picked what."); return; }
+    btn.disabled = true;
+    btn.textContent = "Creating…";
+    try {
+      const r = await fetch(`${POOL_API}/pools`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: document.getElementById("pnTitle").value, bets: pn.bets, size: pn.size }),
+      });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok || !body.code) throw new Error(body.error || `HTTP ${r.status}`);
+      poolNew.close();
+      location.hash = "pool=" + body.code;
+      toast("Pool made. Tap 🔗 Invite friends to send them the link.");
+    } catch (err) {
+      toast(`Couldn't make the pool: ${err.message || err}`);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Create pool";
+    }
+  });
+
   // ---------- render everything from state ----------
   function update() {
     const hits = currentHits();
     renderBets(hits);
+    renderPool();
     renderSlots();
     refreshGrid();
     renderHint();
