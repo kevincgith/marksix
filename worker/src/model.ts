@@ -48,6 +48,10 @@ export interface Pool {
   version: number; // one higher on each change
   bets: Bet[];
   log: LogEntry[]; // newest last
+  // Set once the ticket is bought, so the numbers stay as they are on it:
+  // nothing can change until someone unlocks it. (Absent in pools made
+  // before locking existed: unlocked.)
+  locked?: { by: string; at: number } | null;
 }
 
 export type Op =
@@ -58,7 +62,9 @@ export type Op =
   | { t: "clear"; bet: string; by: string }
   | { t: "addBet"; by: string }
   | { t: "removeBet"; bet: string; by: string }
-  | { t: "title"; title: string; by: string };
+  | { t: "title"; title: string; by: string }
+  | { t: "lock"; by: string }
+  | { t: "unlock"; by: string };
 
 export interface PoolSetup {
   title?: string;
@@ -151,7 +157,9 @@ export function parseOp(frame: string): Op | { t: "ping" } | null {
     case "removeBet":
       return isId(o.bet) ? { t: o.t, bet: o.bet, by } : null;
     case "addBet":
-      return { t: "addBet", by };
+    case "lock":
+    case "unlock":
+      return { t: o.t, by };
     case "title":
       return typeof o.title === "string" ? { t: "title", title: o.title, by } : null;
     default:
@@ -170,8 +178,22 @@ export function applyOp(pool: Pool, op: Op, now: number): boolean {
     if (!bet) throw new Refusal("That bet has been removed.");
     return bet;
   };
+  if (pool.locked && op.t !== "unlock" && op.t !== "lock")
+    throw new Refusal(`The pool is locked (${pool.locked.by} locked it, the ticket's bought). Unlock it to change anything.`);
   let text: string;
   switch (op.t) {
+    case "lock": {
+      if (pool.locked) return false;
+      pool.locked = { by: op.by, at: now };
+      text = "locked the pool";
+      break;
+    }
+    case "unlock": {
+      if (!pool.locked) return false;
+      pool.locked = null;
+      text = "unlocked the pool";
+      break;
+    }
     case "add": {
       const bet = findBet(op.bet);
       if (bet.picks.some((p) => p.n === op.n)) return false;

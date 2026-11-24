@@ -83,6 +83,29 @@ describe("the model", () => {
     expect(() => applyOp(p, { t: "add", bet: "b9", n: 1, by: "K" }, 6)).toThrow(/removed/);
   });
 
+  it("refuses every change while locked, until unlocked", () => {
+    const p = newPool("ABC", { bets: 2 }, 1);
+    applyOp(p, { t: "add", bet: "b1", n: 5, by: "Kev" }, 2);
+    expect(applyOp(p, { t: "lock", by: "Kev" }, 3)).toBe(true);
+    expect(p.locked).toEqual({ by: "Kev", at: 3 });
+    expect(applyOp(p, { t: "lock", by: "Amy" }, 4)).toBe(false); // already locked: stays Kev's
+    for (const op of [
+      { t: "add", bet: "b1", n: 6, by: "Amy" },
+      { t: "remove", bet: "b1", n: 5, by: "Amy" },
+      { t: "size", bet: "b1", size: 8, by: "Amy" },
+      { t: "rename", bet: "b1", name: "X", by: "Amy" },
+      { t: "clear", bet: "b1", by: "Amy" },
+      { t: "addBet", by: "Amy" },
+      { t: "removeBet", bet: "b2", by: "Amy" },
+      { t: "title", title: "X", by: "Amy" },
+    ] as const) expect(() => applyOp(p, op, 5)).toThrow(/locked \(Kev locked it/);
+    expect(applyOp(p, { t: "unlock", by: "Amy" }, 6)).toBe(true);
+    expect(p.locked).toBeNull();
+    expect(applyOp(p, { t: "add", bet: "b1", n: 6, by: "Amy" }, 7)).toBe(true);
+    expect(p.log.map((l) => l.text).slice(-3)).toEqual(["locked the pool", "unlocked the pool", "added 6 to Bet A"]);
+    expect(parseOp('{"t":"lock","by":"Kev"}')).toEqual({ t: "lock", by: "Kev" });
+  });
+
   it("reads only well-formed messages", () => {
     expect(parseOp('{"t":"add","bet":"b1","n":12,"by":" Amy "}')).toEqual({ t: "add", bet: "b1", n: 12, by: "Amy" });
     expect(parseOp('{"t":"add","bet":"b1","n":50,"by":"Amy"}')).toBeNull();
@@ -152,6 +175,19 @@ describe("the worker", () => {
     const now = await ben.pool();
     expect(now.version).toBe(7);
     expect(now.bets.map((b) => [b.name, b.size, b.picks.map((x) => x.n)])).toEqual([["Bet A", 15, [23]]]);
+  });
+
+  it("tells everyone when it's locked, and refuses changes", async () => {
+    const { code } = (await (await createPool()).json()) as { code: string };
+    const kev = await connect(code);
+    const amy = await connect(code);
+    await kev.pool();
+    await amy.pool();
+    kev.send({ t: "lock", by: "Kevin" });
+    expect((await amy.pool((p) => !!p.locked)).locked!.by).toBe("Kevin");
+    amy.send({ t: "add", bet: "b1", n: 3, by: "Amy" });
+    expect((await amy.next("error")).message).toMatch(/locked/);
+    expect((await amy.pool()).bets[0].picks).toEqual([]);
   });
 
   it("turns down a malformed message without closing", async () => {

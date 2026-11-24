@@ -353,6 +353,10 @@
   }
   .grid.locked button:not(.pick) { opacity: .45; }
   .pool-bet-actions { margin: -.3rem 0 .9rem; }
+  #poolCard [hidden] { display: none !important; } /* .grid and .row set their own display */
+  .lock-note { margin: 0 0 .9rem; }
+  .lock-note .row { margin-top: .5rem; }
+  .pbet.locked { cursor: default; }
   .pbet.add { text-align: center; border-style: dashed; color: var(--muted); font-weight: 650; padding: .5rem; }
   .who { display: flex; flex-wrap: wrap; gap: .35rem; margin: .2rem 0 .8rem; }
   .who span { font-size: .78rem; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: .1rem .55rem; }
@@ -487,6 +491,7 @@
       <label class="you">You
         <input type="text" id="poolName" maxlength="20" placeholder="Your name — shows who picked what" autocomplete="nickname">
       </label>
+      <div class="banner lock-note" id="poolLockNote" hidden></div>
       <div class="pbets" id="poolBets"></div>
       <div class="pool-tools" id="poolTools"></div>
       <div class="grid" id="poolGrid"></div>
@@ -497,6 +502,7 @@
         <button class="btn small" type="button" id="poolInvite">🔗 Invite friends</button>
         <button class="btn ghost small" type="button" id="poolSave">Save to my bets</button>
         <button class="btn ghost small" type="button" id="poolPng">🖼️ Export PNG</button>
+        <button class="btn ghost small" type="button" id="poolLock">🔒 Lock</button>
         <button class="btn ghost small" type="button" id="poolLeave" style="margin-left:auto">Leave pool</button>
       </div>
     </div>
@@ -1955,7 +1961,8 @@
     const combos = st.bets.reduce((s, b) => s + (b.picks.length >= MAIN_COUNT ? C(b.picks.length, MAIN_COUNT) : 0), 0);
     return drawBetsImage({
       title: st.title,
-      lines: [`Mark Six group pool · ${plural(st.bets.length, "bet")}` + (combos ? ` · ${money(combos * UNIT_STAKE)} per draw` : ""), today()],
+      lines: [`Mark Six group pool · ${plural(st.bets.length, "bet")}` + (combos ? ` · ${money(combos * UNIT_STAKE)} per draw` : ""),
+        today() + (st.locked ? ` · 🔒 Locked by ${st.locked.by}` : "")],
       bets: st.bets.map(b => {
         const n = b.picks.length, full = n >= MAIN_COUNT;
         return {
@@ -1964,7 +1971,7 @@
           sub: `${n} of ${b.size} numbers`,
           bankers: [], legs: b.picks.map(p => p.n).sort(byNum),
           who: Object.fromEntries(b.picks.map(p => [p.n, p.by])),
-          empties: Math.max(0, b.size - n),
+          empties: st.locked ? 0 : Math.max(0, b.size - n),
         };
       }),
       people: countPeople(st.bets.flatMap(b => b.picks.map(p => p.by))),
@@ -2310,6 +2317,16 @@
 
     const bet = selectedPoolBet();
     const hasDraw = mains.length || special != null;
+    const locked = !!st.locked;
+    const note = document.getElementById("poolLockNote");
+    note.hidden = !locked;
+    note.innerHTML = locked
+      ? `🔒 <strong>Locked</strong> by ${esc(st.locked.by)} · ${ago(st.locked.at)}. The numbers match the ticket, so nobody can change them.` +
+        `<div class="row"><button class="btn ghost small" type="button" data-pool="unlock">🔓 Unlock</button></div>`
+      : "";
+    document.getElementById("poolLock").hidden = locked;
+    document.getElementById("poolTitle").disabled = locked;
+    for (const id of ["poolTools", "poolGrid", "poolBetActions"]) document.getElementById(id).hidden = locked;
     document.getElementById("poolBets").innerHTML = st.bets.map(b => {
       const nums = b.picks.map(p => p.n);
       const h = { main: new Set(nums.filter(n => mains.includes(n))) };
@@ -2318,15 +2335,15 @@
       const kind = b.picks.length >= MAIN_COUNT
         ? `${plural(C(b.picks.length, MAIN_COUNT), "combo")} · ${money(C(b.picks.length, MAIN_COUNT) * UNIT_STAKE)}`
         : `needs ${MAIN_COUNT - b.picks.length} more to play`;
-      return `<button type="button" class="pbet" data-bet="${esc(b.id)}" aria-pressed="${b === bet}">` +
+      return `<button type="button" class="pbet${locked ? " locked" : ""}" data-bet="${esc(b.id)}" aria-pressed="${!locked && b === bet}">` +
         `<span class="bet-top"><span class="bet-meta"><span class="bet-name">${esc(b.name)}</span><span class="tag">${kind}</span></span>` +
         `<span class="count${full ? " full" : ""}">${b.picks.length} / ${b.size}${full ? " ✓" : ""}</span></span>` +
         `<span class="balls">` +
         sorted.map(p => `<span class="pb">${hasDraw ? ballHtml(p.n, h, false) : plainBall(p.n)}<small title="${esc(p.by)}">${esc(p.by)}</small></span>`).join("") +
-        Array.from({ length: Math.max(0, b.size - b.picks.length) }, () => `<span class="pb"><span class="ball empty"></span><small>&nbsp;</small></span>`).join("") +
+        Array.from({ length: locked ? 0 : Math.max(0, b.size - b.picks.length) }, () => `<span class="pb"><span class="ball empty"></span><small>&nbsp;</small></span>`).join("") +
         `</span></button>`;
     }).join("") +
-      (st.bets.length < POOL_MAX_BETS ? `<button type="button" class="pbet add" data-pool="addBet">+ Add another bet</button>` : "");
+      (st.bets.length < POOL_MAX_BETS && !locked ? `<button type="button" class="pbet add" data-pool="addBet">+ Add another bet</button>` : "");
 
     // Tools for the selected bet, and the grid that picks for it.
     const tools = document.getElementById("poolTools");
@@ -2363,7 +2380,7 @@
 
   function poolTap(n) {
     const bet = pool && selectedPoolBet();
-    if (!bet) return;
+    if (!bet || (pool.state && pool.state.locked)) return;
     const have = bet.picks.some(p => p.n === n);
     if (!have && bet.picks.length >= bet.size) {
       toast(`${bet.name} is full (${bet.size} numbers). Tap one to remove it, or + to make the bet bigger.`);
@@ -2388,6 +2405,9 @@
     if (!btn || !pool) return;
     const act = btn.dataset.pool, bet = selectedPoolBet();
     if (act === "leave") leavePool();
+    else if (act === "unlock") {
+      if (confirm("Unlock the pool? Everyone will be able to change the numbers again, so they may no longer match the ticket.")) poolSend({ t: "unlock" });
+    }
     else if (act === "size" && bet) {
       const size = bet.size + Number(btn.dataset.d);
       if (size < bet.picks.length) { toast(`${bet.name} already has ${bet.picks.length} numbers — remove some first.`); return; }
@@ -2425,6 +2445,12 @@
     const r = addBets(poolReadyBets().map(b => cleanBet({ name: `${title} · ${b.name}`.slice(0, 40), bankers: [], legs: b.legs, who: b.who })).filter(Boolean));
     if (r.added && !storeBets()) return;
     toast(addSummary(r, "Saved"));
+  });
+  document.getElementById("poolLock").addEventListener("click", () => {
+    if (!pool || !pool.state) return;
+    const short = pool.state.bets.filter(b => b.picks.length < MAIN_COUNT).map(b => b.name);
+    const warn = short.length ? `\n\n${short.join(", ")} ${short.length === 1 ? "doesn't" : "don't"} have 6 numbers yet.` : "";
+    if (confirm(`Lock the pool? Do this once the ticket is bought: nobody can change the numbers until someone unlocks it.${warn}`)) poolSend({ t: "lock" });
   });
   document.getElementById("poolPng").addEventListener("click", () => sharePoolImage());
   document.getElementById("poolLeave").addEventListener("click", leavePool);

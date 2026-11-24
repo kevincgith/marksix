@@ -29,7 +29,8 @@ a database plus polling would work but needs more moving parts and isn't live.)
   again after every change anyone makes.
 - A page sends changes, each with `by` (the name the person typed):
   `add`/`remove` `{bet, n}`, `size` `{bet, size}` (6–15), `rename` `{bet, name}`, `clear` `{bet}`,
-  `addBet`, `removeBet` `{bet}`, `title` `{title}`. A change that can't be done (a full bet, the last
+  `addBet`, `removeBet` `{bet}`, `title` `{title}`, `lock`, `unlock`. While a pool is locked (`pool.locked`
+  is `{by, at}`) every change but `unlock` is refused. A change that can't be done (a full bet, the last
   bet) is answered `{"t":"error","message":…}` plus the pool as it is, so the page undoes what it
   showed. `{"t":"ping"}` is answered `{"t":"pong"}` without waking the pool.
 - There are no accounts or owners: anyone with the link may change anything. Each number keeps who
