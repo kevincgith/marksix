@@ -14,6 +14,7 @@ export const LIMITS = {
   bets: 6, // bets in a pool
   minSize: 6, // numbers in a bet: 6 is a single, more is a multiple
   maxSize: 15, // 5,005 combinations, HK$50,050 - plenty for a pool
+  bankers: 5, // bankers in a bet: numbers that are in every one of its combinations
   title: 40,
   name: 20, // a person's name
   betName: 24,
@@ -25,12 +26,13 @@ export interface Pick {
   n: number; // 1-49
   by: string; // who put it in
   at: number;
+  banker?: true; // a banker (膽): in every combination of the bet. Absent: a leg.
 }
 
 export interface Bet {
   id: string;
   name: string;
-  size: number; // how many numbers it's meant to have (a target, and a cap)
+  size: number; // how many numbers it's meant to have, bankers included (a target, and a cap)
   picks: Pick[]; // in the order they were added
 }
 
@@ -55,7 +57,8 @@ export interface Pool {
 }
 
 export type Op =
-  | { t: "add"; bet: string; n: number; by: string }
+  // Put n in the bet as a leg, or as a banker: adds it, or changes which it is.
+  | { t: "add"; bet: string; n: number; banker?: boolean; by: string }
   | { t: "remove"; bet: string; n: number; by: string }
   | { t: "size"; bet: string; size: number; by: string }
   | { t: "rename"; bet: string; name: string; by: string }
@@ -153,8 +156,10 @@ export function parseOp(frame: string): Op | { t: "ping" } | null {
   if (!by) return null;
   switch (o.t) {
     case "add":
+      if (o.banker !== undefined && typeof o.banker !== "boolean") return null;
+      return isId(o.bet) && isInt(o.n, 1, 49) ? { t: "add", bet: o.bet, n: o.n, ...(o.banker ? { banker: true } : {}), by } : null;
     case "remove":
-      return isId(o.bet) && isInt(o.n, 1, 49) ? { t: o.t, bet: o.bet, n: o.n, by } : null;
+      return isId(o.bet) && isInt(o.n, 1, 49) ? { t: "remove", bet: o.bet, n: o.n, by } : null;
     case "size":
       return isId(o.bet) && isInt(o.size, LIMITS.minSize, LIMITS.maxSize) ? { t: "size", bet: o.bet, size: o.size, by } : null;
     case "rename":
@@ -202,10 +207,21 @@ export function applyOp(pool: Pool, op: Op, now: number): boolean {
     }
     case "add": {
       const bet = findBet(op.bet);
-      if (bet.picks.some((p) => p.n === op.n)) return false;
+      const banker = !!op.banker;
+      const had = bet.picks.find((p) => p.n === op.n);
+      if (had && !!had.banker === banker) return false;
+      if (banker && bet.picks.filter((p) => p.banker).length >= LIMITS.bankers)
+        throw new Refusal(`${bet.name} already has ${LIMITS.bankers} bankers, the most a bet can have.`);
+      if (had) {
+        // Already in the bet: it changes between banker and leg, and stays whose it was.
+        if (banker) had.banker = true;
+        else delete had.banker;
+        text = (banker ? `made ${op.n} a banker in ${bet.name}` : `made ${op.n} no longer a banker in ${bet.name}`) + (had.by !== op.by ? ` (${had.by}'s)` : "");
+        break;
+      }
       if (bet.picks.length >= bet.size) throw new Refusal(`${bet.name} is full (${bet.size} numbers). Remove one first, or make the bet bigger.`);
-      bet.picks.push({ n: op.n, by: op.by, at: now });
-      text = `added ${op.n} to ${bet.name}`;
+      bet.picks.push({ n: op.n, by: op.by, at: now, ...(banker ? { banker: true as const } : {}) });
+      text = `added ${op.n} to ${bet.name}` + (banker ? " as a banker" : "");
       break;
     }
     case "remove": {

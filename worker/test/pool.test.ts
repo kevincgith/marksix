@@ -13,7 +13,7 @@ async function createPool(body: object = { title: "Friday", bets: 2, size: 7 }, 
 }
 
 class Client {
-  inbox: { t: string; pool?: Pool; message?: string }[] = [];
+  inbox: { t: string; pool?: Pool; message?: string; v?: number }[] = [];
   private wake: (() => void) | null = null;
   constructor(readonly ws: WebSocket) {
     ws.addEventListener("message", (e) => {
@@ -73,6 +73,30 @@ describe("the model", () => {
     expect(p.bets[0].picks.map((x) => [x.n, x.by])).toEqual([[2, "Kev"], [3, "Kev"], [4, "Kev"], [5, "Kev"], [6, "Kev"], [7, "Amy"]]);
   });
 
+  it("takes bankers: added as one, changed to and from one, five at most", () => {
+    const p = newPool("ABC", { bets: 1, size: 7 }, 1);
+    expect(applyOp(p, { t: "add", bet: "b1", n: 8, banker: true, by: "Kev" }, 2)).toBe(true);
+    expect(p.log.at(-1)!.text).toBe("added 8 to Bet A as a banker");
+    expect(applyOp(p, { t: "add", bet: "b1", n: 8, banker: true, by: "Amy" }, 3)).toBe(false); // already a banker
+    expect(applyOp(p, { t: "add", bet: "b1", n: 9, by: "Kev" }, 4)).toBe(true);
+    // A number already in the bet changes role and stays whose it was.
+    expect(applyOp(p, { t: "add", bet: "b1", n: 9, banker: true, by: "Amy" }, 5)).toBe(true);
+    expect(p.log.at(-1)!.text).toBe("made 9 a banker in Bet A (Kev's)");
+    expect(p.bets[0].picks).toEqual([{ n: 8, by: "Kev", at: 2, banker: true }, { n: 9, by: "Kev", at: 4, banker: true }]);
+    expect(applyOp(p, { t: "add", bet: "b1", n: 8, by: "Kev" }, 6)).toBe(true);
+    expect(p.log.at(-1)!.text).toBe("made 8 no longer a banker in Bet A");
+    expect(p.bets[0].picks[0]).toEqual({ n: 8, by: "Kev", at: 2 });
+    // Five bankers at most, whether added or changed; and they count towards the bet's size.
+    for (const n of [10, 11, 12, 13]) applyOp(p, { t: "add", bet: "b1", n, banker: true, by: "Kev" }, 7);
+    expect(p.bets[0].picks.filter((x) => x.banker).map((x) => x.n)).toEqual([9, 10, 11, 12, 13]);
+    expect(() => applyOp(p, { t: "add", bet: "b1", n: 8, banker: true, by: "Kev" }, 8)).toThrow(/already has 5 bankers/);
+    expect(() => applyOp(p, { t: "add", bet: "b1", n: 14, banker: true, by: "Kev" }, 8)).toThrow(/already has 5 bankers/);
+    expect(applyOp(p, { t: "add", bet: "b1", n: 14, by: "Kev" }, 9)).toBe(true);
+    expect(() => applyOp(p, { t: "add", bet: "b1", n: 15, by: "Kev" }, 10)).toThrow(/is full \(7 numbers\)/);
+    expect(applyOp(p, { t: "remove", bet: "b1", n: 9, by: "Kev" }, 11)).toBe(true);
+    expect(applyOp(p, { t: "add", bet: "b1", n: 8, banker: true, by: "Kev" }, 12)).toBe(true);
+  });
+
   it("adds and removes bets, keeps at least one", () => {
     const p = newPool("ABC", { bets: 1 }, 1);
     applyOp(p, { t: "addBet", by: "K" }, 2);
@@ -109,6 +133,9 @@ describe("the model", () => {
 
   it("reads only well-formed messages", () => {
     expect(parseOp('{"t":"add","bet":"b1","n":12,"by":" Amy "}')).toEqual({ t: "add", bet: "b1", n: 12, by: "Amy" });
+    expect(parseOp('{"t":"add","bet":"b1","n":12,"banker":true,"by":"Amy"}')).toEqual({ t: "add", bet: "b1", n: 12, banker: true, by: "Amy" });
+    expect(parseOp('{"t":"add","bet":"b1","n":12,"banker":false,"by":"Amy"}')).toEqual({ t: "add", bet: "b1", n: 12, by: "Amy" });
+    expect(parseOp('{"t":"add","bet":"b1","n":12,"banker":1,"by":"Amy"}')).toBeNull();
     expect(parseOp('{"t":"add","bet":"b1","n":50,"by":"Amy"}')).toBeNull();
     expect(parseOp('{"t":"add","bet":"b1","n":1.5,"by":"Amy"}')).toBeNull();
     expect(parseOp('{"t":"add","bet":"b1","n":12,"by":"  "}')).toBeNull();
@@ -180,7 +207,9 @@ describe("the worker", () => {
     const { code } = (await (await createPool()).json()) as { code: string };
     const kev = await connect(code);
     const amy = await connect(code);
-    expect((await kev.pool()).bets).toHaveLength(2);
+    const hello = await kev.next("pool");
+    expect(hello.pool!.bets).toHaveLength(2);
+    expect(hello.v).toBe(2); // says it takes bankers
     await amy.pool();
 
     kev.send({ t: "add", bet: "b1", n: 8, by: "Kevin" });

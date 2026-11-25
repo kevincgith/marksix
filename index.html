@@ -472,6 +472,8 @@
   .pool-tools .lbl { font-size: var(--fs-sm); font-weight: 700; margin-right: auto; }
   .pool-tools .lbl small { color: var(--muted); font-weight: 700; margin-left: .4rem; font-variant-numeric: tabular-nums; }
   .pool-tools .balls { margin-top: .45rem; gap: .25rem; }
+  .pool-tools .seg { margin-top: .45rem; }
+  .pool-tools .pt-help { color: var(--muted); font-size: var(--fs-xs); margin: .4rem 0 0; }
   .pool-bet-actions { margin: -.3rem 0 .9rem; }
   .pool-bet-actions [data-pool="removeBet"] { margin-left: auto; } /* keep the destructive one apart */
   .who { display: flex; flex-wrap: wrap; gap: .35rem; margin: .2rem 0 .8rem; }
@@ -482,10 +484,20 @@
   .activity li small { color: var(--muted); }
   .pool-actions .btn.link { margin-left: auto; }
   .pn-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: 0 0 .7rem; font-size: .9rem; font-weight: 650; }
-  .recent-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-height: var(--h-md); padding: 0 .75rem; margin-bottom: .4rem; text-decoration: none; color: var(--text); font-weight: 650; }
+  /* a pool opened before: the link to it, and a button that takes it off the list */
+  .recent-row { display: flex; align-items: stretch; margin-bottom: .4rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md); }
+  .recent-row a { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-height: var(--h-md); padding: 0 .6rem 0 .75rem; text-decoration: none; color: var(--text); font-weight: 650; border-radius: var(--r-md) 0 0 var(--r-md); }
+  .recent-row a span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .recent-row small { color: var(--muted); font-weight: 500; font-size: var(--fs-xs); white-space: nowrap; }
-  a.recent-row { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md); }
-  @media (hover: hover) { a.recent-row:hover { border-color: var(--accent); } }
+  .recent-row button {
+    appearance: none; border: 0; border-left: 1px solid var(--border); background: none; color: var(--muted);
+    width: var(--h-md); display: grid; place-items: center; cursor: pointer; border-radius: 0 var(--r-md) var(--r-md) 0;
+  }
+  .recent-row button .ico { margin: 0; }
+  @media (hover: hover) {
+    .recent-row:has(a:hover) { border-color: var(--accent); }
+    .recent-row button:hover { color: var(--warn); }
+  }
 
   /* ---------- toast ---------- */
   .toast {
@@ -554,6 +566,7 @@
   <symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M8.2 13.9L7 22l5-3 5 3-1.2-8.1"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
   <symbol id="i-none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></symbol>
 </svg>
 <div class="wrap">
@@ -1037,10 +1050,29 @@
   let pool = null; // the group pool open now (see "group pool" below)
   let lobby = false; // the Group pool view with no pool open: make or join one
   let lastPool = null; // the pool left by going to My bets, to come back to
+  // A pool bet's numbers the way the rest of the page keeps a bet: bankers,
+  // legs, and who picked each.
+  const poolParts = b => ({
+    bankers: b.picks.filter(p => p.banker).map(p => p.n).sort(byNum),
+    legs: b.picks.filter(p => !p.banker).map(p => p.n).sort(byNum),
+    who: Object.fromEntries(b.picks.map(p => [p.n, p.by])),
+  });
+  // How many combinations it plays: none until it has 6 numbers.
+  const poolCombos = b => b.picks.length >= MAIN_COUNT ? combosOf(poolParts(b)) : 0;
+  // "2 膽 + 5 legs", for a bet with bankers.
+  const poolBankerText = b => {
+    const nb = b.picks.filter(p => p.banker).length;
+    return nb ? `${nb} 膽 + ${plural(b.picks.length - nb, "leg")}` : "";
+  };
+  // What it plays and costs, or what it still needs.
+  const poolPlayText = b => {
+    const combos = poolCombos(b);
+    return combos ? `${plural(combos, "combo")} · ${money(combos * UNIT_STAKE)}` : `needs ${MAIN_COUNT - b.picks.length} more to play`;
+  };
   // A pool's bets that are ready to check: 6 or more numbers.
   const poolReadyBets = () => (pool && pool.state ? pool.state.bets : [])
     .filter(b => b.picks.length >= MAIN_COUNT)
-    .map(b => ({ id: b.id, name: b.name, bankers: [], legs: b.picks.map(p => p.n).sort(byNum), who: Object.fromEntries(b.picks.map(p => [p.n, p.by])) }));
+    .map(b => ({ id: b.id, name: b.name, ...poolParts(b) }));
   const activeBets = () => pool ? poolReadyBets() : shared ? shared.bets : myBets;
 
   // The draw being entered. Mains and special are kept apart so removing a main
@@ -1114,6 +1146,7 @@
   // ---------- bet list ----------
   const betsEl = document.getElementById("bets");
   const plainBall = n => `<span class="ball ${ballColor(n)}">${n}</span>`; // a drawn number, no hit ring
+  const roleBall = (n, banker) => `<span class="ball ${ballColor(n)}${banker ? " banker" : ""}">${n}</span>`; // a picked one, no hit ring
   const ballHtml = (n, h, banker) =>
     `<span class="ball ${ballColor(n)}${banker ? " banker" : ""}${h.main.has(n) ? " hit" : n === special ? " hit-special" : ""}">${n}</span>`;
   // A ball with who picked it underneath, when the bet came from a group pool.
@@ -2279,19 +2312,18 @@
   }
 
   function drawPoolImage(st) {
-    const combos = st.bets.reduce((s, b) => s + (b.picks.length >= MAIN_COUNT ? C(b.picks.length, MAIN_COUNT) : 0), 0);
+    const combos = st.bets.reduce((s, b) => s + poolCombos(b), 0);
     return drawBetsImage({
       title: st.title,
       lines: [`Mark Six group pool · ${plural(st.bets.length, "bet")}` + (combos ? ` · ${money(combos * UNIT_STAKE)} per draw` : ""),
         today() + (st.locked ? ` · Locked by ${st.locked.by}` : "")],
       bets: st.bets.map(b => {
-        const n = b.picks.length, full = n >= MAIN_COUNT;
+        const n = b.picks.length, banker = poolBankerText(b);
         return {
-          name: b.name, full,
-          right: full ? `${plural(C(n, MAIN_COUNT), "combo")} · ${money(C(n, MAIN_COUNT) * UNIT_STAKE)}` : `needs ${MAIN_COUNT - n} more to play`,
-          sub: `${n} of ${b.size} numbers`,
-          bankers: [], legs: b.picks.map(p => p.n).sort(byNum),
-          who: Object.fromEntries(b.picks.map(p => [p.n, p.by])),
+          name: b.name, full: n >= MAIN_COUNT,
+          right: poolPlayText(b),
+          sub: `${n} of ${b.size} numbers` + (banker && ` · ${banker}`),
+          ...poolParts(b),
           empties: st.locked ? 0 : Math.max(0, b.size - n),
         };
       }),
@@ -2511,13 +2543,15 @@
   // ---- the connection ----
   // pool: { code, state (the pool as the server last sent it, plus any pick
   // shown before the server confirms it), server (that last message, as sent),
-  // pending (those picks: "bet:n" -> whether the number should be in the bet),
-  // ws, status, why (what turned the last connection away: "full", "busy" or
-  // ""), selected (a bet id), retry, timers }
+  // pending (those picks: "bet:n" -> what the number should be in the bet:
+  // 0 not in it, 1 a number, 2 a banker), ws, status, why (what turned the
+  // last connection away: "full", "busy" or ""), selected (a bet id), role
+  // (what a tap on the grid picks: "legs" or "bankers"), proto (what the
+  // server understands: 2 = bankers), retry, timers }
   function openPool(code) {
     if (pool && pool.code === code) return;
     if (pool) closePool();
-    pool = { code, state: null, server: "", pending: new Map(), ws: null, status: "connecting", why: "", selected: null,
+    pool = { code, state: null, server: "", pending: new Map(), ws: null, status: "connecting", why: "", selected: null, role: "legs", proto: 1,
       retry: 0, retryTimer: null, pingTimer: null, checkTimer: null, heard: 0 };
     poolConnect();
   }
@@ -2565,9 +2599,11 @@
       if (msg.t === "pool" && msg.pool) {
         p.state = msg.pool;
         p.server = e.data;
+        p.proto = Number(msg.v) || 1;
+        if (p.proto < 2) p.role = "legs";
         poolSettle(p, ws, first);
         first = false;
-        if (p.selectAfter != null && msg.pool.bets.length > p.selectAfter) { p.selected = msg.pool.bets.at(-1).id; p.selectAfter = null; }
+        if (p.selectAfter != null && msg.pool.bets.length > p.selectAfter) { p.selected = msg.pool.bets.at(-1).id; p.role = "legs"; p.selectAfter = null; }
         rememberPool(p.code, msg.pool.title);
         if (pool === p) update();
       } else if (msg.t === "error" && msg.message) {
@@ -2588,12 +2624,22 @@
     const by = poolMyName();
     for (const [key, want] of p.pending) {
       const [id, num] = key.split(":"), n = Number(num), bet = p.state.bets.find(b => b.id === id);
-      const has = !!bet && bet.picks.some(x => x.n === n);
-      if (!bet || has === want || p.state.locked || !by) { p.pending.delete(key); continue; }
-      if (again) { try { ws.send(JSON.stringify({ t: want ? "add" : "remove", bet: id, n, by })); } catch { continue; } }
-      if (want) bet.picks.push({ n, by, at: Date.now() });
-      else bet.picks = bet.picks.filter(x => x.n !== n);
+      if (!bet || pickRole(bet, n) === want || p.state.locked || !by) { p.pending.delete(key); continue; }
+      if (again) { try { ws.send(JSON.stringify({ ...pickOp(id, n, want), by })); } catch { continue; } }
+      showPick(bet, n, want, by);
     }
+  }
+  // What a number is in a pool bet: 0 not in it, 1 a number (a leg), 2 a banker.
+  const pickRole = (bet, n) => { const pick = bet.picks.find(x => x.n === n); return pick ? (pick.banker ? 2 : 1) : 0; };
+  // The message that makes it so. ("add" also changes what a number already in the bet is.)
+  const pickOp = (id, n, want) => want ? { t: "add", bet: id, n, ...(want === 2 && { banker: true }) } : { t: "remove", bet: id, n };
+  // Show it so now, ahead of the server.
+  function showPick(bet, n, want, by) {
+    const pick = bet.picks.find(x => x.n === n);
+    if (!want) bet.picks = bet.picks.filter(x => x.n !== n);
+    else if (!pick) bet.picks.push({ n, by, at: Date.now(), ...(want === 2 && { banker: true }) });
+    else if (want === 2) pick.banker = true;
+    else delete pick.banker;
   }
   // The connection is over, or was never let in: find out why if it was
   // turned away, and try again.
@@ -2653,7 +2699,7 @@
   setInterval(() => { if (pool && pool.state && !document.hidden) renderPool(); }, 60000);
   window.addEventListener("online", poolCheck);
 
-  // Send a change. Adding or removing a number shows at once; the pool the
+  // Send a change. Picking or removing a number shows at once; the pool the
   // server sends back (to everyone) replaces it - or, if the change was
   // turned down, puts it back as it was.
   function poolSend(op) {
@@ -2720,7 +2766,7 @@
 
     const people = new Map();
     st.bets.forEach(b => b.picks.forEach(p => people.set(p.by, (people.get(p.by) || 0) + 1)));
-    const totalCombos = st.bets.reduce((s, b) => s + (b.picks.length >= MAIN_COUNT ? C(b.picks.length, MAIN_COUNT) : 0), 0);
+    const totalCombos = st.bets.reduce((s, b) => s + poolCombos(b), 0);
     document.getElementById("poolMeta").innerHTML = `Code <button type="button" class="code" data-pool="copy-code" title="Copy the code">${esc(st.code)}</button> · ${plural(st.bets.length, "bet")}` +
       (totalCombos ? ` · ${money(totalCombos * UNIT_STAKE)} per draw` : "") + ` · anyone with the link can edit`;
     if (document.activeElement !== poolNameInput) poolNameInput.value = poolMyName();
@@ -2738,18 +2784,19 @@
     document.getElementById("poolTitle").disabled = locked;
     for (const id of ["poolTools", "poolGrid", "poolBetActions"]) document.getElementById(id).hidden = locked;
     document.getElementById("poolBets").innerHTML = st.bets.map(b => {
-      const nums = b.picks.map(p => p.n);
-      const h = { main: new Set(nums.filter(n => mains.includes(n))) };
-      const sorted = [...b.picks].sort((x, y) => x.n - y.n);
+      const h = { main: new Set(b.picks.map(p => p.n).filter(n => mains.includes(n))) };
+      // bankers first, as on a ticket
+      const sorted = [...b.picks].sort((x, y) => !!y.banker - !!x.banker || x.n - y.n);
+      const nb = sorted.filter(p => p.banker).length;
       const full = b.picks.length >= b.size;
-      const kind = b.picks.length >= MAIN_COUNT
-        ? `${plural(C(b.picks.length, MAIN_COUNT), "combo")} · ${money(C(b.picks.length, MAIN_COUNT) * UNIT_STAKE)}`
-        : `needs ${MAIN_COUNT - b.picks.length} more to play`;
+      const kind = (nb ? poolBankerText(b) + " · " : "") + poolPlayText(b);
+      const one = p => `<span class="pb">${hasDraw ? ballHtml(p.n, h, !!p.banker) : roleBall(p.n, !!p.banker)}<small title="${esc(p.by)}">${esc(p.by)}</small></span>`;
       return `<button type="button" class="pbet${locked ? " locked" : ""}" data-bet="${esc(b.id)}" aria-pressed="${!locked && b === bet}">` +
         `<span class="bet-top"><span class="bet-meta"><span class="bet-name">${esc(b.name)}</span><span class="tag">${kind}</span></span>` +
         `<span class="count${full ? " full" : ""}">${b.picks.length} / ${b.size}${full ? " ✓" : ""}</span></span>` +
         `<span class="balls">` +
-        sorted.map(p => `<span class="pb">${hasDraw ? ballHtml(p.n, h, false) : plainBall(p.n)}<small title="${esc(p.by)}">${esc(p.by)}</small></span>`).join("") +
+        (nb ? `<span class="grp">膽</span>${sorted.slice(0, nb).map(one).join("")}<span class="grp sep">+</span>` : "") +
+        sorted.slice(nb).map(one).join("") +
         Array.from({ length: locked ? 0 : Math.max(0, b.size - b.picks.length) }, () => `<span class="pb"><span class="ball empty"></span><small>&nbsp;</small></span>`).join("") +
         `</span></button>`;
     }).join("") +
@@ -2758,25 +2805,35 @@
     // Tools for the selected bet, and the grid that picks for it.
     const tools = document.getElementById("poolTools");
     if (bet) {
-      tools.innerHTML = `<div class="pt-row"><span class="lbl">Tap numbers for ${esc(bet.name)}<small>${bet.picks.length} / ${bet.size}</small></span>` +
+      const parts = poolParts(bet), asBankers = pool.role === "bankers";
+      tools.innerHTML = `<div class="pt-row"><span class="lbl">Tap ${asBankers ? "bankers" : "numbers"} for ${esc(bet.name)}` +
+        `<small>${asBankers ? `${parts.bankers.length} / ${MAX_BANKERS}` : `${bet.picks.length} / ${bet.size}`}</small></span>` +
         `<span class="stepper" title="How many numbers ${esc(bet.name)} takes"><button type="button" data-pool="size" data-d="-1" aria-label="Fewer numbers"${bet.size <= Math.max(POOL_MIN_SIZE, bet.picks.length) ? " disabled" : ""}>−</button>` +
         `<span>${bet.size}</span><button type="button" data-pool="size" data-d="1" aria-label="More numbers"${bet.size >= POOL_MAX_SIZE ? " disabled" : ""}>+</button></span></div>` +
-        `<div class="balls">${bet.picks.map(p => p.n).sort(byNum).map(plainBall).join("")}` +
+        (pool.proto >= 2
+          ? `<div class="seg" role="group" aria-label="Tap numbers as">` +
+            `<button type="button" data-pool="role" data-role="legs" aria-pressed="${!asBankers}">Numbers</button>` +
+            `<button type="button" data-pool="role" data-role="bankers" aria-pressed="${asBankers}">Bankers 膽</button></div>`
+          : "") +
+        (asBankers ? `<p class="pt-help">Bankers are in every combination of the bet. Up to ${MAX_BANKERS}, counted in its ${bet.size} numbers.</p>` : "") +
+        `<div class="balls">${parts.bankers.map(n => roleBall(n, true)).join("")}${parts.legs.map(n => roleBall(n, false)).join("")}` +
         `<span class="ball empty"></span>`.repeat(Math.max(0, bet.size - bet.picks.length)) + `</div>`;
       document.getElementById("poolBetActions").innerHTML =
         `<button class="btn ghost small" type="button" data-pool="rename">${ico("pencil")}Rename</button>` +
         `<button class="btn ghost small" type="button" data-pool="clear"${bet.picks.length ? "" : " disabled"}>Clear numbers</button>` +
         (st.bets.length > 1 ? `<button class="btn danger small" type="button" data-pool="removeBet">Remove bet</button>` : "");
-      const mine = new Set(bet.picks.map(p => p.n));
       const elsewhere = new Set(st.bets.filter(b => b !== bet).flatMap(b => b.picks.map(p => p.n)));
       const full = bet.picks.length >= bet.size;
       poolGridEl.classList.toggle("locked", full);
       for (let n = 1; n <= 49; n++) {
         const c = poolCells[n], pick = bet.picks.find(p => p.n === n);
-        c.classList.toggle("pick", mine.has(n));
-        c.classList.toggle("other", !mine.has(n) && elsewhere.has(n));
-        c.setAttribute("aria-pressed", mine.has(n));
-        c.title = pick ? `${n} — picked by ${pick.by}` : elsewhere.has(n) ? `${n} — in another bet` : "";
+        const banker = !!pick && !!pick.banker;
+        c.classList.toggle("pick", !!pick);
+        c.classList.toggle("banker", banker);
+        c.classList.toggle("other", !pick && elsewhere.has(n));
+        c.setAttribute("aria-pressed", !!pick);
+        c.setAttribute("aria-label", banker ? `${n}, banker` : String(n));
+        c.title = pick ? `${n} — ${banker ? "a banker, " : ""}picked by ${pick.by}` : elsewhere.has(n) ? `${n} — in another bet` : "";
       }
     } else tools.innerHTML = document.getElementById("poolBetActions").innerHTML = "";
 
@@ -2793,16 +2850,19 @@
   function poolTap(n) {
     const bet = pool && selectedPoolBet();
     if (!bet || (pool.state && pool.state.locked)) return;
-    const have = bet.picks.some(p => p.n === n);
+    // As in the bet editor: a tap puts the number in as what's being picked (a
+    // number or a banker), changing it if it's in as the other; a tap on one
+    // that already is takes it out.
+    const have = pickRole(bet, n), as = pool.role === "bankers" ? 2 : 1, want = have === as ? 0 : as;
     if (!have && bet.picks.length >= bet.size) {
       toast(`${bet.name} is full (${bet.size} numbers). Tap one to remove it, or + to make the bet bigger.`);
       return;
     }
-    if (!poolSend({ t: have ? "remove" : "add", bet: bet.id, n })) return;
+    if (want === 2 && bet.picks.filter(p => p.banker).length >= MAX_BANKERS) { toast(`Up to ${MAX_BANKERS} bankers per bet.`); return; }
+    if (!poolSend(pickOp(bet.id, n, want))) return;
     // Show it now; the server's copy follows.
-    pool.pending.set(`${bet.id}:${n}`, !have);
-    if (have) bet.picks = bet.picks.filter(p => p.n !== n);
-    else bet.picks.push({ n, by: poolMyName(), at: Date.now() });
+    pool.pending.set(`${bet.id}:${n}`, want);
+    showPick(bet, n, want, poolMyName());
     update();
   }
 
@@ -2811,6 +2871,7 @@
     if (!b || !pool) return;
     if (pool.selected === b.dataset.bet) return;
     pool.selected = b.dataset.bet;
+    pool.role = "legs"; // bankers are picked on purpose, a bet at a time
     renderPool();
   });
   poolCard.addEventListener("click", async e => {
@@ -2824,6 +2885,9 @@
         .then(() => toast("Code copied."), () => showToCopy("code", p.code));
     } else if (act === "unlock") {
       if (await ask({ title: "Unlock the pool?", text: "Everyone will be able to change the numbers again, so they may no longer match the ticket.", ok: "Unlock" }) && still()) poolSend({ t: "unlock" });
+    } else if (act === "role") {
+      pool.role = btn.dataset.role === "bankers" && pool.proto >= 2 ? "bankers" : "legs";
+      renderPool();
     } else if (act === "size" && bet) {
       const size = bet.size + Number(btn.dataset.d);
       if (size < bet.picks.length) { toast(`${bet.name} already has ${bet.picks.length} numbers — remove some first.`); return; }
@@ -2859,7 +2923,7 @@
   });
   document.getElementById("poolSave").addEventListener("click", () => {
     const title = pool && pool.state ? pool.state.title : "";
-    const r = addBets(poolReadyBets().map(b => cleanBet({ name: `${title} · ${b.name}`.slice(0, 40), bankers: [], legs: b.legs, who: b.who })).filter(Boolean));
+    const r = addBets(poolReadyBets().map(b => cleanBet({ name: `${title} · ${b.name}`.slice(0, 40), bankers: b.bankers, legs: b.legs, who: b.who })).filter(Boolean));
     if (r.added && !storeBets()) return;
     toast(addSummary(r, "Saved"));
   });
@@ -2879,7 +2943,7 @@
     lobby = toLobby;
     closePool();
     clearHash();
-    if (toLobby) renderPoolNew();
+    if (toLobby) { document.getElementById("pnName").value = poolMyName(); renderPoolNew(); }
     update();
   }
 
@@ -2922,9 +2986,28 @@
     const recent = recentPools();
     document.getElementById("pnRecent").innerHTML = recent.length
       ? `<h3 class="sec">Pools you've opened</h3>` + recent.map(r =>
-          `<a class="recent-row" href="#pool=${esc(r.code)}"><span>${esc(r.title || r.code)}</span><small>${esc(r.code)} · ${ago(r.at)}</small></a>`).join("")
+          `<div class="recent-row"><a href="#pool=${esc(r.code)}"><span>${esc(r.title || r.code)}</span><small>${esc(r.code)} · ${ago(r.at)}</small></a>` +
+          `<button type="button" data-forget="${esc(r.code)}" title="Forget this pool" aria-label="Forget ${esc(r.title || r.code)}">${ico("x")}</button></div>`).join("")
       : "";
   }
+  // Take a pool off this device's list. The pool itself stays as it is.
+  document.getElementById("pnRecent").addEventListener("click", async e => {
+    const b = e.target.closest("button[data-forget]");
+    if (!b) return;
+    const code = b.dataset.forget, r = recentPools().find(x => x.code === code);
+    if (!r) return renderPoolNew();
+    const ok = await ask({
+      title: `Forget ${r.title || code}?`,
+      text: `It comes off this list, on this device only. The pool stays as it is for everyone, and its link or its code, ${code}, opens it again.`,
+      ok: "Forget", danger: true,
+    });
+    if (!ok) return;
+    forgetPool(code);
+    if (lastPool === code) lastPool = null;
+    renderPoolNew();
+    renderModes();
+    toast("Pool forgotten on this device.");
+  });
   poolLobby.addEventListener("click", e => {
     const b = e.target.closest("button[data-pn]");
     if (!b) return;

@@ -30,6 +30,9 @@ const RECHECK_MS = 3600_000;
 // waking the pool.
 const PING = JSON.stringify({ t: "ping" });
 const PONG = JSON.stringify({ t: "pong" });
+// What this server understands, sent with every pool so a page only offers
+// what will work: 2 = bets can have bankers.
+export const PROTOCOL = 2;
 
 interface Conn {
   tokens: number;
@@ -72,7 +75,7 @@ export class Pool extends DurableObject<Env> {
     const { 0: client, 1: server } = new WebSocketPair();
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({ tokens: RATE_BURST, at: Date.now(), strikes: 0 } satisfies Conn);
-    this.send(server, { t: "pool", pool: this.pool });
+    this.send(server, this.poolMsg());
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -91,10 +94,10 @@ export class Pool extends DurableObject<Env> {
       if (!(e instanceof Refusal)) throw e;
       return this.refuse(ws, e.message);
     }
-    if (!changed) return this.send(ws, { t: "pool", pool: this.pool });
+    if (!changed) return this.send(ws, this.poolMsg());
     await this.ctx.storage.put("pool", this.pool);
     await this.ctx.storage.setAlarm(this.expiry());
-    const msg = JSON.stringify({ t: "pool", pool: this.pool });
+    const msg = JSON.stringify(this.poolMsg());
     for (const s of this.ctx.getWebSockets()) {
       try {
         s.send(msg);
@@ -139,6 +142,10 @@ export class Pool extends DurableObject<Env> {
 
   // ---- Helpers --------------------------------------------------------------------
 
+  private poolMsg() {
+    return { t: "pool", pool: this.pool, v: PROTOCOL };
+  }
+
   private send(ws: WebSocket, msg: object) {
     try {
       ws.send(JSON.stringify(msg));
@@ -151,7 +158,7 @@ export class Pool extends DurableObject<Env> {
   // change it showed straight away.
   private refuse(ws: WebSocket, message: string) {
     this.send(ws, { t: "error", message });
-    this.send(ws, { t: "pool", pool: this.pool });
+    this.send(ws, this.poolMsg());
   }
 
   // Token bucket: true if this message may go through.
