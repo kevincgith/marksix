@@ -31,8 +31,9 @@ const RECHECK_MS = 3600_000;
 const PING = JSON.stringify({ t: "ping" });
 const PONG = JSON.stringify({ t: "pong" });
 // What this server understands, sent with every pool so a page only offers
-// what will work: 2 = bets can have bankers.
-export const PROTOCOL = 2;
+// what will work: 2 = bets can have bankers; 3 = who is buying the ticket
+// and what each person has paid.
+export const PROTOCOL = 3;
 
 interface Conn {
   tokens: number;

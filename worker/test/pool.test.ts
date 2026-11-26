@@ -97,6 +97,39 @@ describe("the model", () => {
     expect(applyOp(p, { t: "add", bet: "b1", n: 8, banker: true, by: "Kev" }, 12)).toBe(true);
   });
 
+  it("keeps who is buying the ticket and what each person has paid, locked or not", () => {
+    const p = newPool("ABC", { bets: 1 }, 1);
+    expect(applyOp(p, { t: "buyer", name: " Kev ", by: "Kev" }, 2)).toBe(true);
+    expect(p.buyer).toBe("Kev");
+    expect(p.log.at(-1)!.text).toBe("is buying the ticket");
+    expect(applyOp(p, { t: "buyer", name: "Kev", by: "Amy" }, 3)).toBe(false);
+    expect(applyOp(p, { t: "buyer", name: "Amy", by: "Kev" }, 3)).toBe(true);
+    expect(p.log.at(-1)!.text).toBe("said Amy is buying the ticket");
+    expect(applyOp(p, { t: "paid", who: "Kev", amount: 28, by: "Kev" }, 4)).toBe(true);
+    expect(p.log.at(-1)!.text).toBe("has paid HK$28");
+    expect(applyOp(p, { t: "paid", who: "Kev", amount: 28, by: "Amy" }, 5)).toBe(false);
+    expect(applyOp(p, { t: "paid", who: "Ben", amount: 1046.7, by: "Amy" }, 5)).toBe(true);
+    expect(p.log.at(-1)!.text).toBe("noted that Ben has paid HK$1,046.70");
+    expect(p.paid).toEqual([{ who: "Kev", amount: 28 }, { who: "Ben", amount: 1046.7 }]);
+    // Locked: the numbers stay, the buyer and the payments can still be noted.
+    applyOp(p, { t: "lock", by: "Amy" }, 6);
+    expect(() => applyOp(p, { t: "add", bet: "b1", n: 6, by: "Amy" }, 7)).toThrow(/locked/);
+    expect(applyOp(p, { t: "paid", who: "Kev", amount: 30, by: "Amy" }, 7)).toBe(true);
+    expect(applyOp(p, { t: "paid", who: "Ben", amount: 0, by: "Amy" }, 8)).toBe(true);
+    expect(p.log.at(-1)!.text).toBe("took Ben's payment off");
+    expect(applyOp(p, { t: "paid", who: "Ben", amount: 0, by: "Amy" }, 8)).toBe(false); // nothing to take off
+    expect(p.paid).toEqual([{ who: "Kev", amount: 30 }]);
+    expect(applyOp(p, { t: "buyer", name: "", by: "Amy" }, 9)).toBe(true);
+    expect(p.buyer).toBeNull();
+    for (let i = 0; i < 39; i++) applyOp(p, { t: "paid", who: "P" + i, amount: 10, by: "Amy" }, 10);
+    expect(() => applyOp(p, { t: "paid", who: "One too many", amount: 10, by: "Amy" }, 11)).toThrow(/up to 40 people/);
+    expect(parseOp('{"t":"paid","who":" Ben ","amount":28.26,"by":"Amy"}')).toEqual({ t: "paid", who: "Ben", amount: 28.3, by: "Amy" });
+    expect(parseOp('{"t":"paid","who":"Ben","amount":-1,"by":"Amy"}')).toBeNull();
+    expect(parseOp('{"t":"paid","who":"Ben","amount":"28","by":"Amy"}')).toBeNull();
+    expect(parseOp('{"t":"paid","who":"","amount":28,"by":"Amy"}')).toBeNull();
+    expect(parseOp('{"t":"buyer","name":"Kev","by":"Amy"}')).toEqual({ t: "buyer", name: "Kev", by: "Amy" });
+  });
+
   it("adds and removes bets, keeps at least one", () => {
     const p = newPool("ABC", { bets: 1 }, 1);
     applyOp(p, { t: "addBet", by: "K" }, 2);
@@ -209,7 +242,7 @@ describe("the worker", () => {
     const amy = await connect(code);
     const hello = await kev.next("pool");
     expect(hello.pool!.bets).toHaveLength(2);
-    expect(hello.v).toBe(2); // says it takes bankers
+    expect(hello.v).toBe(3); // says what it takes: bankers, and the ticket's buyer and payments
     await amy.pool();
 
     kev.send({ t: "add", bet: "b1", n: 8, by: "Kevin" });

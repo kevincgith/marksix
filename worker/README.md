@@ -25,13 +25,16 @@ a database plus polling would work but needs more moving parts and isn't live.)
 - `POST /pools` with `{title?, bets?, size?}` answers `201 {"code":"KQF39E"}`. Codes are 6 characters
   from `34679ACDEFGHJKMNPQRTUVWXY`, in any case.
 - `GET /pools/<CODE>` answers the pool (plus `full`: whether all its connections are taken), or `404`.
-- `GET /pools/<CODE>/ws` is the WebSocket. On connecting the page is sent `{"t":"pool","pool":…,"v":2}`,
-  and again after every change anyone makes. `v` says what the server understands (2: bankers), so a
-  page only offers what will work.
+- `GET /pools/<CODE>/ws` is the WebSocket. On connecting the page is sent `{"t":"pool","pool":…,"v":3}`,
+  and again after every change anyone makes. `v` says what the server understands (2: bankers; 3: the
+  ticket's buyer and payments), so a page only offers what will work.
 - A page sends changes, each with `by` (the name the person typed):
   `add` `{bet, n, banker?}`, `remove` `{bet, n}`, `size` `{bet, size}` (6–15), `rename` `{bet, name}`, `clear` `{bet}`,
-  `addBet`, `removeBet` `{bet}`, `title` `{title}`, `lock`, `unlock`. While a pool is locked (`pool.locked`
-  is `{by, at}`) every change but `unlock` is refused. `add` with `banker: true` puts the number in as a
+  `addBet`, `removeBet` `{bet}`, `title` `{title}`, `lock`, `unlock`, `buyer` `{name}` (who is buying
+  the ticket; `""` for nobody yet), `paid` `{who, amount}` (what that person has paid in all, in HK$;
+  0 takes it off). While a pool is locked (`pool.locked` is `{by, at}`: the ticket is bought) every
+  change but `unlock`, `buyer` and `paid` is refused. The pool keeps `buyer` and `paid`
+  (`[{who, amount}]`, up to 40 people); splitting the cost is the page's sum. `add` with `banker: true` puts the number in as a
   banker (膽, up to 5 in a bet; its pick then carries `banker: true`), and `add` for a number already
   in the bet changes it to or from one. A change that isn't made (a full bet, the last
   bet, a message that's malformed or over the rate) is answered `{"t":"error","message":…}` plus the

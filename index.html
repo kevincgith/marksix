@@ -148,7 +148,7 @@
   .card h2, dialog h2 { margin: 0; font-size: var(--fs-lg); line-height: 1.3; }
   .card-head .row { flex: 0 0 auto; }
   /* an inset block inside a card: a pool's bet, a past draw, the draw details */
-  .pbet, .past-row, .details, .verdict {
+  .pbet, .past-row, .details, .verdict, .ticket {
     background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md);
   }
   /* something to know before going on */
@@ -476,6 +476,24 @@
   .pool-tools .pt-help { color: var(--muted); font-size: var(--fs-xs); margin: .4rem 0 0; }
   .pool-bet-actions { margin: -.3rem 0 .9rem; }
   .pool-bet-actions [data-pool="removeBet"] { margin-left: auto; } /* keep the destructive one apart */
+  /* the ticket: who is buying it, whether it's bought, and who has paid */
+  .ticket { padding: .7rem .8rem .75rem; margin: 0 0 .8rem; font-size: .9rem; }
+  .ticket-top { display: flex; align-items: center; gap: .4rem .6rem; flex-wrap: wrap; }
+  .ticket-top strong { margin-right: auto; }
+  .state { font-size: var(--fs-xs); font-weight: 700; color: var(--wait); border: 1px solid currentColor; border-radius: var(--r-pill); padding: .05rem .55rem; white-space: nowrap; }
+  .state.done { color: var(--hit); }
+  .ticket p { margin: .4rem 0 0; color: var(--muted); font-size: var(--fs-sm); }
+  .ticket .row { margin-top: .65rem; }
+  .pays { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .6rem; }
+  .pay {
+    appearance: none; font: inherit; font-size: var(--fs-xs); color: var(--text); cursor: pointer;
+    display: inline-flex; align-items: center; gap: .4rem; min-height: var(--h-sm); padding: 0 .7rem;
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--r-pill);
+  }
+  .pay span { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .pay.ok span { color: var(--hit); font-weight: 650; }
+  .pay.part span { color: var(--wait); font-weight: 650; }
+  @media (hover: hover) { .pay:hover { border-color: var(--accent); } }
   .who { display: flex; flex-wrap: wrap; gap: .35rem; margin: .2rem 0 .8rem; }
   .who span { font-size: var(--fs-xs); background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-pill); padding: .1rem .55rem; }
   .who b { font-variant-numeric: tabular-nums; }
@@ -620,7 +638,7 @@
       <label class="field inline">You
         <input class="input" type="text" id="poolName" maxlength="20" placeholder="Your name — shows who picked what" autocomplete="nickname">
       </label>
-      <div class="banner" id="poolLockNote" hidden></div>
+      <div class="ticket" id="poolTicket"></div>
       <div class="pbets" id="poolBets"></div>
       <div class="pool-tools" id="poolTools"></div>
       <div class="grid" id="poolGrid"></div>
@@ -630,7 +648,6 @@
       <div class="row pool-actions">
         <button class="btn ghost small" type="button" id="poolSave">Save to my bets</button>
         <button class="btn ghost small" type="button" id="poolPng"><svg class="ico" aria-hidden="true"><use href="#i-image"/></svg>Export PNG</button>
-        <button class="btn ghost small" type="button" id="poolLock"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg>Lock</button>
         <button class="btn link small" type="button" id="poolLeave">Leave pool</button>
       </div>
     </div>
@@ -792,7 +809,7 @@
   const PRIZE = [null, null, null, 9600, 640, 320, 40];
   // Value used for expected winnings: 1st-3rd = historical average payout, 4th-7th = fixed.
   const PRIZE_EV = [22000000, 1200000, 74000, 9600, 640, 320, 40];
-  const money = v => "HK$" + v.toLocaleString("en-US");
+  const money = v => "HK$" + v.toLocaleString("en-US", Number.isInteger(v) ? {} : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const plural = (n, word) => `${n.toLocaleString("en-US")} ${word}${n === 1 ? "" : "s"}`;
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   // An icon from the sheet at the top of the page, drawn in the colour of the text around it.
@@ -1069,6 +1086,37 @@
     const combos = poolCombos(b);
     return combos ? `${plural(combos, "combo")} · ${money(combos * UNIT_STAKE)}` : `needs ${MAIN_COUNT - b.picks.length} more to play`;
   };
+  // The ticket's status line: who is buying it, and whether it's bought yet
+  // (it is once the pool is locked).
+  const ticketText = st => st.locked
+    ? (st.buyer ? `${st.buyer} bought the ticket` : "The ticket is bought")
+    : (st.buyer ? `${st.buyer} is buying the ticket` : "Nobody is buying the ticket yet");
+  // The money: what the ticket costs, split equally between everyone in it
+  // (anyone with a number in the pool or a payment noted, and the buyer), and
+  // what each has paid. The buyer pays the shop, so their own share counts as in.
+  function poolMoney(st) {
+    const total = st.bets.reduce((s, b) => s + poolCombos(b), 0) * UNIT_STAKE;
+    const paid = new Map((st.paid || []).map(x => [x.who, x.amount]));
+    const names = [...new Set([...st.bets.flatMap(b => b.picks.map(x => x.by)), ...paid.keys(), ...(st.buyer ? [st.buyer] : [])])];
+    const share = names.length ? Math.ceil(total * 10 / names.length - 1e-9) / 10 : 0; // up to the next 10 cents
+    const people = names.map(who => {
+      const amount = paid.get(who) || 0, buyer = who === st.buyer;
+      const got = buyer ? Math.max(amount, share) : amount;
+      const settled = buyer || (share > 0 && got + .001 >= share);
+      const text = buyer ? "buyer"
+        : !amount ? (share ? `owes ${money(share)}` : "not paid")
+        : settled || !share ? `paid ${money(amount)}` : `paid ${money(amount)} of ${money(share)}`;
+      return { who, amount, buyer, got, text, cls: settled ? "ok" : amount ? "part" : "" };
+    });
+    const got = Math.round(people.reduce((sum, x) => sum + x.got, 0) * 10) / 10;
+    const left = Math.max(0, Math.round((total - got) * 10) / 10);
+    const n = people.length;
+    const summary = !total ? "No bet is ready to play yet, so there's nothing to split."
+      : !n ? `${money(total)} ticket`
+      : `${money(total)} ticket · ` + (n === 1 ? "1 person" : `${money(share)} each for ${n} people`) + " · " +
+        (left < .05 ? "all paid" : `${money(got)} in, ${money(left)} to come`);
+    return { total, share, people, summary };
+  }
   // A pool's bets that are ready to check: 6 or more numbers.
   const poolReadyBets = () => (pool && pool.state ? pool.state.bets : [])
     .filter(b => b.picks.length >= MAIN_COUNT)
@@ -1113,7 +1161,7 @@
   // true or false for a question; with `input`, the text typed, or null.
   const askDlg = document.getElementById("ask"), askInput = document.getElementById("askInput"), askOk = document.getElementById("askOk");
   let askDone = null;
-  function ask({ title, text = "", ok = "OK", danger = false, input = null, maxLength = 80 }) {
+  function ask({ title, text = "", ok = "OK", danger = false, input = null, maxLength = 80, inputMode = "text" }) {
     return new Promise(resolve => {
       const note = document.getElementById("askText");
       document.getElementById("askTitle").textContent = title;
@@ -1121,6 +1169,7 @@
       note.hidden = !text;
       askInput.hidden = input == null;
       askInput.maxLength = maxLength;
+      askInput.inputMode = inputMode;
       askInput.value = input ?? "";
       askOk.textContent = ok;
       askOk.className = "btn end" + (danger ? " danger" : "");
@@ -2226,12 +2275,16 @@
   // A list of bets as a picture - My bets, or a group pool. Each bet:
   // { name, right, full, sub, bankers, legs, who (number -> name, or null), empties }.
   const drawBetsImage = spec => makeImage(painter => paintBets(spec, painter));
-  function paintBets({ title, lines, bets, people, footer }, { W, PAD, IN, CW, ctx, font, say, line, ball, site }) {
+  function paintBets({ title, lines, bets, people, payments, footer }, { W, PAD, IN, CW, ctx, font, say, line, ball, site }) {
     const drawn = isComplete();
 
     let y = PAD + 96;
     say(title, IN, y, { w: 800, px: 48 });
-    lines.forEach((t, i) => { y += i ? 40 : 50; say(t, IN, y, { px: i ? 26 : 30, color: IMG.muted }); });
+    lines.forEach((t, i) => { // a line is text, or { text, strong } for one that should stand out
+      y += i ? 40 : 50;
+      if (t.strong) say(t.text, IN, y, { w: 700, px: i ? 26 : 30 });
+      else say(t, IN, y, { px: i ? 26 : 30, color: IMG.muted });
+    });
 
     if (drawn) {
       // the draw these bets are being checked against
@@ -2298,6 +2351,23 @@
       y += 10;
     }
 
+    // a pool's money: what the ticket costs, and what each person has paid
+    if (payments) {
+      y += 26; line(y); y += 50;
+      say("Payments", IN, y, { w: 800, px: 30 });
+      y += 42;
+      say(payments.summary, IN, y, { px: 24, color: IMG.muted });
+      y += 10;
+      for (const r of payments.rows) {
+        y += 40;
+        font(400, 26);
+        const textW = ctx.measureText(r.text).width;
+        say(r.who, IN, y, { w: 600, px: 26, maxW: CW - textW - 30 });
+        say(r.text, IN + CW, y, { px: 26, color: r.ok ? IMG.hit : IMG.muted, align: "right" });
+      }
+      y += 10;
+    }
+
     y += 64;
     say(`Mark Six Checker${site()}`, W / 2, y, { px: 24, color: IMG.muted, align: "center" });
     y += 34;
@@ -2313,10 +2383,13 @@
 
   function drawPoolImage(st) {
     const combos = st.bets.reduce((s, b) => s + poolCombos(b), 0);
+    const pm = poolMoney(st), ticket = !pool || pool.proto >= 3; // a server that keeps the buyer and the payments
     return drawBetsImage({
       title: st.title,
       lines: [`Mark Six group pool · ${plural(st.bets.length, "bet")}` + (combos ? ` · ${money(combos * UNIT_STAKE)} per draw` : ""),
+        ...(ticket ? [{ text: ticketText(st) + (!st.locked && st.buyer ? " · not bought yet" : ""), strong: true }] : []),
         today() + (st.locked ? ` · Locked by ${st.locked.by}` : "")],
+      payments: ticket && pm.people.length ? { summary: pm.summary, rows: pm.people.map(x => ({ who: x.who, text: x.text, ok: x.cls === "ok" })) } : null,
       bets: st.bets.map(b => {
         const n = b.picks.length, banker = poolBankerText(b);
         return {
@@ -2547,7 +2620,8 @@
   // 0 not in it, 1 a number, 2 a banker), ws, status, why (what turned the
   // last connection away: "full", "busy" or ""), selected (a bet id), role
   // (what a tap on the grid picks: "legs" or "bankers"), proto (what the
-  // server understands: 2 = bankers), retry, timers }
+  // server understands: 2 = bankers, 3 = the ticket's buyer and payments),
+  // retry, timers }
   function openPool(code) {
     if (pool && pool.code === code) return;
     if (pool) closePool();
@@ -2774,13 +2848,27 @@
     const bet = selectedPoolBet();
     const hasDraw = mains.length || special != null;
     const locked = !!st.locked;
-    const note = document.getElementById("poolLockNote");
-    note.hidden = !locked;
-    note.innerHTML = locked
-      ? `${ico("lock")}<strong>Locked</strong> by ${esc(st.locked.by)} · ${ago(st.locked.at)}. The numbers match the ticket, so nobody can change them.` +
-        `<div class="row"><button class="btn ghost small" type="button" data-pool="unlock">${ico("unlock")}Unlock</button></div>`
-      : "";
-    document.getElementById("poolLock").hidden = locked;
+    // The ticket: who is buying it, whether it's bought (locking the pool says
+    // so), and who has paid. A server from before it kept the buyer and the
+    // payments gets the bought-or-not part alone.
+    const pm = poolMoney(st), ticket = pool.proto >= 3;
+    document.getElementById("poolTicket").innerHTML =
+      `<div class="ticket-top"><strong>${ico("ticket")}${esc(ticket ? ticketText(st) : locked ? "The ticket is bought" : "The ticket")}</strong>` +
+      `<span class="state${locked ? " done" : ""}">${locked ? "Bought" : "Not bought yet"}</span></div>` +
+      (locked ? `<p>Locked by ${esc(st.locked.by)} · ${ago(st.locked.at)}. The numbers match the ticket, so nobody can change them.</p>` : "") +
+      (ticket
+        ? `<p>${esc(pm.summary)}</p>` +
+          (pm.people.length
+            ? `<div class="pays">` + pm.people.map(x =>
+                `<button type="button" class="pay ${x.cls}" data-pool="pay" data-who="${esc(x.who)}" title="Note what ${esc(x.who)} has paid"><b>${esc(x.who)}</b><span>${esc(x.text)}</span></button>`).join("") + `</div>`
+            : "")
+        : "") +
+      `<div class="row">` +
+      (ticket ? `<button class="btn ghost small" type="button" data-pool="buyer">${st.buyer ? "Change buyer" : "Who's buying?"}</button>` : "") +
+      (locked
+        ? `<button class="btn ghost small" type="button" data-pool="unlock">${ico("unlock")}Unlock</button>`
+        : `<button class="btn ghost small" type="button" data-pool="lock">${ico("lock")}Mark as bought</button>`) +
+      `</div>`;
     document.getElementById("poolTitle").disabled = locked;
     for (const id of ["poolTools", "poolGrid", "poolBetActions"]) document.getElementById(id).hidden = locked;
     document.getElementById("poolBets").innerHTML = st.bets.map(b => {
@@ -2884,7 +2972,24 @@
       (navigator.clipboard ? navigator.clipboard.writeText(p.code) : Promise.reject())
         .then(() => toast("Code copied."), () => showToCopy("code", p.code));
     } else if (act === "unlock") {
-      if (await ask({ title: "Unlock the pool?", text: "Everyone will be able to change the numbers again, so they may no longer match the ticket.", ok: "Unlock" }) && still()) poolSend({ t: "unlock" });
+      if (await ask({ title: "Unlock the pool?", text: "It goes back to not bought yet: everyone will be able to change the numbers again, so they may no longer match the ticket.", ok: "Unlock" }) && still()) poolSend({ t: "unlock" });
+    } else if (act === "lock") {
+      const short = p.state.bets.filter(b => b.picks.length < MAIN_COUNT).map(b => b.name);
+      const warn = short.length ? `\n\n${short.join(", ")} ${short.length === 1 ? "doesn't" : "don't"} have 6 numbers yet.` : "";
+      const text = `This locks the pool so the numbers keep matching the ticket: nobody can change them until someone unlocks it. Who has paid can still be noted.${warn}`;
+      if (await ask({ title: "Mark the ticket as bought?", text, ok: "Mark as bought" }) && still()) poolSend({ t: "lock" });
+    } else if (act === "buyer") {
+      const name = await ask({ title: "Who is buying the ticket?", text: "Everyone in the pool sees this. Leave it empty if nobody is yet.", input: p.state.buyer || poolMyName(), ok: "Save", maxLength: 20 });
+      if (name != null && still()) poolSend({ t: "buyer", name: name.trim() });
+    } else if (act === "pay") {
+      const who = btn.dataset.who, pm = poolMoney(p.state), x = pm.people.find(q => q.who === who);
+      const text = (pm.share ? `${who}'s share is ${money(pm.share)}${x && x.buyer ? ", which counts as paid: they're buying the ticket" : ""}. ` : "") +
+        "Type what they've paid so far in all, or 0 for nothing yet. Everyone in the pool sees it.";
+      const typed = await ask({ title: `How much has ${who} paid?`, text, input: String((x && x.amount) || pm.share || ""), ok: "Save", maxLength: 12, inputMode: "decimal" });
+      if (typed == null || !still()) return;
+      const amount = Number(typed.replace(/hk\$|[$,\s]/gi, "") || "0");
+      if (!Number.isFinite(amount) || amount < 0 || amount > 1e6) { toast("Type an amount in dollars, like 28."); return; }
+      poolSend({ t: "paid", who, amount: Math.round(amount * 10) / 10 });
     } else if (act === "role") {
       pool.role = btn.dataset.role === "bankers" && pool.proto >= 2 ? "bankers" : "legs";
       renderPool();
@@ -2926,12 +3031,6 @@
     const r = addBets(poolReadyBets().map(b => cleanBet({ name: `${title} · ${b.name}`.slice(0, 40), bankers: b.bankers, legs: b.legs, who: b.who })).filter(Boolean));
     if (r.added && !storeBets()) return;
     toast(addSummary(r, "Saved"));
-  });
-  document.getElementById("poolLock").addEventListener("click", async () => {
-    if (!pool || !pool.state) return;
-    const p = pool, short = p.state.bets.filter(b => b.picks.length < MAIN_COUNT).map(b => b.name);
-    const warn = short.length ? `\n\n${short.join(", ")} ${short.length === 1 ? "doesn't" : "don't"} have 6 numbers yet.` : "";
-    if (await ask({ title: "Lock the pool?", text: `Do this once the ticket is bought: nobody can change the numbers until someone unlocks it.${warn}`, ok: "Lock" }) && pool === p) poolSend({ t: "lock" });
   });
   document.getElementById("poolPng").addEventListener("click", () => sharePoolImage());
   // Leave pool goes to the Group pool view, to open or make another.

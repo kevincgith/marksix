@@ -19,6 +19,8 @@ export const LIMITS = {
   name: 20, // a person's name
   betName: 24,
   log: 40, // changes kept
+  payers: 40, // people whose payments are kept
+  paid: 1_000_000, // HK$, the most one person can be noted as having paid
   frame: 1024, // bytes in a message from a phone
 } as const;
 
@@ -34,6 +36,12 @@ export interface Bet {
   name: string;
   size: number; // how many numbers it's meant to have, bankers included (a target, and a cap)
   picks: Pick[]; // in the order they were added
+}
+
+// What someone has put in towards the ticket so far, in HK$.
+export interface Payment {
+  who: string;
+  amount: number;
 }
 
 export interface LogEntry {
@@ -54,6 +62,10 @@ export interface Pool {
   // nothing can change until someone unlocks it. (Absent in pools made
   // before locking existed: unlocked.)
   locked?: { by: string; at: number } | null;
+  // The ticket: who is buying it, and what each person has paid towards it.
+  // (Whether it's bought yet is the lock.) Both can change while locked.
+  buyer?: string | null;
+  paid?: Payment[];
 }
 
 export type Op =
@@ -66,6 +78,8 @@ export type Op =
   | { t: "addBet"; by: string }
   | { t: "removeBet"; bet: string; by: string }
   | { t: "title"; title: string; by: string }
+  | { t: "buyer"; name: string; by: string } // "" for nobody yet
+  | { t: "paid"; who: string; amount: number; by: string } // in all, so 0 takes it away
   | { t: "lock"; by: string }
   | { t: "unlock"; by: string };
 
@@ -173,6 +187,13 @@ export function parseOp(frame: string): Op | { t: "ping" } | null {
       return { t: o.t, by };
     case "title":
       return typeof o.title === "string" ? { t: "title", title: o.title, by } : null;
+    case "buyer":
+      return typeof o.name === "string" ? { t: "buyer", name: o.name, by } : null;
+    case "paid": {
+      const who = cleanText(o.who, LIMITS.name);
+      const ok = typeof o.amount === "number" && Number.isFinite(o.amount) && o.amount >= 0 && o.amount <= LIMITS.paid;
+      return who && ok ? { t: "paid", who, amount: Math.round((o.amount as number) * 10) / 10, by } : null; // to 10 cents
+    }
     default:
       return null;
   }
@@ -189,7 +210,9 @@ export function applyOp(pool: Pool, op: Op, now: number): boolean {
     if (!bet) throw new Refusal("That bet has been removed.");
     return bet;
   };
-  if (pool.locked && op.t !== "unlock" && op.t !== "lock")
+  // Locking keeps the numbers as they are on the ticket; who is buying and
+  // who has paid can still be noted.
+  if (pool.locked && op.t !== "unlock" && op.t !== "lock" && op.t !== "buyer" && op.t !== "paid")
     throw new Refusal(`The pool is locked (${pool.locked.by} locked it, the ticket's bought). Unlock it to change anything.`);
   let text: string;
   switch (op.t) {
@@ -269,6 +292,26 @@ export function applyOp(pool: Pool, op: Op, now: number): boolean {
       if (pool.bets.length <= 1) throw new Refusal("A pool needs at least one bet.");
       pool.bets = pool.bets.filter((b) => b !== bet);
       text = `removed ${bet.name}` + (bet.picks.length ? ` (${bet.picks.map((p) => p.n).join(", ")})` : "");
+      break;
+    }
+    case "buyer": {
+      const name = cleanText(op.name, LIMITS.name);
+      if (name === (pool.buyer ?? "")) return false;
+      pool.buyer = name || null;
+      text = !name ? "said nobody is buying the ticket yet" : name === op.by ? "is buying the ticket" : `said ${name} is buying the ticket`;
+      break;
+    }
+    case "paid": {
+      const list = (pool.paid ??= []);
+      const i = list.findIndex((p) => p.who === op.who);
+      if ((i < 0 ? 0 : list[i].amount) === op.amount) return false;
+      if (!op.amount) list.splice(i, 1);
+      else if (i >= 0) list[i].amount = op.amount;
+      else if (list.length >= LIMITS.payers) throw new Refusal(`Payments are kept for up to ${LIMITS.payers} people.`);
+      else list.push({ who: op.who, amount: op.amount });
+      const sum = "HK$" + op.amount.toLocaleString("en-US", Number.isInteger(op.amount) ? {} : { minimumFractionDigits: 2 });
+      const mine = op.who === op.by;
+      text = op.amount ? (mine ? `has paid ${sum}` : `noted that ${op.who} has paid ${sum}`) : mine ? "took their payment off" : `took ${op.who}'s payment off`;
       break;
     }
     case "title": {
